@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Info, Pencil, RotateCcw } from "lucide-react";
+import { Info, Pencil, RotateCcw, Ruler } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -35,14 +35,55 @@ export function MeasurementsCard({
   onChange: (next: Measurements) => void;
 }) {
   const [editing, setEditing] = useState(false);
+  const [heightInput, setHeightInput] = useState<string>(
+    measurements.userHeightCm ? String(measurements.userHeightCm) : "",
+  );
+
   const pct = (value: number) => `${Math.round(value * 100)}%`;
 
+  // Real scale calibration calculations
+  const userHeight = Number(heightInput);
+  const isCalibrated = userHeight > 50 && userHeight < 250;
+
+  // Derive estimated cm from normalized ratios
+  const shoulderRatio =
+    measurements.heightToShoulderRatio > 0 ? 1 / measurements.heightToShoulderRatio : 0.15;
+  const estimatedShoulderCm = isCalibrated ? Math.round(userHeight * shoulderRatio) : null;
+  const estimatedTorsoCm = isCalibrated
+    ? Math.round(userHeight * (measurements.torsoHeightRatio || 0.28))
+    : null;
+  const estimatedLegCm = isCalibrated
+    ? Math.round(userHeight * (measurements.legLengthRatio || 0.52))
+    : null;
+
+  const handleHeightChange = (val: string) => {
+    setHeightInput(val);
+    const num = Number(val);
+    if (num > 50 && num < 250) {
+      onChange({
+        ...measurements,
+        userHeightCm: num,
+        estimatedShoulderWidthCm: Math.round(num * shoulderRatio),
+        estimatedTorsoHeightCm: Math.round(num * (measurements.torsoHeightRatio || 0.28)),
+        estimatedLegLengthCm: Math.round(num * (measurements.legLengthRatio || 0.52)),
+      });
+    } else {
+      onChange({
+        ...measurements,
+        userHeightCm: undefined,
+        estimatedShoulderWidthCm: undefined,
+        estimatedTorsoHeightCm: undefined,
+        estimatedLegLengthCm: undefined,
+      });
+    }
+  };
+
   return (
-    <section className="surface p-6">
+    <section className="surface p-6 space-y-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="eyebrow">Step 02 — Body read</p>
-          <h2 className="mt-1 text-2xl">Estimated proportions</h2>
+          <h2 className="mt-1 text-2xl font-display">Detected proportions</h2>
         </div>
         <div className="flex gap-2">
           {editing ? (
@@ -58,33 +99,92 @@ export function MeasurementsCard({
         </div>
       </div>
 
-      <p className="mt-4 flex gap-2 rounded-md bg-accent/12 p-3 text-xs text-muted-foreground">
+      <p className="flex gap-2 rounded-md bg-accent/12 p-3 text-xs text-muted-foreground">
         <Info className="mt-0.5 size-4 shrink-0 text-accent-foreground/70" />
-        These numbers are approximate. They are ratios read from one photo, not tailoring
-        measurements — adjust anything that looks off.
+        These figures are normalized proportions calculated from your photo's detected landmarks.
+        They reflect body ratios rather than absolute tailoring measurements.
       </p>
 
-      <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      {/* Proportions Grid */}
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         <Stat
-          label="Height ratio"
+          label="Height-to-shoulder"
           value={`${measurements.heightToShoulderRatio.toFixed(1)}×`}
-          hint="Body height vs shoulder width"
+          hint="Body height vs shoulder span"
+        />
+        <Stat
+          label="Torso ratio"
+          value={pct(measurements.torsoHeightRatio || 0.28)}
+          hint="Vertical spine to total height"
+        />
+        <Stat
+          label="Leg ratio"
+          value={pct(measurements.legLengthRatio || 0.52)}
+          hint="Hip to ankle proportion"
         />
         <Stat
           label="Shoulder width"
           value={pct(measurements.shoulderWidthRatio)}
-          hint="Of photo width"
+          hint="Of photo frame width"
         />
-        <Stat label="Hip width" value={pct(measurements.hipWidthRatio)} hint="Of photo width" />
         <Stat
-          label="Body type"
+          label="Hip width"
+          value={pct(measurements.hipWidthRatio)}
+          hint="Of photo frame width"
+        />
+        <Stat
+          label="Body silhouette"
           value={measurements.bodyType}
-          hint={`Shoulder:hip ${measurements.shoulderToHipRatio.toFixed(2)}`}
+          hint={`Shoulder:hip ratio ${measurements.shoulderToHipRatio.toFixed(2)}`}
         />
       </div>
 
+      {/* Optional Real-World Reference Scale Calibration */}
+      <div className="rounded-lg border border-border bg-card/60 p-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <Ruler className="size-4 text-accent-foreground/80" />
+            <div>
+              <p className="text-sm font-medium">Height calibration (optional)</p>
+              <p className="text-xs text-muted-foreground">
+                Enter your height to estimate real-world dimensions in centimeters.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <Input
+              type="number"
+              placeholder="e.g. 175"
+              min={100}
+              max={230}
+              value={heightInput}
+              onChange={(e) => handleHeightChange(e.target.value)}
+              className="w-24 text-sm"
+            />
+            <span className="text-xs text-muted-foreground font-medium">cm</span>
+          </div>
+        </div>
+
+        {isCalibrated ? (
+          <div className="mt-4 grid gap-3 border-t border-border/70 pt-3 text-xs sm:grid-cols-3">
+            <div className="rounded bg-secondary/50 p-2.5">
+              <span className="text-muted-foreground">Est. shoulder span</span>
+              <p className="mt-0.5 text-base font-semibold">{estimatedShoulderCm} cm</p>
+            </div>
+            <div className="rounded bg-secondary/50 p-2.5">
+              <span className="text-muted-foreground">Est. torso height</span>
+              <p className="mt-0.5 text-base font-semibold">{estimatedTorsoCm} cm</p>
+            </div>
+            <div className="rounded bg-secondary/50 p-2.5">
+              <span className="text-muted-foreground">Est. leg length</span>
+              <p className="mt-0.5 text-base font-semibold">{estimatedLegCm} cm</p>
+            </div>
+          </div>
+        ) : null}
+      </div>
+
       {editing ? (
-        <div className="mt-6 grid gap-4 border-t border-border pt-6 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-4 border-t border-border pt-6 sm:grid-cols-2 lg:grid-cols-4">
           <div className="space-y-2">
             <Label htmlFor="height-ratio">Height ratio (×)</Label>
             <Input
@@ -129,7 +229,7 @@ export function MeasurementsCard({
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="body-type">Body type</Label>
+            <Label htmlFor="body-type">Body silhouette</Label>
             <Select
               value={measurements.bodyType}
               onValueChange={(value) => onChange({ ...measurements, bodyType: value as BodyType })}
