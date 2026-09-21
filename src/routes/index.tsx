@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowRight, Ruler, ScanLine, Shirt } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { HeaderAuthButtons } from "@/components/HeaderAuthButtons";
 import heroModel from "@/assets/hero-model.jpg";
 
 export const Route = createFileRoute("/")({
@@ -47,11 +48,20 @@ const STEPS = [
 function Landing() {
   return (
     <main className="min-h-screen">
-      <nav className="mx-auto flex w-full max-w-6xl items-center justify-between px-6 py-6">
-        <span className="font-display text-xl">Virtual Try Room</span>
-        <Button asChild variant="ghost" size="sm">
-          <Link to="/studio">Open the studio</Link>
-        </Button>
+      <nav className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-6 py-6">
+        <Link
+          to="/"
+          className="font-display text-xl tracking-tight hover:opacity-90 transition-opacity"
+        >
+          Virtual Try Room
+        </Link>
+        <div className="flex items-center gap-3">
+          <Button asChild variant="ghost" size="sm" className="text-xs font-medium">
+            <Link to="/studio">Open the studio</Link>
+          </Button>
+          <div className="h-4 w-px bg-border hidden sm:block" />
+          <HeaderAuthButtons />
+        </div>
       </nav>
 
       <section className="mx-auto grid w-full max-w-6xl items-center gap-12 px-6 py-12 md:grid-cols-2 md:py-20">

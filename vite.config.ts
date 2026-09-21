@@ -16,7 +16,14 @@ export default defineConfig({
     // nitro/vite builds from this
     server: { entry: "server" },
   },
+  nitro: {
+    preset: "node-server",
+  },
   vite: {
+    server: {
+      host: "0.0.0.0",
+      port: 3000,
+    },
     resolve: {
       alias: {
         "@mediapipe/pose": path.resolve(__dirname, "./src/lib/mediapipe-pose-shim.ts"),
