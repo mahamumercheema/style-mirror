@@ -1,0 +1,6 @@
+{
+  "name": "Virtual Try Room",
+  "description": "A private, browser-based fitting room for trying clothes on your own photo with real-time pose and body measurement estimation.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

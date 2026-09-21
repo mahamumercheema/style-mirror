@@ -82,7 +82,7 @@ export function TryOnCanvas({
       return;
     }
     const shoulderMidX =
-      ((guide.leftShoulder.x + guide.rightShoulder.x) / 2) * scaleFactor / size.width;
+      (((guide.leftShoulder.x + guide.rightShoulder.x) / 2) * scaleFactor) / size.width;
     const shoulderMidY = ((guide.leftShoulder.y + guide.rightShoulder.y) / 2) * scaleFactor;
     const torso = guide.torsoHeight * scaleFactor;
     setLayer({
@@ -169,7 +169,12 @@ export function TryOnCanvas({
     const canvas = canvasRef.current;
     if (!canvas) return;
     const link = document.createElement("a");
-    link.download = `virtual-try-room-${garmentTitle.toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 40) || "look"}.png`;
+    link.download = `virtual-try-room-${
+      garmentTitle
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .slice(0, 40) || "look"
+    }.png`;
     link.href = canvas.toDataURL("image/png");
     link.click();
   };

@@ -32,7 +32,7 @@ export function ClothingLinkPanel({
     }
   };
 
-  const useLocalFile = (file: File | undefined | null) => {
+  const handleLocalFile = (file: File | undefined | null) => {
     if (!file) return;
     const reader = new FileReader();
     reader.onload = () =>
@@ -78,7 +78,7 @@ export function ClothingLinkPanel({
           type="file"
           accept="image/*"
           className="hidden"
-          onChange={(event) => useLocalFile(event.target.files?.[0])}
+          onChange={(event) => handleLocalFile(event.target.files?.[0])}
         />
       </label>
 

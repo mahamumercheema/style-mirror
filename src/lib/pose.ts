@@ -72,7 +72,9 @@ async function getDetector() {
   return detectorPromise as Promise<{
     estimatePoses: (
       image: HTMLImageElement,
-    ) => Promise<Array<{ keypoints: Array<{ name?: string; x: number; y: number; score?: number }> }>>;
+    ) => Promise<
+      Array<{ keypoints: Array<{ name?: string; x: number; y: number; score?: number }> }>
+    >;
   }>;
 }
 

@@ -57,9 +57,7 @@ function Studio() {
       setGuide(result.guide);
       setStatus("done");
     } catch (cause) {
-      setPoseError(
-        cause instanceof Error ? cause.message : "Body detection failed on this photo.",
-      );
+      setPoseError(cause instanceof Error ? cause.message : "Body detection failed on this photo.");
       setStatus("failed");
     }
   }, []);

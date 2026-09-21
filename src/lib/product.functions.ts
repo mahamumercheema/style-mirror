@@ -59,7 +59,9 @@ export const fetchProductPreview = createServerFn({ method: "POST" })
   .handler(async ({ data }): Promise<ProductPreview> => {
     let target: URL;
     try {
-      target = new URL(data.url.trim().startsWith("http") ? data.url.trim() : `https://${data.url.trim()}`);
+      target = new URL(
+        data.url.trim().startsWith("http") ? data.url.trim() : `https://${data.url.trim()}`,
+      );
     } catch {
       throw new Error("That doesn't look like a valid link.");
     }
