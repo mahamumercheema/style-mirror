@@ -83,12 +83,14 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { title: "Virtual Try Room" },
       {
         name: "description",
-        content: "A private, browser-based fitting room for trying clothes on your own photo.",
+        content:
+          "A private, browser-based fitting room for trying clothes on your own photo with real-time pose and body measurement estimation.",
       },
       { property: "og:title", content: "Virtual Try Room" },
       {
         property: "og:description",
-        content: "A private, browser-based fitting room for trying clothes on your own photo.",
+        content:
+          "A private, browser-based fitting room for trying clothes on your own photo with real-time pose and body measurement estimation.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
