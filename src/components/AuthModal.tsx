@@ -112,9 +112,10 @@ export function AuthModal() {
   };
 
   // Handle Sign Up Step 2 Verification Submit
-  const handleVerificationSubmit = (e?: React.FormEvent) => {
+  const handleVerificationSubmit = (e?: React.FormEvent, codeOverride?: string) => {
     if (e) e.preventDefault();
-    if (verificationCode.trim().length !== 6) {
+    const codeToVerify = (codeOverride !== undefined ? codeOverride : verificationCode).trim();
+    if (codeToVerify.length !== 6) {
       setVerificationError("Please enter all 6 digits of your verification code.");
       return;
     }
@@ -122,7 +123,7 @@ export function AuthModal() {
     setVerificationError(null);
     setIsVerifying(true);
 
-    const result = verifyTwoStepCode(verificationCode);
+    const result = verifyTwoStepCode(codeToVerify);
     setIsVerifying(false);
 
     if (!result.success && result.error) {
@@ -558,7 +559,7 @@ export function AuthModal() {
                       setVerificationCode(val);
                       if (verificationError) setVerificationError(null);
                       if (val.length === 6) {
-                        verifyTwoStepCode(val);
+                        handleVerificationSubmit(undefined, val);
                       }
                     }}
                     className="h-12 text-center font-mono text-2xl tracking-[0.5em] font-bold"
