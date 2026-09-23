@@ -1,27 +1,14 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { toast } from "sonner";
+import { apiRegisterIntent, apiVerifyCode, apiResendCode, apiLogin } from "@/lib/auth.functions";
 
 export interface User {
   id: string;
   email: string;
   name: string;
   createdAt: string;
+  emailVerified: boolean;
   twoFactorVerified: boolean;
-}
-
-interface StoredAccount {
-  id: string;
-  email: string;
-  password: string;
-  name: string;
-  createdAt: string;
-}
-
-interface PendingRegistration {
-  email: string;
-  password: string;
-  verificationCode: string;
-  expiresAt: number;
 }
 
 export type AuthModalView = "login" | "signup";
@@ -33,21 +20,21 @@ interface AuthContextType {
   modalView: AuthModalView;
   signUpStep: 1 | 2;
   pendingEmail: string;
-  activeVerificationCode: string | null;
   resendCooldown: number;
   gateReason: string | null;
+  isSubmitting: boolean;
   openLogin: (initialEmail?: string, reason?: string) => void;
   openSignUp: (initialEmail?: string, reason?: string) => void;
   closeModal: () => void;
   setModalView: (view: AuthModalView) => void;
-  login: (email: string, password: string) => { success: boolean; error?: string };
+  login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   startSignUp: (
     email: string,
     password: string,
     confirmPassword: string,
-  ) => { success: boolean; error?: string };
-  verifyTwoStepCode: (code: string) => { success: boolean; error?: string };
-  resendCode: () => void;
+  ) => Promise<{ success: boolean; error?: string }>;
+  verifyTwoStepCode: (code: string) => Promise<{ success: boolean; error?: string }>;
+  resendCode: () => Promise<void>;
   backToStep1: () => void;
   logout: () => void;
 }
@@ -55,49 +42,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 const USER_STORAGE_KEY = "vtr_auth_user";
-const ACCOUNTS_STORAGE_KEY = "vtr_registered_accounts";
-
-const DEMO_ACCOUNT: StoredAccount = {
-  id: "usr_demo",
-  email: "demo@stylemirror.com",
-  password: "password123",
-  name: "Demo User",
-  createdAt: new Date().toISOString(),
-};
-
-function getStoredAccounts(): StoredAccount[] {
-  if (typeof window === "undefined") return [DEMO_ACCOUNT];
-  try {
-    const raw = localStorage.getItem(ACCOUNTS_STORAGE_KEY);
-    if (!raw) {
-      // Seed demo account by default
-      localStorage.setItem(ACCOUNTS_STORAGE_KEY, JSON.stringify([DEMO_ACCOUNT]));
-      return [DEMO_ACCOUNT];
-    }
-    const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed) || parsed.length === 0) {
-      localStorage.setItem(ACCOUNTS_STORAGE_KEY, JSON.stringify([DEMO_ACCOUNT]));
-      return [DEMO_ACCOUNT];
-    }
-    // Ensure demo account is present
-    if (!parsed.some((a: StoredAccount) => a.email === DEMO_ACCOUNT.email)) {
-      parsed.unshift(DEMO_ACCOUNT);
-      localStorage.setItem(ACCOUNTS_STORAGE_KEY, JSON.stringify(parsed));
-    }
-    return parsed;
-  } catch {
-    return [DEMO_ACCOUNT];
-  }
-}
-
-function saveStoredAccounts(accounts: StoredAccount[]) {
-  if (typeof window === "undefined") return;
-  try {
-    localStorage.setItem(ACCOUNTS_STORAGE_KEY, JSON.stringify(accounts));
-  } catch (err) {
-    console.error("Failed to save accounts", err);
-  }
-}
+const TOKEN_STORAGE_KEY = "vtr_auth_token";
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -105,10 +50,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [modalView, setModalView] = useState<AuthModalView>("login");
   const [signUpStep, setSignUpStep] = useState<1 | 2>(1);
   const [gateReason, setGateReason] = useState<string | null>(null);
-  const [pendingRegistration, setPendingRegistration] = useState<PendingRegistration | null>(null);
+  const [pendingEmail, setPendingEmail] = useState<string>("");
   const [resendCooldown, setResendCooldown] = useState<number>(0);
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
-  // Initialize user from local storage and check URL parameters
+  // Initialize active user from local storage
   useEffect(() => {
     if (typeof window === "undefined") return;
     try {
@@ -120,7 +66,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.error("Failed to parse stored user", err);
     }
 
-    // Check for query params e.g. ?auth=login or ?auth=signup
     try {
       const params = new URLSearchParams(window.location.search);
       const authParam = params.get("auth");
@@ -138,7 +83,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  // Cooldown countdown timer for resending verification code
+  // Cooldown countdown timer for resending verification code (60 seconds)
   useEffect(() => {
     if (resendCooldown <= 0) return;
     const timer = setInterval(() => {
@@ -147,14 +92,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => clearInterval(timer);
   }, [resendCooldown]);
 
-  const openLogin = (initialEmail?: string, reason?: string) => {
+  const openLogin = (_initialEmail?: string, reason?: string) => {
     setModalView("login");
     setSignUpStep(1);
     setGateReason(reason || null);
     setIsModalOpen(true);
   };
 
-  const openSignUp = (initialEmail?: string, reason?: string) => {
+  const openSignUp = (_initialEmail?: string, reason?: string) => {
     setModalView("signup");
     setSignUpStep(1);
     setGateReason(reason || null);
@@ -169,188 +114,138 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }, 200);
   };
 
-  const login = (email: string, password: string): { success: boolean; error?: string } => {
-    const normalizedEmail = email.trim().toLowerCase();
-    if (!normalizedEmail) {
-      return { success: false, error: "Please enter your email address." };
+  const login = async (
+    email: string,
+    password: string,
+  ): Promise<{ success: boolean; error?: string }> => {
+    setIsSubmitting(true);
+    try {
+      const result = await apiLogin({ email, password });
+      if (!result.success || !result.user) {
+        return { success: false, error: result.error || "Login failed" };
+      }
+
+      setUser(result.user);
+      if (result.token) {
+        localStorage.setItem(TOKEN_STORAGE_KEY, result.token);
+      }
+      localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(result.user));
+
+      toast.success(`Welcome back, ${result.user.email}!`, {
+        description: "You are now logged in. Measurements and fitting room are unlocked.",
+      });
+
+      closeModal();
+      return { success: true };
+    } finally {
+      setIsSubmitting(false);
     }
-    if (!password) {
-      return { success: false, error: "Please enter your password." };
-    }
-
-    const accounts = getStoredAccounts();
-    const existing = accounts.find((acc) => acc.email.toLowerCase() === normalizedEmail);
-
-    if (!existing) {
-      return {
-        success: false,
-        error: "No account found with this email. Please sign up first.",
-      };
-    }
-
-    if (existing.password !== password) {
-      return {
-        success: false,
-        error: "Incorrect password. Please verify your credentials and try again.",
-      };
-    }
-
-    const authUser: User = {
-      id: existing.id,
-      email: existing.email,
-      name: existing.name,
-      createdAt: existing.createdAt,
-      twoFactorVerified: true,
-    };
-
-    setUser(authUser);
-    localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(authUser));
-    toast.success(`Welcome back, ${authUser.email}!`, {
-      description: "You are now logged in. Measurements and fitting room are unlocked.",
-    });
-    closeModal();
-    return { success: true };
   };
 
-  const startSignUp = (
+  const startSignUp = async (
     email: string,
     password: string,
     confirmPassword: string,
-  ): { success: boolean; error?: string } => {
-    const normalizedEmail = email.trim().toLowerCase();
+  ): Promise<{ success: boolean; error?: string }> => {
+    setIsSubmitting(true);
+    try {
+      const result = await apiRegisterIntent({
+        email,
+        password,
+        confirmPassword,
+      });
 
-    // Validations
-    if (!normalizedEmail) {
-      return { success: false, error: "Email address is required." };
+      if (!result.success) {
+        if (result.retryAfter) {
+          setResendCooldown(result.retryAfter);
+        }
+        return {
+          success: false,
+          error: result.error || "Failed to start sign up. Please try again.",
+        };
+      }
+
+      setPendingEmail(email.trim().toLowerCase());
+      setSignUpStep(2);
+      setResendCooldown(60);
+
+      // Secure toast notification: NEVER discloses OTP code
+      toast.success("Verification code sent to your email", {
+        description: `Please check your inbox at ${email.trim().toLowerCase()} and enter the 6-digit code.`,
+      });
+
+      return { success: true };
+    } finally {
+      setIsSubmitting(false);
     }
-
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(normalizedEmail)) {
-      return {
-        success: false,
-        error: "Please enter a valid email address (e.g. name@example.com).",
-      };
-    }
-
-    if (!password) {
-      return { success: false, error: "Password is required." };
-    }
-
-    if (password.length < 6) {
-      return { success: false, error: "Password must be at least 6 characters long." };
-    }
-
-    if (password !== confirmPassword) {
-      return { success: false, error: "Passwords do not match. Please verify and try again." };
-    }
-
-    const accounts = getStoredAccounts();
-    const alreadyExists = accounts.some((acc) => acc.email.toLowerCase() === normalizedEmail);
-    if (alreadyExists) {
-      return {
-        success: false,
-        error: "An account with this email address already exists. Please log in instead.",
-      };
-    }
-
-    // Generate a 6-digit verification code
-    const generatedCode = Math.floor(100000 + Math.random() * 900000).toString();
-    const expiresAt = Date.now() + 10 * 60 * 1000; // 10 minutes
-
-    setPendingRegistration({
-      email: normalizedEmail,
-      password,
-      verificationCode: generatedCode,
-      expiresAt,
-    });
-
-    setSignUpStep(2);
-    setResendCooldown(30);
-
-    toast.info("2-Step Verification Code Sent", {
-      description: `Code for ${normalizedEmail}: ${generatedCode}`,
-      duration: 12000,
-    });
-
-    return { success: true };
   };
 
-  const verifyTwoStepCode = (code: string): { success: boolean; error?: string } => {
-    const trimmedCode = code.trim();
-
-    if (!pendingRegistration) {
+  const verifyTwoStepCode = async (code: string): Promise<{ success: boolean; error?: string }> => {
+    if (!pendingEmail) {
       return {
         success: false,
-        error: "Registration session expired. Please restart the sign up process.",
+        error: "Verification session missing. Please start the sign up process again.",
       };
     }
 
-    if (Date.now() > pendingRegistration.expiresAt) {
-      return {
-        success: false,
-        error: "Verification code has expired. Please click 'Resend Code'.",
-      };
+    setIsSubmitting(true);
+    try {
+      const result = await apiVerifyCode({
+        email: pendingEmail,
+        code,
+      });
+
+      if (!result.success || !result.user) {
+        return {
+          success: false,
+          error: result.error || "Invalid verification code. Please check your email.",
+        };
+      }
+
+      setUser(result.user);
+      if (result.token) {
+        localStorage.setItem(TOKEN_STORAGE_KEY, result.token);
+      }
+      localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(result.user));
+
+      toast.success("Account Verified & Activated!", {
+        description: `Welcome to Virtual Try Room, ${result.user.email}. Your fitting room is unlocked.`,
+      });
+
+      setPendingEmail("");
+      closeModal();
+      return { success: true };
+    } finally {
+      setIsSubmitting(false);
     }
-
-    if (trimmedCode !== pendingRegistration.verificationCode) {
-      return {
-        success: false,
-        error: "Invalid 6-digit verification code. Please check and try again.",
-      };
-    }
-
-    // Successful 2-Step Verification
-    const accounts = getStoredAccounts();
-    const newAccount: StoredAccount = {
-      id: "usr_" + Math.random().toString(36).substring(2, 9),
-      email: pendingRegistration.email,
-      password: pendingRegistration.password,
-      name: pendingRegistration.email.split("@")[0] || "User",
-      createdAt: new Date().toISOString(),
-    };
-
-    accounts.push(newAccount);
-    saveStoredAccounts(accounts);
-
-    const authUser: User = {
-      id: newAccount.id,
-      email: newAccount.email,
-      name: newAccount.name,
-      createdAt: newAccount.createdAt,
-      twoFactorVerified: true,
-    };
-
-    setUser(authUser);
-    localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(authUser));
-
-    toast.success("Account verified & created successfully!", {
-      description: `Welcome to Virtual Try Room, ${authUser.email}.`,
-    });
-
-    setPendingRegistration(null);
-    closeModal();
-    return { success: true };
   };
 
-  const resendCode = () => {
-    if (!pendingRegistration) return;
-    if (resendCooldown > 0) return;
+  const resendCode = async (): Promise<void> => {
+    if (!pendingEmail || resendCooldown > 0 || isSubmitting) return;
 
-    const newCode = Math.floor(100000 + Math.random() * 900000).toString();
-    const expiresAt = Date.now() + 10 * 60 * 1000;
+    setIsSubmitting(true);
+    try {
+      const result = await apiResendCode({ email: pendingEmail });
 
-    setPendingRegistration({
-      ...pendingRegistration,
-      verificationCode: newCode,
-      expiresAt,
-    });
+      if (!result.success) {
+        toast.error("Failed to resend code", {
+          description: result.error || "Please wait before trying again.",
+        });
+        if (result.retryAfter) {
+          setResendCooldown(result.retryAfter);
+        }
+        return;
+      }
 
-    setResendCooldown(30);
+      setResendCooldown(60);
 
-    toast.info("New Verification Code Sent", {
-      description: `New code for ${pendingRegistration.email}: ${newCode}`,
-      duration: 12000,
-    });
+      // Secure toast notification: NEVER discloses OTP code
+      toast.success("Verification code sent to your email", {
+        description: `A new 6-digit verification code has been dispatched to ${pendingEmail}.`,
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const backToStep1 = () => {
@@ -361,6 +256,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
     if (typeof window !== "undefined") {
       localStorage.removeItem(USER_STORAGE_KEY);
+      localStorage.removeItem(TOKEN_STORAGE_KEY);
     }
     toast.info("Logged out", {
       description: "You have been logged out of your session.",
@@ -375,10 +271,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isModalOpen,
         modalView,
         signUpStep,
-        pendingEmail: pendingRegistration?.email || "",
-        activeVerificationCode: pendingRegistration?.verificationCode || null,
+        pendingEmail,
         resendCooldown,
         gateReason,
+        isSubmitting,
         openLogin,
         openSignUp,
         closeModal,

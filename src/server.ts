@@ -2,6 +2,12 @@ import "./lib/error-capture";
 
 import { consumeLastCapturedError } from "./lib/error-capture";
 import { renderErrorPage } from "./lib/error-page";
+import {
+  handleRegisterIntent,
+  handleVerifyCode,
+  handleResendCode,
+  handleLogin,
+} from "./lib/server-auth";
 
 type ServerEntry = {
   fetch: (request: Request, env: unknown, ctx: unknown) => Promise<Response> | Response;
@@ -44,9 +50,57 @@ function isH3SwallowedErrorBody(body: string): boolean {
   }
 }
 
+async function handleAuthApi(request: Request): Promise<Response | null> {
+  const url = new URL(request.url);
+  if (!url.pathname.startsWith("/api/auth/")) {
+    return null;
+  }
+
+  let body: Record<string, unknown> = {};
+  if (request.method !== "GET" && request.method !== "HEAD") {
+    try {
+      body = (await request.json()) as Record<string, unknown>;
+    } catch {
+      body = {};
+    }
+  }
+
+  let result: { status: number; body: Record<string, unknown> };
+
+  switch (url.pathname) {
+    case "/api/auth/register-intent":
+      result = await handleRegisterIntent(body);
+      break;
+    case "/api/auth/verify-code":
+      result = await handleVerifyCode(body);
+      break;
+    case "/api/auth/resend-code":
+      result = await handleResendCode(body);
+      break;
+    case "/api/auth/login":
+      result = await handleLogin(body);
+      break;
+    default:
+      return new Response(JSON.stringify({ error: "Endpoint not found" }), {
+        status: 404,
+        headers: { "content-type": "application/json" },
+      });
+  }
+
+  return new Response(JSON.stringify(result.body), {
+    status: result.status,
+    headers: { "content-type": "application/json" },
+  });
+}
+
 export default {
   async fetch(request: Request, env: unknown, ctx: unknown) {
     try {
+      const apiResponse = await handleAuthApi(request);
+      if (apiResponse) {
+        return apiResponse;
+      }
+
       const handler = await getServerEntry();
       const response = await handler.fetch(request, env, ctx);
       return await normalizeCatastrophicSsrResponse(response);

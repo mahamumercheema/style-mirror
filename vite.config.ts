@@ -20,6 +20,56 @@ export default defineConfig({
     preset: "node-server",
   },
   vite: {
+    plugins: [
+      {
+        name: "auth-api-dev-middleware",
+        configureServer(server) {
+          server.middlewares.use(async (req, res, next) => {
+            const url = req.url ? new URL(req.url, "http://localhost:3000") : null;
+            if (url && url.pathname.startsWith("/api/auth/")) {
+              let rawBody = "";
+              req.on("data", (chunk) => {
+                rawBody += chunk;
+              });
+              req.on("end", async () => {
+                try {
+                  const body = rawBody ? JSON.parse(rawBody) : {};
+                  const { handleRegisterIntent, handleVerifyCode, handleResendCode, handleLogin } =
+                    await server.ssrLoadModule("/src/lib/server-auth.ts");
+
+                  let result: { status: number; body: Record<string, unknown> };
+
+                  if (url.pathname === "/api/auth/register-intent" && req.method === "POST") {
+                    result = await handleRegisterIntent(body);
+                  } else if (url.pathname === "/api/auth/verify-code" && req.method === "POST") {
+                    result = await handleVerifyCode(body);
+                  } else if (url.pathname === "/api/auth/resend-code" && req.method === "POST") {
+                    result = await handleResendCode(body);
+                  } else if (url.pathname === "/api/auth/login" && req.method === "POST") {
+                    result = await handleLogin(body);
+                  } else {
+                    res.statusCode = 404;
+                    res.setHeader("Content-Type", "application/json");
+                    res.end(JSON.stringify({ error: "Endpoint not found" }));
+                    return;
+                  }
+
+                  res.statusCode = result.status;
+                  res.setHeader("Content-Type", "application/json");
+                  res.end(JSON.stringify(result.body));
+                } catch (err) {
+                  res.statusCode = 500;
+                  res.setHeader("Content-Type", "application/json");
+                  res.end(JSON.stringify({ error: (err as Error).message }));
+                }
+              });
+              return;
+            }
+            next();
+          });
+        },
+      },
+    ],
     server: {
       host: "0.0.0.0",
       port: 3000,

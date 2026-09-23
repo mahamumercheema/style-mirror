@@ -6,10 +6,11 @@ import {
   Eye,
   EyeOff,
   KeyRound,
+  Loader2,
   Lock,
   Mail,
+  RefreshCw,
   ShieldCheck,
-  Sparkles,
   X,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
@@ -23,9 +24,9 @@ export function AuthModal() {
     modalView,
     signUpStep,
     pendingEmail,
-    activeVerificationCode,
     resendCooldown,
     gateReason,
+    isSubmitting,
     closeModal,
     setModalView,
     login,
@@ -40,7 +41,6 @@ export function AuthModal() {
   const [loginPassword, setLoginPassword] = useState("");
   const [showLoginPassword, setShowLoginPassword] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
-  const [isLoggingIn, setIsLoggingIn] = useState(false);
 
   // Sign Up Step 1 Form State
   const [signUpEmail, setSignUpEmail] = useState("");
@@ -53,7 +53,6 @@ export function AuthModal() {
   // Sign Up Step 2 Verification State
   const [verificationCode, setVerificationCode] = useState("");
   const [verificationError, setVerificationError] = useState<string | null>(null);
-  const [isVerifying, setIsVerifying] = useState(false);
 
   const modalRef = useRef<HTMLDivElement>(null);
 
@@ -80,20 +79,17 @@ export function AuthModal() {
   if (!isModalOpen) return null;
 
   // Handle Login Submit
-  const handleLoginSubmit = (e: React.FormEvent) => {
+  const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoginError(null);
-    setIsLoggingIn(true);
 
-    const result = login(loginEmail, loginPassword);
-    setIsLoggingIn(false);
-
+    const result = await login(loginEmail, loginPassword);
     if (!result.success && result.error) {
       setLoginError(result.error);
     }
   };
 
-  // Auto-fill demo account for instantaneous testing
+  // Auto-fill demo account for rapid evaluation
   const handleAutofillDemo = () => {
     setLoginEmail("demo@stylemirror.com");
     setLoginPassword("password123");
@@ -101,41 +97,36 @@ export function AuthModal() {
   };
 
   // Handle Sign Up Step 1 Submit
-  const handleSignUpStep1Submit = (e: React.FormEvent) => {
+  const handleSignUpStep1Submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSignUpError(null);
 
-    const result = startSignUp(signUpEmail, signUpPassword, confirmPassword);
+    const result = await startSignUp(signUpEmail, signUpPassword, confirmPassword);
     if (!result.success && result.error) {
       setSignUpError(result.error);
     }
   };
 
   // Handle Sign Up Step 2 Verification Submit
-  const handleVerificationSubmit = (e?: React.FormEvent, codeOverride?: string) => {
+  const handleVerificationSubmit = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    const codeToVerify = (codeOverride !== undefined ? codeOverride : verificationCode).trim();
+    const codeToVerify = verificationCode.trim();
+
+    if (!codeToVerify) {
+      setVerificationError("Please enter the 6-digit verification code.");
+      return;
+    }
+
     if (codeToVerify.length !== 6) {
-      setVerificationError("Please enter all 6 digits of your verification code.");
+      setVerificationError("Verification code must be exactly 6 digits.");
       return;
     }
 
     setVerificationError(null);
-    setIsVerifying(true);
-
-    const result = verifyTwoStepCode(codeToVerify);
-    setIsVerifying(false);
+    const result = await verifyTwoStepCode(codeToVerify);
 
     if (!result.success && result.error) {
       setVerificationError(result.error);
-    }
-  };
-
-  // Auto-fill code helper for seamless preview testing
-  const handleAutofillCode = () => {
-    if (activeVerificationCode) {
-      setVerificationCode(activeVerificationCode);
-      setVerificationError(null);
     }
   };
 
@@ -264,17 +255,24 @@ export function AuthModal() {
               <Button
                 id="login-submit-button"
                 type="submit"
-                disabled={isLoggingIn}
+                disabled={isSubmitting}
                 className="w-full h-10 mt-1 font-medium cursor-pointer"
               >
-                {isLoggingIn ? "Logging in..." : "Log In"}
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="size-4 animate-spin mr-2" />
+                    Logging in...
+                  </>
+                ) : (
+                  "Log In"
+                )}
               </Button>
 
               {/* Demo Auto-fill Helper */}
               <button
                 type="button"
                 onClick={handleAutofillDemo}
-                className="w-full text-center text-xs text-muted-foreground hover:text-foreground hover:underline transition-colors py-1"
+                className="w-full text-center text-xs text-muted-foreground hover:text-foreground hover:underline transition-colors py-1 cursor-pointer"
               >
                 Fill demo account (demo@stylemirror.com)
               </button>
@@ -288,7 +286,7 @@ export function AuthModal() {
                 onClick={() => setModalView("signup")}
                 className="font-medium text-foreground underline hover:text-accent transition-colors cursor-pointer"
               >
-                Sign up with 2-Step Verification
+                Sign up with Email Verification
               </button>
             </div>
           </div>
@@ -301,9 +299,9 @@ export function AuthModal() {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <span className="flex size-7 items-center justify-center rounded-full bg-secondary text-secondary-foreground">
-                    <Lock className="size-3.5" />
+                    <Mail className="size-3.5" />
                   </span>
-                  <span className="eyebrow">Registration</span>
+                  <span className="eyebrow">Sign-Up Step 1</span>
                 </div>
                 <span className="rounded-full bg-secondary px-2.5 py-0.5 text-[11px] font-medium text-secondary-foreground">
                   Step 1 of 2
@@ -313,8 +311,8 @@ export function AuthModal() {
                 Create Account
               </h2>
               <p className="text-xs text-muted-foreground">
-                Enter your details. In Step 2, you will confirm your email with a 2-step
-                verification code.
+                Enter your details to register. A secure 6-digit verification code will be sent to
+                your email.
               </p>
             </div>
 
@@ -329,7 +327,7 @@ export function AuthModal() {
             )}
 
             <form onSubmit={handleSignUpStep1Submit} className="space-y-4">
-              {/* Input 1: Email Address */}
+              {/* Field 1: Email */}
               <div className="space-y-1.5">
                 <Label htmlFor="signup-email" className="text-xs font-medium">
                   Email Address
@@ -353,7 +351,7 @@ export function AuthModal() {
                 </div>
               </div>
 
-              {/* Input 2: Password */}
+              {/* Field 2: Password */}
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
                   <Label htmlFor="signup-password" className="text-xs font-medium">
@@ -366,7 +364,7 @@ export function AuthModal() {
                   <Input
                     id="signup-password"
                     type={showSignUpPassword ? "text" : "password"}
-                    placeholder="Create a strong password"
+                    placeholder="Create a password"
                     value={signUpPassword}
                     onChange={(e) => {
                       setSignUpPassword(e.target.value);
@@ -391,7 +389,7 @@ export function AuthModal() {
                 </div>
               </div>
 
-              {/* Input 3: Confirm Password */}
+              {/* Field 3: Confirm Password */}
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
                   <Label htmlFor="signup-confirm-password" className="text-xs font-medium">
@@ -413,7 +411,7 @@ export function AuthModal() {
                   <Input
                     id="signup-confirm-password"
                     type={showConfirmPassword ? "text" : "password"}
-                    placeholder="Re-enter password to confirm"
+                    placeholder="Confirm your password"
                     value={confirmPassword}
                     onChange={(e) => {
                       setConfirmPassword(e.target.value);
@@ -447,9 +445,17 @@ export function AuthModal() {
               <Button
                 id="signup-continue-step1-button"
                 type="submit"
+                disabled={isSubmitting}
                 className="w-full h-10 mt-1 font-medium cursor-pointer"
               >
-                Continue to 2-Step Verification
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="size-4 animate-spin mr-2" />
+                    Sending Verification Code...
+                  </>
+                ) : (
+                  "Continue to Email Verification"
+                )}
               </Button>
             </form>
 
@@ -467,13 +473,14 @@ export function AuthModal() {
           </div>
         )}
 
-        {/* ================= SIGN UP: STEP 2 (TWO-STEP VERIFICATION) ================= */}
+        {/* ================= SIGN UP: STEP 2 (SECURE EMAIL VERIFICATION CODE FLOW) ================= */}
         {modalView === "signup" && signUpStep === 2 && (
           <div className="space-y-6">
             <div className="space-y-1.5 text-left">
               <div className="flex items-center justify-between">
                 <button
                   type="button"
+                  id="back-to-step-1-button"
                   onClick={backToStep1}
                   className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
                 >
@@ -488,49 +495,22 @@ export function AuthModal() {
                 <span className="flex size-7 items-center justify-center rounded-full bg-primary text-primary-foreground">
                   <ShieldCheck className="size-3.5" />
                 </span>
-                <span className="eyebrow">Two-Step Verification</span>
+                <span className="eyebrow">Email Verification</span>
               </div>
               <h2 id="auth-modal-title" className="font-display text-3xl">
-                Verify Your Code
+                Verify Your Email
               </h2>
-              <p className="text-xs text-muted-foreground">
-                We sent a 6-digit security code to{" "}
-                <strong className="text-foreground font-medium">{pendingEmail}</strong>.
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                We sent a 6-digit verification code to{" "}
+                <strong className="text-foreground font-medium">{pendingEmail}</strong>. Enter the
+                code below to complete your sign-up.
               </p>
             </div>
-
-            {/* Test Simulation Banner */}
-            {activeVerificationCode && (
-              <div
-                id="verification-code-display-box"
-                className="rounded-lg border border-accent/40 bg-accent/15 p-3.5 space-y-2 text-xs"
-              >
-                <div className="flex items-center justify-between">
-                  <span className="font-medium text-accent-foreground flex items-center gap-1.5">
-                    <Sparkles className="size-3.5 text-accent" />
-                    Simulated Email Code:
-                  </span>
-                  <button
-                    type="button"
-                    onClick={handleAutofillCode}
-                    className="text-xs font-semibold text-accent hover:underline cursor-pointer"
-                  >
-                    Auto-fill Code
-                  </button>
-                </div>
-                <div className="flex items-center justify-between rounded bg-background/80 px-3 py-1.5 font-mono text-sm tracking-widest font-bold">
-                  <span>{activeVerificationCode}</span>
-                  <span className="text-[11px] font-sans text-muted-foreground font-normal">
-                    Expires in 10 min
-                  </span>
-                </div>
-              </div>
-            )}
 
             {verificationError && (
               <div
                 id="verification-error-alert"
-                className="flex items-start gap-2.5 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-xs text-destructive"
+                className="flex items-start gap-2.5 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-xs text-destructive animate-in fade-in duration-200"
               >
                 <AlertCircle className="size-4 shrink-0 mt-0.5" />
                 <div className="flex-1">{verificationError}</div>
@@ -538,59 +518,92 @@ export function AuthModal() {
             )}
 
             <form onSubmit={handleVerificationSubmit} className="space-y-4">
-              <div className="space-y-2 text-center">
+              <div className="space-y-1.5 text-left">
                 <Label
-                  htmlFor="verification-otp-input"
-                  className="text-xs font-medium text-muted-foreground block text-left"
+                  htmlFor="verification-code-input"
+                  className="text-xs font-medium text-foreground block"
                 >
-                  Enter 6-digit verification code
+                  6-Digit Verification Code
                 </Label>
                 <div className="relative">
                   <Input
-                    id="verification-otp-input"
+                    id="verification-code-input"
                     type="text"
                     inputMode="numeric"
                     pattern="[0-9]*"
                     maxLength={6}
-                    placeholder="000000"
+                    placeholder="······"
                     value={verificationCode}
                     onChange={(e) => {
                       const val = e.target.value.replace(/\D/g, "").slice(0, 6);
                       setVerificationCode(val);
                       if (verificationError) setVerificationError(null);
-                      if (val.length === 6) {
-                        handleVerificationSubmit(undefined, val);
-                      }
                     }}
-                    className="h-12 text-center font-mono text-2xl tracking-[0.5em] font-bold"
+                    className="h-12 text-center font-mono text-2xl tracking-[0.4em] font-bold"
                     autoFocus
                     required
                   />
                 </div>
+                <div className="flex items-center justify-between text-[11px] text-muted-foreground pt-1">
+                  <span>Code valid for 10 minutes</span>
+                  <span>Max 5 attempts allowed</span>
+                </div>
               </div>
 
-              <div className="flex items-center justify-between text-xs text-muted-foreground">
-                <span>Didn&apos;t receive the code?</span>
+              {/* Resend Code Option with Countdown */}
+              <div className="flex items-center justify-between text-xs text-muted-foreground pt-1">
+                <span>Didn&apos;t receive the email?</span>
                 <button
                   type="button"
                   id="resend-code-btn"
-                  disabled={resendCooldown > 0}
-                  onClick={resendCode}
-                  className="font-medium text-foreground hover:text-accent disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                  disabled={resendCooldown > 0 || isSubmitting}
+                  onClick={() => void resendCode()}
+                  className="font-medium text-foreground hover:text-accent disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer inline-flex items-center gap-1"
                 >
-                  {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : "Resend Code"}
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="size-3 animate-spin" />
+                      <span>Sending...</span>
+                    </>
+                  ) : resendCooldown > 0 ? (
+                    `Resend Code in ${resendCooldown}s`
+                  ) : (
+                    <>
+                      <RefreshCw className="size-3" />
+                      <span>Resend Code</span>
+                    </>
+                  )}
                 </button>
               </div>
 
+              {/* Verify & Complete Sign Up Button */}
               <Button
-                id="verify-code-submit-button"
+                id="verify-complete-signup-button"
                 type="submit"
-                disabled={verificationCode.trim().length !== 6 || isVerifying}
-                className="w-full h-10 font-medium cursor-pointer"
+                disabled={isSubmitting || verificationCode.length !== 6}
+                className="w-full h-11 font-medium text-sm cursor-pointer shadow-sm mt-2"
               >
-                {isVerifying ? "Verifying..." : "Verify & Complete Sign Up"}
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="size-4 animate-spin mr-2" />
+                    Verifying & Activating Account...
+                  </>
+                ) : (
+                  "Verify & Complete Sign Up"
+                )}
               </Button>
             </form>
+
+            <div className="border-t border-border pt-3 text-center text-xs text-muted-foreground">
+              Need to use a different email?{" "}
+              <button
+                type="button"
+                onClick={backToStep1}
+                className="font-medium text-foreground underline hover:text-accent cursor-pointer"
+              >
+                Change email
+              </button>
+            </div>
           </div>
         )}
       </div>
