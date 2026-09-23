@@ -6,15 +6,19 @@ import {
   Camera,
   CheckCircle2,
   ChevronRight,
+  Layers,
   Loader2,
   Lock,
   LogIn,
+  Palette,
   RefreshCw,
+  Save,
   ShieldCheck,
   Shirt,
   Sparkles,
   User,
   UserPlus,
+  Wand2,
 } from "lucide-react";
 
 import { ClothingLinkPanel } from "@/components/ClothingLinkPanel";
@@ -23,6 +27,7 @@ import { MeasurementsCard } from "@/components/MeasurementsCard";
 import { PhotoUploader } from "@/components/PhotoUploader";
 import { PoseOverlay } from "@/components/PoseOverlay";
 import { TryOnCanvas } from "@/components/TryOnCanvas";
+import { ColorStudioPanel } from "@/components/colors/ColorStudioPanel";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
 import { getUserProfile } from "@/lib/wardrobe-service";
@@ -37,6 +42,12 @@ import {
   type SkeletonLine,
 } from "@/lib/pose-types";
 import type { ProductPreview } from "@/lib/product.functions";
+import {
+  extractColorPaletteFromImage,
+  FALLBACK_MOOD_BOARD_PALETTE,
+  type ExtractedColor,
+  type GarmentColorTheme,
+} from "@/lib/color-palette";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/studio")({
@@ -80,6 +91,20 @@ function Studio() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [isSyncingProfile, setIsSyncingProfile] = useState(false);
 
+  // Dynamic Color Wheel & Garment Atelier State
+  const [extractedPalette, setExtractedPalette] = useState<ExtractedColor[]>(
+    FALLBACK_MOOD_BOARD_PALETTE,
+  );
+  const [baseColorHex, setBaseColorHex] = useState<string>("#1b3b36");
+  const [garmentTheme, setGarmentTheme] = useState<GarmentColorTheme>({
+    mainBody: "#1b3b36",
+    trims: "#c48b48",
+    buttons: "#1c1815",
+    stitching: "#e5ded4",
+  });
+  const [customGarmentDataUrl, setCustomGarmentDataUrl] = useState<string | null>(null);
+  const [showColorStudio, setShowColorStudio] = useState<boolean>(true);
+
   // Phase 4: Automatically load saved base photo and measurement proportions from user profile
   useEffect(() => {
     const activeUserId = user?.id || "guest_user";
@@ -90,6 +115,23 @@ function Studio() {
     if (basePhoto && !photo) {
       setPhoto(basePhoto);
 
+      // Auto-extract dynamic color wheel palette from profile photo
+      void extractColorPaletteFromImage(basePhoto).then((palette) => {
+        if (palette && palette.length > 0) {
+          setExtractedPalette(palette);
+          if (palette[0]) {
+            setBaseColorHex(palette[0].hex);
+            setGarmentTheme((curr) => ({
+              ...curr,
+              mainBody: palette[0]!.hex,
+              trims: palette[1]?.hex || curr.trims,
+              buttons: palette[palette.length - 1]?.hex || curr.buttons,
+              stitching: palette[2]?.hex || curr.stitching,
+            }));
+          }
+        }
+      });
+
       // Auto-initialize pose measurements directly
       const img = new Image();
       img.crossOrigin = "anonymous";
@@ -99,7 +141,8 @@ function Studio() {
           fallback.measurements.userHeightCm = userProf.heightCm || Number(userProf.height);
         }
         if (userProf.bodyType === "Hourglass") fallback.measurements.bodyType = "Hourglass";
-        else if (userProf.bodyType === "Inverted Triangle") fallback.measurements.bodyType = "Inverted triangle";
+        else if (userProf.bodyType === "Inverted Triangle")
+          fallback.measurements.bodyType = "Inverted triangle";
         else if (userProf.bodyType === "Pear") fallback.measurements.bodyType = "Triangle";
         else if (userProf.bodyType === "Rectangle") fallback.measurements.bodyType = "Rectangle";
 
@@ -203,7 +246,45 @@ function Studio() {
   const handlePhotoSelect = (dataUrl: string) => {
     setPhoto(dataUrl);
     setPoseError(null);
-    // User stays on step 1 with preview until they review and click continue
+    // Automatically extract dynamic color wheel palette from uploaded photo
+    void extractColorPaletteFromImage(dataUrl).then((palette) => {
+      if (palette && palette.length > 0) {
+        setExtractedPalette(palette);
+        if (palette[0]) {
+          setBaseColorHex(palette[0].hex);
+          setGarmentTheme((curr) => ({
+            ...curr,
+            mainBody: palette[0]!.hex,
+            trims: palette[1]?.hex || curr.trims,
+            buttons: palette[palette.length - 1]?.hex || curr.buttons,
+            stitching: palette[2]?.hex || curr.stitching,
+          }));
+        }
+        toast.success("Automatically extracted dynamic color wheel palette from photo!");
+      }
+    });
+  };
+
+  const handleProductSelect = (newProduct: ProductPreview | null) => {
+    setProduct(newProduct);
+    if (newProduct?.imageDataUrl) {
+      void extractColorPaletteFromImage(newProduct.imageDataUrl).then((palette) => {
+        if (palette && palette.length > 0) {
+          setExtractedPalette(palette);
+          if (palette[0]) {
+            setBaseColorHex(palette[0].hex);
+            setGarmentTheme((curr) => ({
+              ...curr,
+              mainBody: palette[0]!.hex,
+              trims: palette[1]?.hex || curr.trims,
+              buttons: palette[palette.length - 1]?.hex || curr.buttons,
+              stitching: palette[2]?.hex || curr.stitching,
+            }));
+          }
+          toast.success(`Extracted dynamic color palette from ${newProduct.title}!`);
+        }
+      });
+    }
   };
 
   const handleStartAnalysis = () => {
@@ -379,6 +460,36 @@ function Studio() {
               onContinue={handleStartAnalysis}
               busy={status === "measuring"}
             />
+
+            {/* Dynamic Color Palette Extraction from Photo */}
+            {photo && extractedPalette.length > 0 && (
+              <div className="surface p-4 rounded-xl border border-primary/20 bg-primary/5 flex flex-wrap items-center justify-between gap-3 animate-in fade-in">
+                <div className="flex items-center gap-3">
+                  <div className="flex size-9 items-center justify-center rounded-lg bg-primary/10 text-primary shrink-0">
+                    <Palette className="size-4" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold text-foreground">
+                      Dynamic Palette Extracted from Photo ({extractedPalette.length} tones)
+                    </p>
+                    <p className="text-[11px] text-muted-foreground">
+                      Ready to apply to your garment's main body, trims, buttons, and stitching in
+                      the fitting room.
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  {extractedPalette.slice(0, 6).map((col, idx) => (
+                    <div
+                      key={idx}
+                      className="size-6 rounded-md border border-black/10 shadow-2xs"
+                      style={{ backgroundColor: col.hex }}
+                      title={`${col.name} (${col.hex})`}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
           </section>
         ) : null}
 
@@ -767,7 +878,8 @@ function Studio() {
                     <CheckCircle2 className="size-4 text-emerald-600 shrink-0" />
                     <div>
                       <span className="font-medium text-foreground">
-                        Profile Base Model Active ({profile.bodyType || "Hourglass"} • {profile.height || "168 cm"})
+                        Profile Base Model Active ({profile.bodyType || "Hourglass"} •{" "}
+                        {profile.height || "168 cm"})
                       </span>
                       <span className="text-muted-foreground hidden sm:inline ml-1.5">
                         • Proportions and pose landmarks auto-loaded
@@ -783,21 +895,93 @@ function Studio() {
                     >
                       Calibrate Pose
                     </Button>
-                    <Button asChild variant="outline" size="sm" className="h-7 text-xs font-medium cursor-pointer">
+                    <Button
+                      asChild
+                      variant="outline"
+                      size="sm"
+                      className="h-7 text-xs font-medium cursor-pointer"
+                    >
                       <Link to="/profile">Profile Settings</Link>
                     </Button>
                   </div>
                 </div>
               )}
 
-              <ClothingLinkPanel preview={product} onPreview={setProduct} />
+              <ClothingLinkPanel preview={product} onPreview={handleProductSelect} />
 
-              {photo && product ? (
+              {/* Dynamic Color Wheel, Harmonies & Garment Atelier Studio */}
+              <div className="space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl border border-primary/20 bg-primary/5 p-4 shadow-xs">
+                  <div className="flex items-center gap-3">
+                    <div className="flex size-10 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-xs">
+                      <Palette className="size-5" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-display text-base font-semibold">
+                          Bespoke Garment Palette & Color Studio
+                        </h3>
+                        <span className="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full bg-primary/10 text-primary">
+                          Dynamic Wheel
+                        </span>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        Customize Main Body, Trims, Buttons, and Stitching with dynamic
+                        complementary, triadic, and analogous harmonies.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowColorStudio(!showColorStudio)}
+                      className="text-xs gap-1.5 cursor-pointer border-primary/30 text-primary hover:bg-primary/10"
+                    >
+                      <Palette className="size-3.5" />
+                      <span>{showColorStudio ? "Hide Atelier Studio" : "Open Color Studio"}</span>
+                    </Button>
+                  </div>
+                </div>
+
+                {showColorStudio && (
+                  <ColorStudioPanel
+                    userPhotoUrl={photo}
+                    garmentPhotoUrl={product?.imageDataUrl}
+                    garmentTitle={product?.title || "Bespoke Silhouette"}
+                    theme={garmentTheme}
+                    onThemeChange={setGarmentTheme}
+                    extractedPalette={extractedPalette}
+                    onPaletteExtracted={setExtractedPalette}
+                    baseColorHex={baseColorHex}
+                    onBaseColorChange={setBaseColorHex}
+                    onCustomGarmentGenerated={setCustomGarmentDataUrl}
+                    onApplyAndClose={() => {
+                      if (!product && customGarmentDataUrl) {
+                        setProduct({
+                          title: "Bespoke Tailored Garment",
+                          siteName: "Color Atelier",
+                          sourceUrl: "",
+                          imageDataUrl: customGarmentDataUrl,
+                        });
+                      }
+                      toast.success("Applied tailored colorway to Fitting Room!");
+                    }}
+                  />
+                )}
+              </div>
+
+              {photo && (product || customGarmentDataUrl) ? (
                 <TryOnCanvas
                   photoDataUrl={photo}
-                  garmentDataUrl={product.imageDataUrl}
-                  garmentTitle={product.title}
+                  garmentDataUrl={product?.imageDataUrl || customGarmentDataUrl || ""}
+                  garmentTitle={product?.title || "Custom Colorway Garment"}
                   guide={guide}
+                  customGarmentTheme={garmentTheme}
+                  customGarmentDataUrl={customGarmentDataUrl}
+                  onOpenColorStudio={() => setShowColorStudio(true)}
                 />
               ) : null}
             </section>

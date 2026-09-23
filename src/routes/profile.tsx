@@ -7,14 +7,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/context/AuthContext";
-import {
-  getUserProfile,
-  getStoredWardrobeItems,
-} from "@/lib/wardrobe-service";
-import {
-  apiGetUserProfile,
-  apiUpdateUserProfile,
-} from "@/lib/user.functions";
+import { getUserProfile, getStoredWardrobeItems } from "@/lib/wardrobe-service";
+import { apiGetUserProfile, apiUpdateUserProfile } from "@/lib/user.functions";
 import type {
   UserProfile,
   BodyShapeType,
@@ -68,43 +62,51 @@ const BODY_SHAPES: {
     id: "Hourglass",
     title: "Hourglass",
     subtitle: "Balanced Shoulders & Hips, Defined Waist",
-    description: "Shoulder and hip widths are nearly equal, with a significantly narrower, well-defined waistline.",
+    description:
+      "Shoulder and hip widths are nearly equal, with a significantly narrower, well-defined waistline.",
     stylistTip: "Emphasize your waist with belted kurtis, tailored blazers, and wrap dresses.",
   },
   {
     id: "Rectangle",
     title: "Rectangle",
     subtitle: "Uniform Proportions, Athletic Frame",
-    description: "Shoulders, waist, and hips follow a straight vertical alignment with subtle waist curve.",
-    stylistTip: "Create dimensional curves with peplum silhouettes, pleated ghararas, and layered outerwear.",
+    description:
+      "Shoulders, waist, and hips follow a straight vertical alignment with subtle waist curve.",
+    stylistTip:
+      "Create dimensional curves with peplum silhouettes, pleated ghararas, and layered outerwear.",
   },
   {
     id: "Pear",
     title: "Pear / Triangle",
     subtitle: "Fuller Hips & Thighs, Delicate Shoulders",
-    description: "Hip circumference is visibly wider than the shoulder line, with a sculpted upper torso.",
-    stylistTip: "Draw attention upward with statement embroidered necklines, puffed sleeves, and A-line skirts.",
+    description:
+      "Hip circumference is visibly wider than the shoulder line, with a sculpted upper torso.",
+    stylistTip:
+      "Draw attention upward with statement embroidered necklines, puffed sleeves, and A-line skirts.",
   },
   {
     id: "Inverted Triangle",
     title: "Inverted Triangle",
     subtitle: "Broad Shoulders, Slender Hips",
     description: "Shoulder span is broader than hip line, often accompanied by athletic posture.",
-    stylistTip: "Balance your upper body with voluminous flared palazzo pants, shararas, and V-neck cuts.",
+    stylistTip:
+      "Balance your upper body with voluminous flared palazzo pants, shararas, and V-neck cuts.",
   },
   {
     id: "Athletic",
     title: "Athletic",
     subtitle: "Sculpted & Square Frame",
     description: "Muscular structure with defined shoulder span and moderate waist indent.",
-    stylistTip: "Soft flowing silk fabrics, draped dupattas, and fluid asymmetric cuts soften sharp angles.",
+    stylistTip:
+      "Soft flowing silk fabrics, draped dupattas, and fluid asymmetric cuts soften sharp angles.",
   },
   {
     id: "Apple",
     title: "Apple / Round",
     subtitle: "Fuller Midriff, Slender Limbs",
     description: "Torso volume is centered around the bust and waist, with slender legs and arms.",
-    stylistTip: "Empire waist frocks, breezy kurtas with vertical pleating, and statement footwear look stunning.",
+    stylistTip:
+      "Empire waist frocks, breezy kurtas with vertical pleating, and statement footwear look stunning.",
   },
 ];
 
@@ -459,7 +461,8 @@ function ProfilePage() {
               User Profile & Fitting Setup
             </h1>
             <p className="text-xs text-muted-foreground">
-              Store your reference full-body photo, exact body measurements, silhouette type, and modest styling preferences.
+              Store your reference full-body photo, exact body measurements, silhouette type, and
+              modest styling preferences.
             </p>
           </div>
 
@@ -514,7 +517,10 @@ function ProfilePage() {
               <div className="rounded-lg border border-border/80 bg-secondary/40 p-3 space-y-2 text-xs">
                 <div className="flex items-center justify-between">
                   <span className="text-muted-foreground">Body Shape</span>
-                  <Badge variant="outline" className="font-semibold text-xs border-primary/30 text-primary">
+                  <Badge
+                    variant="outline"
+                    className="font-semibold text-xs border-primary/30 text-primary"
+                  >
                     {bodyType}
                   </Badge>
                 </div>
@@ -524,7 +530,9 @@ function ProfilePage() {
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-muted-foreground">Wardrobe Items</span>
-                  <span className="font-semibold text-foreground">{wardrobeItems.length} items</span>
+                  <span className="font-semibold text-foreground">
+                    {wardrobeItems.length} items
+                  </span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-muted-foreground">Modesty Setting</span>
@@ -538,7 +546,8 @@ function ProfilePage() {
                 <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-700 dark:text-amber-300 space-y-2">
                   <p className="font-medium">Using Guest Mode</p>
                   <p className="text-[11px] text-muted-foreground">
-                    Log in to automatically synchronize your base photo and tailored fitting room preferences across devices.
+                    Log in to automatically synchronize your base photo and tailored fitting room
+                    preferences across devices.
                   </p>
                   <Button
                     type="button"
@@ -595,7 +604,9 @@ function ProfilePage() {
                 <div className="rounded-lg bg-secondary/50 p-2">
                   <span className="text-[10px] text-muted-foreground block">Shoulders</span>
                   <span className="font-semibold text-foreground">
-                    {measurements.shoulderWidth ? `${measurements.shoulderWidth}${measurementUnit}` : "—"}
+                    {measurements.shoulderWidth
+                      ? `${measurements.shoulderWidth}${measurementUnit}`
+                      : "—"}
                   </span>
                 </div>
                 <div className="rounded-lg bg-secondary/50 p-2">
@@ -701,7 +712,9 @@ function ProfilePage() {
                           Front-Facing Model Synchronized
                         </p>
                         <p className="text-[11px] text-muted-foreground leading-relaxed">
-                          Whenever you open the Virtual Try Room, this base photo is automatically loaded, skipping manual re-uploads. Click or drop a file to replace it anytime.
+                          Whenever you open the Virtual Try Room, this base photo is automatically
+                          loaded, skipping manual re-uploads. Click or drop a file to replace it
+                          anytime.
                         </p>
                         <div className="pt-1 flex flex-wrap items-center gap-2">
                           <Button
@@ -741,7 +754,8 @@ function ProfilePage() {
                         Click to upload your full-body photo or drag & drop
                       </p>
                       <p className="text-[11px] text-muted-foreground max-w-sm">
-                        Ensure head-to-toe visibility with arms slightly away from sides. Photos stay strictly private and are saved to your browser session.
+                        Ensure head-to-toe visibility with arms slightly away from sides. Photos
+                        stay strictly private and are saved to your browser session.
                       </p>
                     </div>
                   )}
@@ -918,10 +932,13 @@ function ProfilePage() {
                     <span className="font-medium text-foreground flex items-center gap-1.5">
                       <Sparkles className="size-3 text-primary" />
                       <span>Proportional Ratio Analysis:</span>
-                      <strong className="text-primary font-semibold">{calculatedSilhouette.suggestedShape}</strong>
+                      <strong className="text-primary font-semibold">
+                        {calculatedSilhouette.suggestedShape}
+                      </strong>
                     </span>
                     <p className="text-[11px] text-muted-foreground">
-                      Shoulder/Hip Ratio: {calculatedSilhouette.shoulderToHipRatio} • Waist/Hip Ratio: {calculatedSilhouette.waistToHipRatio}
+                      Shoulder/Hip Ratio: {calculatedSilhouette.shoulderToHipRatio} • Waist/Hip
+                      Ratio: {calculatedSilhouette.waistToHipRatio}
                     </p>
                   </div>
 
@@ -948,7 +965,8 @@ function ProfilePage() {
                     <span>Body Shape & Silhouette Type</span>
                   </h2>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    Select your primary silhouette to guide garment draping and styling recommendations
+                    Select your primary silhouette to guide garment draping and styling
+                    recommendations
                   </p>
                 </div>
 
@@ -991,7 +1009,8 @@ function ProfilePage() {
                     <span>Styling Aesthetics & Modesty Preferences</span>
                   </h2>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    These settings feed directly into the Gemini AI Stylist to generate outfits matching your lifestyle
+                    These settings feed directly into the Gemini AI Stylist to generate outfits
+                    matching your lifestyle
                   </p>
                 </div>
 
@@ -1102,7 +1121,8 @@ function ProfilePage() {
                     className="text-xs resize-none"
                   />
                   <p className="text-[11px] text-muted-foreground">
-                    These notes provide additional custom constraints to the Google Gemini AI styling algorithm.
+                    These notes provide additional custom constraints to the Google Gemini AI
+                    styling algorithm.
                   </p>
                 </div>
               </div>

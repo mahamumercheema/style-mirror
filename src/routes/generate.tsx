@@ -355,10 +355,16 @@ function GeneratePage() {
                   <span className="font-semibold text-stone-900 text-sm">
                     Personalized for {profile.full_name || "You"}
                   </span>
-                  <Badge variant="outline" className="text-[10px] bg-white border-amber-300 text-amber-900 font-medium">
+                  <Badge
+                    variant="outline"
+                    className="text-[10px] bg-white border-amber-300 text-amber-900 font-medium"
+                  >
                     {profile.bodyType || "Hourglass"} Silhouette
                   </Badge>
-                  <Badge variant="outline" className="text-[10px] bg-white border-stone-300 text-stone-700">
+                  <Badge
+                    variant="outline"
+                    className="text-[10px] bg-white border-stone-300 text-stone-700"
+                  >
                     {modestyFilter}
                   </Badge>
                   {profile.height && (
@@ -368,7 +374,8 @@ function GeneratePage() {
                   )}
                 </div>
                 <p className="text-[11px] text-stone-500 mt-0.5">
-                  Proportions, body landmarks, and modest draping preferences automatically incorporated into styling suggestions.
+                  Proportions, body landmarks, and modest draping preferences automatically
+                  incorporated into styling suggestions.
                 </p>
               </div>
             </div>
@@ -512,10 +519,16 @@ function GeneratePage() {
                     onChange={(e) => setModestyFilter(e.target.value)}
                     className="w-full h-10 rounded-lg border border-stone-300 bg-stone-50/50 px-3 text-xs sm:text-sm font-medium text-stone-800 focus:outline-hidden focus:ring-2 focus:ring-amber-500/40"
                   >
-                    <option value="Modest & Loose Fit">Modest & Relaxed (Loose silhouettes, comfortable drape)</option>
-                    <option value="Full Coverage & Dupatta">Full Coverage & Dupatta (High necklines, long hemlines)</option>
+                    <option value="Modest & Loose Fit">
+                      Modest & Relaxed (Loose silhouettes, comfortable drape)
+                    </option>
+                    <option value="Full Coverage & Dupatta">
+                      Full Coverage & Dupatta (High necklines, long hemlines)
+                    </option>
                     <option value="Moderate">Contemporary Moderate (Balanced chic coverage)</option>
-                    <option value="Standard">Standard / Flexible (Contemporary designer cuts)</option>
+                    <option value="Standard">
+                      Standard / Flexible (Contemporary designer cuts)
+                    </option>
                   </select>
                 </div>
 
@@ -665,7 +678,10 @@ function GeneratePage() {
                         <Badge variant="outline" className="text-xs text-stone-600">
                           {selectedVibe}
                         </Badge>
-                        <Badge variant="outline" className="text-xs border-amber-300 bg-amber-50/60 text-amber-900 font-medium">
+                        <Badge
+                          variant="outline"
+                          className="text-xs border-amber-300 bg-amber-50/60 text-amber-900 font-medium"
+                        >
                           {profile?.bodyType || "Hourglass"} Frame • {modestyFilter}
                         </Badge>
                       </div>

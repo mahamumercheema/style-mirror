@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Crosshair, Download, Move, RotateCcw } from "lucide-react";
+import { Crosshair, Download, Move, RotateCcw, Palette, Layers, Shirt } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import type { PoseGuide } from "@/lib/pose";
+import type { GarmentColorTheme } from "@/lib/color-palette";
 
 const MAX_EDGE = 1100;
 
@@ -33,15 +34,34 @@ export function TryOnCanvas({
   garmentDataUrl,
   garmentTitle,
   guide,
+  customGarmentTheme,
+  customGarmentDataUrl,
+  onOpenColorStudio,
 }: {
   photoDataUrl: string;
   garmentDataUrl: string;
   garmentTitle: string;
   guide: PoseGuide | null;
+  customGarmentTheme?: GarmentColorTheme | null;
+  customGarmentDataUrl?: string | null;
+  onOpenColorStudio?: () => void;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const photo = useImage(photoDataUrl);
-  const garment = useImage(garmentDataUrl);
+
+  // Toggle between custom colorway garment and original garment
+  const [useCustomGarment, setUseCustomGarment] = useState(Boolean(customGarmentDataUrl));
+
+  useEffect(() => {
+    if (customGarmentDataUrl) {
+      setUseCustomGarment(true);
+    }
+  }, [customGarmentDataUrl]);
+
+  const activeGarmentSource =
+    useCustomGarment && customGarmentDataUrl ? customGarmentDataUrl : garmentDataUrl;
+  const garment = useImage(activeGarmentSource);
+
   const [showGuide, setShowGuide] = useState(true);
   const [layer, setLayer] = useState<Layer>({
     x: 0.5,
@@ -195,11 +215,91 @@ export function TryOnCanvas({
       <div className="surface space-y-6 p-6">
         <div>
           <p className="eyebrow">Step 04 — Fit it</p>
-          <h2 className="mt-1 text-2xl">{garmentTitle}</h2>
+          <div className="flex items-center justify-between gap-2 mt-1">
+            <h2 className="text-2xl truncate">
+              {useCustomGarment ? `Custom Colorway — ${garmentTitle}` : garmentTitle}
+            </h2>
+            {onOpenColorStudio && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={onOpenColorStudio}
+                className="gap-1.5 text-xs shrink-0 cursor-pointer border-primary/30 text-primary hover:bg-primary/10"
+              >
+                <Palette className="size-3.5" />
+                <span>Colors & Harmonies</span>
+              </Button>
+            )}
+          </div>
           <p className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
             <Move className="size-3.5" /> Drag the garment on the photo, then fine-tune below.
           </p>
         </div>
+
+        {/* Garment Color Scheme Active Pill & Toggle */}
+        {customGarmentTheme && (
+          <div className="rounded-xl border border-border bg-secondary/30 p-3.5 space-y-2.5">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                <Palette className="size-3.5 text-primary" />
+                <span>Active Palette Channels:</span>
+              </span>
+              {customGarmentDataUrl && garmentDataUrl && (
+                <div className="flex items-center gap-2">
+                  <span className="text-[11px] text-muted-foreground">Custom Colors</span>
+                  <Switch
+                    checked={useCustomGarment}
+                    onCheckedChange={setUseCustomGarment}
+                    aria-label="Toggle custom garment colors"
+                  />
+                </div>
+              )}
+            </div>
+
+            <div className="grid grid-cols-4 gap-2 text-center text-[10px]">
+              <div className="flex flex-col items-center gap-1 rounded-md bg-card p-1.5 border border-border">
+                <div
+                  className="size-4 rounded-full border border-black/10 shadow-2xs"
+                  style={{ backgroundColor: customGarmentTheme.mainBody }}
+                />
+                <span className="text-muted-foreground font-medium">Body</span>
+                <span className="font-mono text-[9px] uppercase">
+                  {customGarmentTheme.mainBody}
+                </span>
+              </div>
+
+              <div className="flex flex-col items-center gap-1 rounded-md bg-card p-1.5 border border-border">
+                <div
+                  className="size-4 rounded-full border border-black/10 shadow-2xs"
+                  style={{ backgroundColor: customGarmentTheme.trims }}
+                />
+                <span className="text-muted-foreground font-medium">Trims</span>
+                <span className="font-mono text-[9px] uppercase">{customGarmentTheme.trims}</span>
+              </div>
+
+              <div className="flex flex-col items-center gap-1 rounded-md bg-card p-1.5 border border-border">
+                <div
+                  className="size-4 rounded-full border border-black/10 shadow-2xs"
+                  style={{ backgroundColor: customGarmentTheme.buttons }}
+                />
+                <span className="text-muted-foreground font-medium">Buttons</span>
+                <span className="font-mono text-[9px] uppercase">{customGarmentTheme.buttons}</span>
+              </div>
+
+              <div className="flex flex-col items-center gap-1 rounded-md bg-card p-1.5 border border-border">
+                <div
+                  className="size-4 rounded-full border border-black/10 shadow-2xs"
+                  style={{ backgroundColor: customGarmentTheme.stitching }}
+                />
+                <span className="text-muted-foreground font-medium">Stitch</span>
+                <span className="font-mono text-[9px] uppercase">
+                  {customGarmentTheme.stitching}
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="space-y-5">
           <div className="space-y-2">
@@ -256,17 +356,18 @@ export function TryOnCanvas({
         </div>
 
         <div className="flex flex-wrap gap-2">
-          <Button onClick={download} size="lg">
+          <Button onClick={download} size="lg" className="cursor-pointer">
             <Download className="size-4" />
             Download look
           </Button>
-          <Button variant="outline" onClick={alignToBody}>
+          <Button variant="outline" onClick={alignToBody} className="cursor-pointer">
             <Crosshair className="size-4" />
             Snap to shoulders
           </Button>
           <Button
             variant="ghost"
             onClick={() => setLayer((current) => ({ ...current, rotation: 0, scale: 1 }))}
+            className="cursor-pointer"
           >
             <RotateCcw className="size-4" />
             Reset fit

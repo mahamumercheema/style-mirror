@@ -23,12 +23,7 @@ export type StandardOccasion =
 // ============================================================================
 
 export type BodyShapeType =
-  | "Rectangle"
-  | "Hourglass"
-  | "Pear"
-  | "Inverted Triangle"
-  | "Athletic"
-  | "Apple";
+  "Rectangle" | "Hourglass" | "Pear" | "Inverted Triangle" | "Athletic" | "Apple";
 
 export interface UserMeasurements {
   unit?: "in" | "cm";
@@ -43,7 +38,8 @@ export interface UserMeasurements {
 export interface UserStylingPreferences {
   defaultOccasion?: string | null;
   styleAesthetics?: string[];
-  modestyPreference?: "Standard" | "Moderate" | "Modest & Loose Fit" | "Full Coverage & Dupatta" | string;
+  modestyPreference?:
+    "Standard" | "Moderate" | "Modest & Loose Fit" | "Full Coverage & Dupatta" | string;
   preferredColors?: string[];
   avoidColors?: string[];
 }
