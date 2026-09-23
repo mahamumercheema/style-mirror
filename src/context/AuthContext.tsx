@@ -23,11 +23,13 @@ interface AuthContextType {
   resendCooldown: number;
   gateReason: string | null;
   isSubmitting: boolean;
+  devOtpCode: string | null;
   openLogin: (initialEmail?: string, reason?: string) => void;
   openSignUp: (initialEmail?: string, reason?: string) => void;
   closeModal: () => void;
   setModalView: (view: AuthModalView) => void;
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  loginAsGuest: () => void;
   startSignUp: (
     email: string,
     password: string,
@@ -53,6 +55,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [pendingEmail, setPendingEmail] = useState<string>("");
   const [resendCooldown, setResendCooldown] = useState<number>(0);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [devOtpCode, setDevOtpCode] = useState<string | null>(null);
 
   // Initialize active user from local storage
   useEffect(() => {
@@ -109,9 +112,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const closeModal = () => {
     setIsModalOpen(false);
     setGateReason(null);
+    setDevOtpCode(null);
     setTimeout(() => {
       setSignUpStep(1);
     }, 200);
+  };
+
+  const loginAsGuest = () => {
+    const guestUser: User = {
+      id: "guest_user",
+      email: "guest@stylemirror.com",
+      name: "Guest Stylist",
+      createdAt: new Date().toISOString(),
+      emailVerified: true,
+      twoFactorVerified: true,
+    };
+    setUser(guestUser);
+    localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(guestUser));
+    toast.success("Welcome, Guest Stylist!", {
+      description: "Full fitting room and styling features unlocked.",
+    });
+    closeModal();
   };
 
   const login = async (
@@ -168,10 +189,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setPendingEmail(email.trim().toLowerCase());
       setSignUpStep(2);
       setResendCooldown(60);
+      if (result.devOtpCode) {
+        setDevOtpCode(result.devOtpCode);
+      }
 
       // Secure toast notification: NEVER discloses OTP code
       toast.success("Verification code sent to your email", {
-        description: `Please check your inbox at ${email.trim().toLowerCase()} and enter the 6-digit code.`,
+        description: result.devOtpCode
+          ? `Preview mode: Code ${result.devOtpCode} generated.`
+          : `Please check your inbox at ${email.trim().toLowerCase()} and enter the 6-digit code.`,
       });
 
       return { success: true };
@@ -238,10 +264,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       setResendCooldown(60);
+      if (result.devOtpCode) {
+        setDevOtpCode(result.devOtpCode);
+      }
 
       // Secure toast notification: NEVER discloses OTP code
       toast.success("Verification code sent to your email", {
-        description: `A new 6-digit verification code has been dispatched to ${pendingEmail}.`,
+        description: result.devOtpCode
+          ? `Preview mode: Code ${result.devOtpCode} generated.`
+          : `A new 6-digit verification code has been dispatched to ${pendingEmail}.`,
       });
     } finally {
       setIsSubmitting(false);
@@ -275,11 +306,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         resendCooldown,
         gateReason,
         isSubmitting,
+        devOtpCode,
         openLogin,
         openSignUp,
         closeModal,
         setModalView,
         login,
+        loginAsGuest,
         startSignUp,
         verifyTwoStepCode,
         resendCode,

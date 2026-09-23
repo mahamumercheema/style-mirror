@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowRight, Ruler, ScanLine, Shirt } from "lucide-react";
+import { ArrowRight, Ruler, ScanLine, Shirt, Sparkles } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { HeaderAuthButtons } from "@/components/HeaderAuthButtons";
@@ -8,17 +8,17 @@ import heroModel from "@/assets/hero-model.jpg";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Virtual Try Room — see clothes on your own photo" },
+      { title: "Virtual Try Room & AI Personal Wardrobe Stylist" },
       {
         name: "description",
         content:
-          "Upload a full-body photo, get approximate body proportions measured in your browser, then layer clothing from any shop link onto your photo and download the look.",
+          "Digitize your Western and South Asian ethnic wardrobe, receive custom AI outfit recommendations with hair and makeup styling, and try garments on your own photo.",
       },
-      { property: "og:title", content: "Virtual Try Room — see clothes on your own photo" },
+      { property: "og:title", content: "Virtual Try Room & AI Personal Wardrobe Stylist" },
       {
         property: "og:description",
         content:
-          "A private, browser-based fitting room: estimate your proportions, paste a clothing link, and try the garment on over your own photo.",
+          "Private browser-based fitting room and AI stylist: curate Western & ethnic attire, generate complete outfits, and preview garments over your photo.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -55,9 +55,23 @@ function Landing() {
         >
           Virtual Try Room
         </Link>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
           <Button asChild variant="ghost" size="sm" className="text-xs font-medium">
-            <Link to="/studio">Open the studio</Link>
+            <Link to="/closet">My Closet</Link>
+          </Button>
+          <Button
+            asChild
+            variant="ghost"
+            size="sm"
+            className="text-xs font-medium gap-1 text-amber-700"
+          >
+            <Link to="/generate">
+              <Sparkles className="size-3.5 text-amber-500" />
+              <span>AI Stylist</span>
+            </Link>
+          </Button>
+          <Button asChild variant="ghost" size="sm" className="text-xs font-medium">
+            <Link to="/studio">Fitting Studio</Link>
           </Button>
           <div className="h-4 w-px bg-border hidden sm:block" />
           <HeaderAuthButtons />
@@ -66,25 +80,40 @@ function Landing() {
 
       <section className="mx-auto grid w-full max-w-6xl items-center gap-12 px-6 py-12 md:grid-cols-2 md:py-20">
         <div>
-          <p className="eyebrow">A fitting room in your browser</p>
+          <p className="eyebrow">A fitting room & AI stylist in your browser</p>
           <h1 className="mt-5 text-5xl leading-[1.05] md:text-7xl">
             See it on you
             <br />
             before you buy.
           </h1>
           <p className="mt-6 max-w-md text-base text-muted-foreground">
-            Upload one full-body photo, get an approximate read of your proportions, then place any
-            garment from a shop link over your own picture. No accounts, no uploads, no AI bill.
+            Upload one full-body photo, get an approximate read of your proportions, manage your
+            Western & ethnic wardrobe, and receive bespoke AI outfit recommendations with hair and
+            makeup inspiration.
           </p>
-          <div className="mt-9 flex flex-wrap items-center gap-4">
+          <div className="mt-9 flex flex-wrap items-center gap-3">
             <Button asChild size="lg">
               <Link to="/studio">
                 Try it now
                 <ArrowRight className="size-4" />
               </Link>
             </Button>
-            <span className="text-xs text-muted-foreground">
-              Free · runs on your device · nothing stored
+            <Button
+              asChild
+              variant="outline"
+              size="lg"
+              className="border-amber-300 bg-amber-50/50 hover:bg-amber-100/60 text-amber-900"
+            >
+              <Link to="/generate">
+                <Sparkles className="size-4 text-amber-600 mr-1.5" />
+                AI Stylist
+              </Link>
+            </Button>
+            <Button asChild variant="ghost" size="lg">
+              <Link to="/closet">Manage Closet</Link>
+            </Button>
+            <span className="text-xs text-muted-foreground w-full sm:w-auto">
+              Free · runs on your device · smart curation
             </span>
           </div>
         </div>

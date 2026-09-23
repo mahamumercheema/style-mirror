@@ -27,9 +27,11 @@ export function AuthModal() {
     resendCooldown,
     gateReason,
     isSubmitting,
+    devOtpCode,
     closeModal,
     setModalView,
     login,
+    loginAsGuest,
     startSignUp,
     verifyTwoStepCode,
     resendCode,
@@ -268,14 +270,25 @@ export function AuthModal() {
                 )}
               </Button>
 
-              {/* Demo Auto-fill Helper */}
-              <button
-                type="button"
-                onClick={handleAutofillDemo}
-                className="w-full text-center text-xs text-muted-foreground hover:text-foreground hover:underline transition-colors py-1 cursor-pointer"
-              >
-                Fill demo account (demo@stylemirror.com)
-              </button>
+              {/* Instant Guest / Demo Helpers */}
+              <div className="flex flex-col gap-2 pt-1">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={loginAsGuest}
+                  className="w-full text-xs font-medium cursor-pointer"
+                >
+                  Continue as Guest (No Password Required)
+                </Button>
+                <button
+                  type="button"
+                  onClick={handleAutofillDemo}
+                  className="w-full text-center text-xs text-muted-foreground hover:text-foreground hover:underline transition-colors py-1 cursor-pointer"
+                >
+                  Fill demo credentials (demo@stylemirror.com)
+                </button>
+              </div>
             </form>
 
             <div className="border-t border-border pt-4 text-center text-xs text-muted-foreground">
@@ -514,6 +527,29 @@ export function AuthModal() {
               >
                 <AlertCircle className="size-4 shrink-0 mt-0.5" />
                 <div className="flex-1">{verificationError}</div>
+              </div>
+            )}
+
+            {devOtpCode && (
+              <div className="flex items-center justify-between rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-900 dark:text-amber-200 animate-in fade-in duration-200">
+                <div className="space-y-0.5">
+                  <span className="font-semibold block">Preview Verification Code:</span>
+                  <span>
+                    Use code{" "}
+                    <code className="font-mono font-bold bg-background text-foreground px-1.5 py-0.5 rounded border border-border">
+                      {devOtpCode}
+                    </code>
+                  </span>
+                </div>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setVerificationCode(devOtpCode)}
+                  className="text-xs h-7 px-2.5 cursor-pointer bg-background"
+                >
+                  Auto-fill
+                </Button>
               </div>
             )}
 

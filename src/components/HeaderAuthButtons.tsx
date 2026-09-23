@@ -1,5 +1,6 @@
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
+import { Link } from "@tanstack/react-router";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -8,7 +9,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { LogIn, LogOut, ShieldCheck, UserPlus, User } from "lucide-react";
+import { LogIn, LogOut, ShieldCheck, UserPlus, User, Shirt, Sparkles } from "lucide-react";
 
 export function HeaderAuthButtons() {
   const { user, isAuthenticated, openLogin, openSignUp, logout } = useAuth();
@@ -48,6 +49,25 @@ export function HeaderAuthButtons() {
                 </div>
               </div>
             </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem asChild className="cursor-pointer gap-2 text-xs">
+              <Link to="/closet">
+                <Shirt className="size-3.5 text-primary" />
+                <span>My Closet</span>
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild className="cursor-pointer gap-2 text-xs">
+              <Link to="/studio">
+                <Sparkles className="size-3.5 text-amber-500" />
+                <span>Fitting Studio</span>
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild className="cursor-pointer gap-2 text-xs">
+              <Link to="/profile">
+                <User className="size-3.5 text-muted-foreground" />
+                <span>Profile & Fit Settings</span>
+              </Link>
+            </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem
               id="header-logout-btn"

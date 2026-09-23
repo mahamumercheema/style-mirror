@@ -2,78 +2,25 @@
  * Client-side body-proportion estimation using TensorFlow.js MoveNet
  * (free, runs entirely in the browser — nothing is uploaded).
  */
+import {
+  type Landmark,
+  type BodyType,
+  type DetectedKeypoint,
+  type SkeletonLine,
+  type Measurements,
+  type PoseGuide,
+  type PoseResult,
+  MAJOR_LANDMARKS,
+  classifyBodyType,
+} from "./pose-types";
 
-export type Landmark = { x: number; y: number };
-
-export type BodyType = "Rectangle" | "Triangle" | "Inverted triangle" | "Hourglass";
-
-export type DetectedKeypoint = {
-  name: string;
-  x: number;
-  y: number;
-  score: number;
-};
-
-export type SkeletonLine = {
-  from: Landmark;
-  to: Landmark;
-  name: string;
-};
-
-export type Measurements = {
-  /** Total body height in px / shoulder width in px */
-  heightToShoulderRatio: number;
-  /** Shoulder width as a share of image width (0-1) */
-  shoulderWidthRatio: number;
-  /** Hip width as a share of image width (0-1) */
-  hipWidthRatio: number;
-  /** Torso vertical height as a share of body height (0-1) */
-  torsoHeightRatio: number;
-  /** Estimated leg length as a share of body height (0-1) */
-  legLengthRatio: number;
-  /** Shoulder width / hip width */
-  shoulderToHipRatio: number;
-  bodyType: BodyType;
-  /** Confidence 0-1 of the key landmarks used */
-  confidence: number;
-  /** Count of detected landmarks out of 13 */
-  detectedLandmarksCount: number;
-  totalLandmarksCount: number;
-  /** Optional calibration: user's known height in cm */
-  userHeightCm?: number;
-  /** Estimated real measurements based on userHeightCm */
-  estimatedShoulderWidthCm?: number;
-  estimatedHipWidthCm?: number;
-  estimatedTorsoHeightCm?: number;
-  estimatedLegLengthCm?: number;
-};
-
-export type PoseGuide = {
-  leftShoulder: Landmark;
-  rightShoulder: Landmark;
-  hipCenter: Landmark;
-  /** vertical distance shoulders -> hips, px */
-  torsoHeight: number;
-};
-
-export type PoseResult = {
-  measurements: Measurements;
-  guide: PoseGuide;
-  keypoints: DetectedKeypoint[];
-  skeletonLines: SkeletonLine[];
-  imageDimensions: { width: number; height: number };
-};
+export * from "./pose-types";
 
 function dist(a: Landmark, b: Landmark) {
   return Math.hypot(a.x - b.x, a.y - b.y);
 }
 
-function classify(shoulderToHip: number): BodyType {
-  if (shoulderToHip > 1.1) return "Inverted triangle";
-  if (shoulderToHip < 0.92) return "Triangle";
-  if (shoulderToHip > 1.02) return "Hourglass";
-  return "Rectangle";
-}
+const classify = classifyBodyType;
 
 let detectorPromise: Promise<unknown> | null = null;
 

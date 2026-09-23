@@ -22,50 +22,61 @@ export default defineConfig({
   vite: {
     plugins: [
       {
-        name: "auth-api-dev-middleware",
+        name: "api-dev-middleware",
         configureServer(server) {
-          server.middlewares.use(async (req, res, next) => {
+          server.middlewares.use((req, res, next) => {
             const url = req.url ? new URL(req.url, "http://localhost:3000") : null;
-            if (url && url.pathname.startsWith("/api/auth/")) {
-              let rawBody = "";
-              req.on("data", (chunk) => {
-                rawBody += chunk;
-              });
-              req.on("end", async () => {
-                try {
-                  const body = rawBody ? JSON.parse(rawBody) : {};
-                  const { handleRegisterIntent, handleVerifyCode, handleResendCode, handleLogin } =
-                    await server.ssrLoadModule("/src/lib/server-auth.ts");
-
-                  let result: { status: number; body: Record<string, unknown> };
-
-                  if (url.pathname === "/api/auth/register-intent" && req.method === "POST") {
-                    result = await handleRegisterIntent(body);
-                  } else if (url.pathname === "/api/auth/verify-code" && req.method === "POST") {
-                    result = await handleVerifyCode(body);
-                  } else if (url.pathname === "/api/auth/resend-code" && req.method === "POST") {
-                    result = await handleResendCode(body);
-                  } else if (url.pathname === "/api/auth/login" && req.method === "POST") {
-                    result = await handleLogin(body);
-                  } else {
-                    res.statusCode = 404;
-                    res.setHeader("Content-Type", "application/json");
-                    res.end(JSON.stringify({ error: "Endpoint not found" }));
-                    return;
-                  }
-
-                  res.statusCode = result.status;
-                  res.setHeader("Content-Type", "application/json");
-                  res.end(JSON.stringify(result.body));
-                } catch (err) {
-                  res.statusCode = 500;
-                  res.setHeader("Content-Type", "application/json");
-                  res.end(JSON.stringify({ error: (err as Error).message }));
-                }
-              });
-              return;
+            if (!url || !url.pathname.startsWith("/api/")) {
+              return next();
             }
-            next();
+
+            const chunks: Buffer[] = [];
+            req.on("data", (chunk) => {
+              chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+            });
+            req.on("end", async () => {
+              try {
+                const bodyBuffer = Buffer.concat(chunks);
+                const { handleApiRouter } = await server.ssrLoadModule("/src/lib/server-api.ts");
+
+                const headers = new Headers();
+                for (const [key, value] of Object.entries(req.headers)) {
+                  if (value) {
+                    headers.set(key, Array.isArray(value) ? value.join(", ") : value);
+                  }
+                }
+
+                const reqUrl = `http://localhost:3000${req.url}`;
+                const fetchRequest = new Request(reqUrl, {
+                  method: req.method,
+                  headers,
+                  body:
+                    req.method !== "GET" && req.method !== "HEAD" && bodyBuffer.length > 0
+                      ? bodyBuffer
+                      : undefined,
+                });
+
+                const apiResponse = await handleApiRouter(fetchRequest);
+                if (!apiResponse) {
+                  res.statusCode = 404;
+                  res.setHeader("Content-Type", "application/json");
+                  res.end(JSON.stringify({ error: "Endpoint not found" }));
+                  return;
+                }
+
+                res.statusCode = apiResponse.status;
+                apiResponse.headers.forEach((val, key) => {
+                  res.setHeader(key, val);
+                });
+                const responseText = await apiResponse.text();
+                res.end(responseText);
+              } catch (err) {
+                console.error("API dev middleware error:", err);
+                res.statusCode = 500;
+                res.setHeader("Content-Type", "application/json");
+                res.end(JSON.stringify({ error: (err as Error).message }));
+              }
+            });
           });
         },
       },
@@ -78,6 +89,9 @@ export default defineConfig({
       alias: {
         "@mediapipe/pose": path.resolve(__dirname, "./src/lib/mediapipe-pose-shim.ts"),
       },
+    },
+    build: {
+      chunkSizeWarningLimit: 1200,
     },
   },
 });

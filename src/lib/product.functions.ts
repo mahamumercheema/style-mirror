@@ -55,7 +55,7 @@ function firstImageFallback(html: string, base: string) {
 }
 
 export const fetchProductPreview = createServerFn({ method: "POST" })
-  .inputValidator((data) => z.object({ url: z.string().min(1) }).parse(data))
+  .validator((data) => z.object({ url: z.string().min(1) }).parse(data))
   .handler(async ({ data }): Promise<ProductPreview> => {
     let target: URL;
     try {

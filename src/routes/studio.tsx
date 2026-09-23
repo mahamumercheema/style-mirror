@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import {
   ArrowLeft,
   ArrowRight,
+  Camera,
   CheckCircle2,
   ChevronRight,
   Loader2,
@@ -10,7 +11,9 @@ import {
   LogIn,
   RefreshCw,
   ShieldCheck,
+  Shirt,
   Sparkles,
+  User,
   UserPlus,
 } from "lucide-react";
 
@@ -22,13 +25,17 @@ import { PoseOverlay } from "@/components/PoseOverlay";
 import { TryOnCanvas } from "@/components/TryOnCanvas";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
+import { getUserProfile } from "@/lib/wardrobe-service";
+import { apiUpdateUserProfile } from "@/lib/user.functions";
+import type { UserProfile } from "@/types/wardrobe";
+import { toast } from "sonner";
 import {
-  estimateBody,
+  createDefaultPoseResult,
   type DetectedKeypoint,
   type Measurements,
   type PoseGuide,
   type SkeletonLine,
-} from "@/lib/pose";
+} from "@/lib/pose-types";
 import type { ProductPreview } from "@/lib/product.functions";
 import { cn } from "@/lib/utils";
 
@@ -56,8 +63,8 @@ export const Route = createFileRoute("/studio")({
 
 type WorkflowStep = 1 | 2 | 3;
 
-export function Studio() {
-  const { isAuthenticated, user, openLogin, openSignUp } = useAuth();
+function Studio() {
+  const { isAuthenticated, user, openLogin, openSignUp, loginAsGuest } = useAuth();
 
   const [photo, setPhoto] = useState<string | null>(null);
   const [currentStep, setCurrentStep] = useState<WorkflowStep>(1);
@@ -70,6 +77,63 @@ export function Studio() {
   const [keypoints, setKeypoints] = useState<DetectedKeypoint[]>([]);
   const [skeletonLines, setSkeletonLines] = useState<SkeletonLine[]>([]);
   const [product, setProduct] = useState<ProductPreview | null>(null);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [isSyncingProfile, setIsSyncingProfile] = useState(false);
+
+  // Phase 4: Automatically load saved base photo and measurement proportions from user profile
+  useEffect(() => {
+    const activeUserId = user?.id || "guest_user";
+    const userProf = getUserProfile(activeUserId);
+    setProfile(userProf);
+
+    const basePhoto = userProf.bodyPhotoUrl || userProf.user_photo_url;
+    if (basePhoto && !photo) {
+      setPhoto(basePhoto);
+
+      // Auto-initialize pose measurements directly
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      img.onload = () => {
+        const fallback = createDefaultPoseResult(img);
+        if (userProf.heightCm || typeof userProf.height === "number") {
+          fallback.measurements.userHeightCm = userProf.heightCm || Number(userProf.height);
+        }
+        if (userProf.bodyType === "Hourglass") fallback.measurements.bodyType = "Hourglass";
+        else if (userProf.bodyType === "Inverted Triangle") fallback.measurements.bodyType = "Inverted triangle";
+        else if (userProf.bodyType === "Pear") fallback.measurements.bodyType = "Triangle";
+        else if (userProf.bodyType === "Rectangle") fallback.measurements.bodyType = "Rectangle";
+
+        setOriginal(fallback.measurements);
+        setMeasurements(fallback.measurements);
+        setGuide(fallback.guide);
+        setKeypoints(fallback.keypoints);
+        setSkeletonLines(fallback.skeletonLines);
+        setStatus("done");
+        // Automatically bypass Step 1 and Step 2 directly into Step 3 (Fitting Room)
+        setCurrentStep(3);
+      };
+      img.src = basePhoto;
+    }
+  }, [user?.id]);
+
+  const handleSaveMeasurementsToProfile = async () => {
+    if (!measurements) return;
+    setIsSyncingProfile(true);
+    try {
+      const activeUserId = user?.id || "guest_user";
+      await apiUpdateUserProfile(activeUserId, {
+        bodyPhotoUrl: photo,
+        user_photo_url: photo,
+        bodyType: measurements.bodyType,
+        heightCm: measurements.userHeightCm,
+      });
+      toast.success("Calibrated measurements synced to your Profile!");
+    } catch {
+      toast.error("Failed to sync measurements to profile.");
+    } finally {
+      setIsSyncingProfile(false);
+    }
+  };
 
   const measure = useCallback(async (dataUrl: string) => {
     setStatus("measuring");
@@ -94,6 +158,7 @@ export function Studio() {
         element.src = dataUrl;
       });
 
+      const { estimateBody } = await import("@/lib/pose");
       const result = await estimateBody(image);
 
       clearTimeout(phaseTimeout1);
@@ -117,6 +182,24 @@ export function Studio() {
     }
   }, []);
 
+  const handleUseManualPlacement = () => {
+    if (!photo) return;
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => {
+      const fallback = createDefaultPoseResult(img);
+      setOriginal(fallback.measurements);
+      setMeasurements(fallback.measurements);
+      setGuide(fallback.guide);
+      setKeypoints(fallback.keypoints);
+      setSkeletonLines(fallback.skeletonLines);
+      setStatus("done");
+      setPoseError(null);
+      setCurrentStep(3);
+    };
+    img.src = photo;
+  };
+
   const handlePhotoSelect = (dataUrl: string) => {
     setPhoto(dataUrl);
     setPoseError(null);
@@ -127,24 +210,9 @@ export function Studio() {
     if (!photo) return;
     setCurrentStep(2);
     void measure(photo);
-
-    // Auth Gate: As analysis begins, prompt for authentication if not signed in
-    if (!isAuthenticated) {
-      openLogin(
-        undefined,
-        "Authentication Required: Log in or sign up with 2-step verification to view your measurements and enter the fitting room.",
-      );
-    }
   };
 
   const handleProceedToFittingRoom = () => {
-    if (!isAuthenticated) {
-      openLogin(
-        undefined,
-        "Authentication Required: Please log in or sign up with 2-step verification to access the fitting room.",
-      );
-      return;
-    }
     setCurrentStep(3);
   };
 
@@ -234,7 +302,29 @@ export function Studio() {
           </button>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
+          <Button
+            asChild
+            variant="ghost"
+            size="sm"
+            className="text-xs font-medium gap-1.5 hidden sm:flex text-amber-700 hover:text-amber-800"
+          >
+            <Link to="/generate">
+              <Sparkles className="size-3.5 text-amber-500" />
+              <span>AI Stylist</span>
+            </Link>
+          </Button>
+          <Button
+            asChild
+            variant="ghost"
+            size="sm"
+            className="text-xs font-medium gap-1.5 hidden sm:flex"
+          >
+            <Link to="/closet">
+              <Shirt className="size-3.5 text-primary" />
+              <span>My Closet</span>
+            </Link>
+          </Button>
           {photo && (
             <Button variant="ghost" size="sm" onClick={reset} className="gap-1.5 text-xs">
               <RefreshCw className="size-3.5" />
@@ -251,13 +341,35 @@ export function Studio() {
         {/* ================= STEP 01: PHOTO UPLOAD & VALIDATION ================= */}
         {currentStep === 1 ? (
           <section className="space-y-6">
-            <div>
-              <p className="eyebrow">Step 01 — Your photo</p>
-              <h1 className="mt-2 text-4xl md:text-5xl font-display">The fitting room</h1>
-              <p className="mt-2 text-sm text-muted-foreground max-w-xl">
-                Upload a front-facing photo with your full body in frame. Everything stays in this
-                browser tab — no photos are uploaded to any server.
-              </p>
+            <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+              <div>
+                <p className="eyebrow">Step 01 — Your photo</p>
+                <h1 className="mt-2 text-4xl md:text-5xl font-display">The fitting room</h1>
+                <p className="mt-2 text-sm text-muted-foreground max-w-xl">
+                  Upload a front-facing photo with your full body in frame. Everything stays in this
+                  browser tab — no photos are uploaded to any server.
+                </p>
+              </div>
+
+              {/* Quick load saved profile photo if available */}
+              {(() => {
+                const profile = getUserProfile(user?.id || "guest_user");
+                if (profile.user_photo_url && photo !== profile.user_photo_url) {
+                  return (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handlePhotoSelect(profile.user_photo_url!)}
+                      className="gap-1.5 text-xs font-medium self-start sm:self-auto cursor-pointer"
+                    >
+                      <Camera className="size-3.5 text-primary" />
+                      <span>Use Saved Profile Photo</span>
+                    </Button>
+                  );
+                }
+                return null;
+              })()}
             </div>
 
             <PhotoUploader
@@ -328,6 +440,15 @@ export function Studio() {
                   </div>
 
                   <div className="flex items-center gap-2 w-full sm:w-auto shrink-0">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={loginAsGuest}
+                      className="gap-1.5 text-xs cursor-pointer text-muted-foreground hover:text-foreground"
+                    >
+                      Continue as Guest
+                    </Button>
                     <Button
                       type="button"
                       variant="outline"
@@ -411,14 +532,27 @@ export function Studio() {
 
                 <div className="flex flex-wrap items-center gap-3 pt-3">
                   <Button
+                    onClick={handleUseManualPlacement}
+                    size="default"
+                    className="gap-2 bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer shadow-sm"
+                  >
+                    <ArrowRight className="size-4" />
+                    Skip to Fitting Room (Manual Garment Placement)
+                  </Button>
+                  <Button
                     onClick={() => photo && void measure(photo)}
                     variant="outline"
-                    className="gap-2"
+                    className="gap-2 cursor-pointer"
                   >
                     <RefreshCw className="size-4" />
                     Retry detection
                   </Button>
-                  <Button onClick={tryAnotherPhoto} size="default" className="gap-2">
+                  <Button
+                    onClick={tryAnotherPhoto}
+                    variant="ghost"
+                    size="default"
+                    className="gap-2 cursor-pointer"
+                  >
                     Try another photo
                   </Button>
                 </div>
@@ -447,6 +581,16 @@ export function Studio() {
                     <div className="flex flex-wrap items-center justify-center gap-3">
                       <Button
                         type="button"
+                        variant="secondary"
+                        size="default"
+                        onClick={loginAsGuest}
+                        className="gap-2 cursor-pointer border border-primary/20 shadow-sm"
+                      >
+                        <Sparkles className="size-4 text-primary" />
+                        Unlock Instantly as Guest
+                      </Button>
+                      <Button
+                        type="button"
                         size="default"
                         onClick={() =>
                           openLogin(
@@ -457,7 +601,7 @@ export function Studio() {
                         className="gap-2 cursor-pointer shadow-sm"
                       >
                         <LogIn className="size-4" />
-                        Log In to Unlock
+                        Log In
                       </Button>
                       <Button
                         type="button"
@@ -472,7 +616,7 @@ export function Studio() {
                         className="gap-2 cursor-pointer"
                       >
                         <UserPlus className="size-4" />
-                        Sign Up (2-Step Flow)
+                        Sign Up (2-Step)
                       </Button>
                     </div>
                   </div>
@@ -510,6 +654,28 @@ export function Studio() {
                       original={original}
                       onChange={setMeasurements}
                     />
+
+                    {/* Phase 4: Save Calibrated Proportions to User Profile */}
+                    <div className="flex items-center justify-between gap-2 px-1">
+                      <span className="text-xs text-muted-foreground">
+                        Keep these calibrated body dimensions synced:
+                      </span>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        disabled={isSyncingProfile}
+                        onClick={handleSaveMeasurementsToProfile}
+                        className="text-xs h-8 gap-1.5 cursor-pointer border-primary/30 text-primary hover:bg-primary/10"
+                      >
+                        {isSyncingProfile ? (
+                          <RefreshCw className="size-3 animate-spin" />
+                        ) : (
+                          <Save className="size-3" />
+                        )}
+                        <span>Save to Profile</span>
+                      </Button>
+                    </div>
 
                     <div className="surface p-6 flex flex-col sm:flex-row items-center justify-between gap-4">
                       <div>
@@ -593,6 +759,36 @@ export function Studio() {
                   Back to proportions
                 </Button>
               </div>
+
+              {/* Phase 4: Base Model Status Banner */}
+              {profile?.bodyPhotoUrl && (
+                <div className="rounded-xl border border-primary/20 bg-primary/5 p-3 flex flex-wrap items-center justify-between gap-3 text-xs">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="size-4 text-emerald-600 shrink-0" />
+                    <div>
+                      <span className="font-medium text-foreground">
+                        Profile Base Model Active ({profile.bodyType || "Hourglass"} • {profile.height || "168 cm"})
+                      </span>
+                      <span className="text-muted-foreground hidden sm:inline ml-1.5">
+                        • Proportions and pose landmarks auto-loaded
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setCurrentStep(2)}
+                      className="h-7 text-xs font-medium text-muted-foreground hover:text-foreground cursor-pointer"
+                    >
+                      Calibrate Pose
+                    </Button>
+                    <Button asChild variant="outline" size="sm" className="h-7 text-xs font-medium cursor-pointer">
+                      <Link to="/profile">Profile Settings</Link>
+                    </Button>
+                  </div>
+                </div>
+              )}
 
               <ClothingLinkPanel preview={product} onPreview={setProduct} />
 

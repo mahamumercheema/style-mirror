@@ -17,7 +17,7 @@ export interface AuthApiResponse<T = Record<string, unknown>> {
 
 // Server functions (TanStack Start RPC)
 export const registerIntentServerFn = createServerFn({ method: "POST" })
-  .inputValidator((data) =>
+  .validator((data) =>
     z
       .object({
         email: z.string(),
@@ -32,7 +32,7 @@ export const registerIntentServerFn = createServerFn({ method: "POST" })
   });
 
 export const verifyCodeServerFn = createServerFn({ method: "POST" })
-  .inputValidator((data) =>
+  .validator((data) =>
     z
       .object({
         email: z.string(),
@@ -45,7 +45,7 @@ export const verifyCodeServerFn = createServerFn({ method: "POST" })
   });
 
 export const resendCodeServerFn = createServerFn({ method: "POST" })
-  .inputValidator((data) =>
+  .validator((data) =>
     z
       .object({
         email: z.string(),
@@ -57,7 +57,7 @@ export const resendCodeServerFn = createServerFn({ method: "POST" })
   });
 
 export const loginServerFn = createServerFn({ method: "POST" })
-  .inputValidator((data) =>
+  .validator((data) =>
     z
       .object({
         email: z.string(),
@@ -75,7 +75,14 @@ export async function apiRegisterIntent(payload: {
   password: string;
   confirmPassword?: string;
   name?: string;
-}): Promise<{ success: boolean; error?: string; message?: string; retryAfter?: number }> {
+}): Promise<{
+  success: boolean;
+  error?: string;
+  message?: string;
+  retryAfter?: number;
+  devOtpCode?: string;
+  isSandbox?: boolean;
+}> {
   try {
     const res = await fetch("/api/auth/register-intent", {
       method: "POST",
@@ -93,6 +100,8 @@ export async function apiRegisterIntent(payload: {
     return {
       success: true,
       message: data.message || "Verification code sent to your email",
+      devOtpCode: data.devOtpCode,
+      isSandbox: data.isSandbox,
     };
   } catch {
     // Fallback to serverFn
@@ -108,6 +117,8 @@ export async function apiRegisterIntent(payload: {
       return {
         success: true,
         message: (res.body.message as string) || "Verification code sent to your email",
+        devOtpCode: res.body.devOtpCode as string | undefined,
+        isSandbox: res.body.isSandbox as boolean | undefined,
       };
     } catch (e) {
       return {
@@ -191,9 +202,14 @@ export async function apiVerifyCode(payload: { email: string; code: string }): P
   }
 }
 
-export async function apiResendCode(payload: {
-  email: string;
-}): Promise<{ success: boolean; error?: string; message?: string; retryAfter?: number }> {
+export async function apiResendCode(payload: { email: string }): Promise<{
+  success: boolean;
+  error?: string;
+  message?: string;
+  retryAfter?: number;
+  devOtpCode?: string;
+  isSandbox?: boolean;
+}> {
   try {
     const res = await fetch("/api/auth/resend-code", {
       method: "POST",
@@ -211,6 +227,8 @@ export async function apiResendCode(payload: {
     return {
       success: true,
       message: data.message || "Verification code sent to your email",
+      devOtpCode: data.devOtpCode,
+      isSandbox: data.isSandbox,
     };
   } catch {
     try {
@@ -225,6 +243,8 @@ export async function apiResendCode(payload: {
       return {
         success: true,
         message: (res.body.message as string) || "Verification code sent to your email",
+        devOtpCode: res.body.devOtpCode as string | undefined,
+        isSandbox: res.body.isSandbox as boolean | undefined,
       };
     } catch (e) {
       return {

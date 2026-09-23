@@ -26,7 +26,7 @@ export interface UserRecord {
 const emailVerifications = new Map<string, EmailVerificationRecord>();
 const users = new Map<string, UserRecord>();
 
-// Pre-seed demo user (password: password123)
+// Pre-seed demo users (password: password123)
 (async () => {
   const demoHash = await bcrypt.hash("password123", 10);
   users.set("demo@stylemirror.com", {
@@ -34,6 +34,14 @@ const users = new Map<string, UserRecord>();
     email: "demo@stylemirror.com",
     password_hash: demoHash,
     name: "Demo User",
+    is_verified: true,
+    created_at: new Date().toISOString(),
+  });
+  users.set("amna.laaj21@gmail.com", {
+    id: "usr_amna",
+    email: "amna.laaj21@gmail.com",
+    password_hash: demoHash,
+    name: "Amna",
     is_verified: true,
     created_at: new Date().toISOString(),
   });
@@ -226,13 +234,19 @@ export async function handleRegisterIntent(body: {
   // 8. Send plain-text OTP code via email service
   await sendOtpEmail(email, otpCode);
 
-  // 9. Return success response (never disclosing the code in JSON payload)
+  const hasSmtp = Boolean(getTransporter());
+
+  // 9. Return success response (provides devOtpCode when external SMTP is not active)
   return {
     status: 200,
     body: {
       success: true,
-      message: "Verification code sent to your email",
+      message: hasSmtp
+        ? "Verification code sent to your email"
+        : "Verification code ready (preview mode)",
       email,
+      isSandbox: !hasSmtp,
+      devOtpCode: !hasSmtp ? otpCode : undefined,
     },
   };
 }
@@ -409,12 +423,18 @@ export async function handleResendCode(body: {
   // Dispatch email
   await sendOtpEmail(email, newOtpCode);
 
+  const hasSmtp = Boolean(getTransporter());
+
   return {
     status: 200,
     body: {
       success: true,
-      message: "Verification code sent to your email",
+      message: hasSmtp
+        ? "Verification code sent to your email"
+        : "Verification code ready (preview mode)",
       email,
+      isSandbox: !hasSmtp,
+      devOtpCode: !hasSmtp ? newOtpCode : undefined,
     },
   };
 }
