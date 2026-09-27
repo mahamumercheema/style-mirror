@@ -48,12 +48,12 @@ export default defineConfig({
 
                 const reqUrl = `http://localhost:3000${req.url}`;
                 const fetchRequest = new Request(reqUrl, {
-                  method: req.method,
+                  method: req.method ?? "GET",
                   headers,
-                  body:
-                    req.method !== "GET" && req.method !== "HEAD" && bodyBuffer.length > 0
-                      ? bodyBuffer
-                      : undefined,
+                    body:
+                      req.method !== "GET" && req.method !== "HEAD" && bodyBuffer.length > 0
+                        ? new Uint8Array(bodyBuffer)
+                        : null,
                 });
 
                 const apiResponse = await handleApiRouter(fetchRequest);
@@ -65,7 +65,7 @@ export default defineConfig({
                 }
 
                 res.statusCode = apiResponse.status;
-                apiResponse.headers.forEach((val, key) => {
+                apiResponse.headers.forEach((val: string, key: string) => {
                   res.setHeader(key, val);
                 });
                 const responseText = await apiResponse.text();
