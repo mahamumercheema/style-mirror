@@ -411,32 +411,31 @@ function ProfilePage() {
             >
               Virtual Try Room
             </Link>
-            <div className="hidden md:flex items-center gap-1">
-              <Button asChild variant="ghost" size="sm" className="text-xs font-medium">
-                <Link to="/closet">My Closet</Link>
-              </Button>
-              <Button
-                asChild
-                variant="ghost"
-                size="sm"
-                className="text-xs font-medium gap-1 text-amber-700 dark:text-amber-400"
+            <div className="hidden md:flex items-center gap-6 ml-4">
+              <Link
+                to="/closet"
+                className="nav-link inline-flex items-center gap-1.5 text-foreground/75"
               >
-                <Link to="/generate">
-                  <Sparkles className="size-3.5 text-amber-500" />
-                  <span>AI Stylist</span>
-                </Link>
-              </Button>
-              <Button asChild variant="ghost" size="sm" className="text-xs font-medium">
-                <Link to="/studio">Try-On Studio</Link>
-              </Button>
-              <Button
-                asChild
-                variant="ghost"
-                size="sm"
-                className="text-xs font-semibold bg-secondary/80"
+                My Closet
+              </Link>
+              <Link
+                to="/generate"
+                className="nav-link inline-flex items-center gap-1.5 text-foreground/75"
               >
-                <Link to="/profile">Profile Settings</Link>
-              </Button>
+                <span>AI Stylist</span>
+              </Link>
+              <Link
+                to="/studio"
+                className="nav-link inline-flex items-center gap-1.5 text-foreground/75"
+              >
+                Try-On Studio
+              </Link>
+              <Link
+                to="/profile"
+                className="nav-link inline-flex items-center gap-1.5 text-foreground"
+              >
+                Profile Settings
+              </Link>
             </div>
           </div>
 

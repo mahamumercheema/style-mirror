@@ -88,6 +88,10 @@ export default defineConfig({
     resolve: {
       alias: {
         "@mediapipe/pose": path.resolve(__dirname, "./src/lib/mediapipe-pose-shim.ts"),
+        "@mediapipe/selfie_segmentation": path.resolve(
+          __dirname,
+          "./src/lib/mediapipe-selfie-segmentation-shim.ts",
+        ),
       },
     },
     build: {

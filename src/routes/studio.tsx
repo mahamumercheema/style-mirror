@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ArrowLeft,
   ArrowRight,
@@ -23,7 +23,8 @@ import {
 
 import { ClothingLinkPanel } from "@/components/ClothingLinkPanel";
 import { HeaderAuthButtons } from "@/components/HeaderAuthButtons";
-import { MeasurementsCard } from "@/components/MeasurementsCard";
+import { HeightCalibrationCard } from "@/components/HeightCalibrationCard";
+import { lowConfidenceLabels, MeasurementsCard } from "@/components/MeasurementsCard";
 import { PhotoUploader } from "@/components/PhotoUploader";
 import { PoseOverlay } from "@/components/PoseOverlay";
 import { TryOnCanvas } from "@/components/TryOnCanvas";
@@ -42,6 +43,8 @@ import {
   type SkeletonLine,
 } from "@/lib/pose-types";
 import type { ProductPreview } from "@/lib/product.functions";
+import { resolveMeasurements, type ManualMeasurements } from "@/lib/body-measurements";
+import type { GarmentAnchor } from "@/lib/garment-anchor";
 import {
   extractColorPaletteFromImage,
   FALLBACK_MOOD_BOARD_PALETTE,
@@ -91,6 +94,25 @@ function Studio() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [isSyncingProfile, setIsSyncingProfile] = useState(false);
 
+  // Height calibration, cleaned photo & manual overrides
+  const [heightCm, setHeightCm] = useState<number | null>(null);
+  /** The image pose landmarks were detected on (background-cleaned when available) */
+  const [analysisPhoto, setAnalysisPhoto] = useState<string | null>(null);
+  const [backgroundRemoved, setBackgroundRemoved] = useState(false);
+  const [manual, setManual] = useState<ManualMeasurements>({});
+  const [manualEnabled, setManualEnabled] = useState(false);
+
+  // Shop model's shoulders/hips in the fetched photo, used only to position that photo
+  const [garmentAnchor, setGarmentAnchor] = useState<{
+    source: string;
+    anchor: GarmentAnchor | null;
+  } | null>(null);
+
+  const resolved = useMemo(
+    () => resolveMeasurements(measurements?.calibrated, manualEnabled ? manual : {}),
+    [manual, manualEnabled, measurements?.calibrated],
+  );
+
   // Dynamic Color Wheel & Garment Atelier State
   const [extractedPalette, setExtractedPalette] = useState<ExtractedColor[]>(
     FALLBACK_MOOD_BOARD_PALETTE,
@@ -137,9 +159,6 @@ function Studio() {
       img.crossOrigin = "anonymous";
       img.onload = () => {
         const fallback = createDefaultPoseResult(img);
-        if (userProf.heightCm || typeof userProf.height === "number") {
-          fallback.measurements.userHeightCm = userProf.heightCm || Number(userProf.height);
-        }
         if (userProf.bodyType === "Hourglass") fallback.measurements.bodyType = "Hourglass";
         else if (userProf.bodyType === "Inverted Triangle")
           fallback.measurements.bodyType = "Inverted triangle";
@@ -148,6 +167,8 @@ function Studio() {
 
         setOriginal(fallback.measurements);
         setMeasurements(fallback.measurements);
+        setAnalysisPhoto(basePhoto);
+        setBackgroundRemoved(false);
         setGuide(fallback.guide);
         setKeypoints(fallback.keypoints);
         setSkeletonLines(fallback.skeletonLines);
@@ -164,11 +185,25 @@ function Studio() {
     setIsSyncingProfile(true);
     try {
       const activeUserId = user?.id || "guest_user";
+      const round = (value: { cm: number } | null) => (value ? Math.round(value.cm) : null);
+      const height = round(resolved.height);
       await apiUpdateUserProfile(activeUserId, {
         bodyPhotoUrl: photo,
         user_photo_url: photo,
         bodyType: measurements.bodyType,
-        heightCm: measurements.userHeightCm,
+        ...(height ? { heightCm: height, height: `${height} cm`, heightUnit: "cm" as const } : {}),
+        ...(resolved.shoulderWidth
+          ? {
+              measurements: {
+                unit: "cm" as const,
+                shoulderWidth: round(resolved.shoulderWidth),
+                waist: round(resolved.waistCircumference),
+                hips: round(resolved.hipCircumference),
+                inseam: round(resolved.legLength),
+                torsoLength: round(resolved.torsoLength),
+              },
+            }
+          : {}),
       });
       toast.success("Calibrated measurements synced to your Profile!");
     } catch {
@@ -178,35 +213,45 @@ function Studio() {
     }
   };
 
-  const measure = useCallback(async (dataUrl: string) => {
+  const measure = useCallback(async (dataUrl: string, userHeightCm: number) => {
     setStatus("measuring");
     setPoseError(null);
-    setAnalysisPhase("Reading your photo...");
 
-    // Staged progress feedback for real browser inference
-    const phaseTimeout1 = setTimeout(() => {
-      setAnalysisPhase("Detecting body position...");
-    }, 650);
-
-    const phaseTimeout2 = setTimeout(() => {
-      setAnalysisPhase("Checking pose landmarks...");
-    }, 1400);
-
-    try {
-      const image = await new Promise<HTMLImageElement>((resolve, reject) => {
+    const loadImage = (src: string) =>
+      new Promise<HTMLImageElement>((resolve, reject) => {
         const element = new Image();
         element.onload = () => resolve(element);
         element.onerror = () =>
           reject(new Error("Couldn't read that photo. Please try a different file."));
-        element.src = dataUrl;
+        element.src = src;
       });
 
+    try {
+      setAnalysisPhase("Removing background & framing your photo...");
+      const { cleanupBodyPhoto } = await import("@/lib/image-cleanup");
+      const cleaned = await cleanupBodyPhoto(dataUrl);
+
+      setAnalysisPhase("Detecting body landmarks...");
       const { estimateBody } = await import("@/lib/pose");
-      const result = await estimateBody(image);
+      let source = cleaned.dataUrl;
+      let usedCleanup = cleaned.backgroundRemoved;
+      let result;
+      try {
+        result = await estimateBody(await loadImage(cleaned.dataUrl), {
+          heightCm: userHeightCm,
+          silhouette: cleaned.silhouette,
+        });
+      } catch (cleanedError) {
+        if (!cleaned.backgroundRemoved) throw cleanedError;
+        // Cleanup can occasionally clip a limb — retry on the untouched photo
+        source = dataUrl;
+        usedCleanup = false;
+        result = await estimateBody(await loadImage(dataUrl), { heightCm: userHeightCm });
+      }
 
-      clearTimeout(phaseTimeout1);
-      clearTimeout(phaseTimeout2);
-
+      setAnalysisPhase("Converting to centimeters...");
+      setAnalysisPhoto(source);
+      setBackgroundRemoved(usedCleanup);
       setMeasurements(result.measurements);
       setOriginal(result.measurements);
       setGuide(result.guide);
@@ -214,8 +259,6 @@ function Studio() {
       setSkeletonLines(result.skeletonLines);
       setStatus("done");
     } catch (cause) {
-      clearTimeout(phaseTimeout1);
-      clearTimeout(phaseTimeout2);
       setPoseError(
         cause instanceof Error
           ? cause.message
@@ -233,6 +276,8 @@ function Studio() {
       const fallback = createDefaultPoseResult(img);
       setOriginal(fallback.measurements);
       setMeasurements(fallback.measurements);
+      setAnalysisPhoto(photo);
+      setBackgroundRemoved(false);
       setGuide(fallback.guide);
       setKeypoints(fallback.keypoints);
       setSkeletonLines(fallback.skeletonLines);
@@ -267,6 +312,13 @@ function Studio() {
 
   const handleProductSelect = (newProduct: ProductPreview | null) => {
     setProduct(newProduct);
+    setGarmentAnchor(null);
+    const source = newProduct?.imageDataUrl;
+    if (source) {
+      void import("@/lib/garment-anchor")
+        .then(({ findGarmentAnchor }) => findGarmentAnchor(source))
+        .then((anchor) => setGarmentAnchor({ source, anchor }));
+    }
     if (newProduct?.imageDataUrl) {
       void extractColorPaletteFromImage(newProduct.imageDataUrl).then((palette) => {
         if (palette && palette.length > 0) {
@@ -287,10 +339,17 @@ function Studio() {
     }
   };
 
+  // Step 2 opens on the height prompt; analysis starts once height is confirmed
   const handleStartAnalysis = () => {
     if (!photo) return;
+    setStatus("idle");
     setCurrentStep(2);
-    void measure(photo);
+  };
+
+  const handleHeightConfirmed = (cm: number) => {
+    if (!photo) return;
+    setHeightCm(cm);
+    void measure(photo, cm);
   };
 
   const handleProceedToFittingRoom = () => {
@@ -308,6 +367,9 @@ function Studio() {
     setSkeletonLines([]);
     setPoseError(null);
     setProduct(null);
+    setGarmentAnchor(null);
+    setAnalysisPhoto(null);
+    setBackgroundRemoved(false);
   };
 
   const tryAnotherPhoto = () => {
@@ -383,29 +445,20 @@ function Studio() {
           </button>
         </div>
 
-        <div className="flex items-center gap-2 sm:gap-3">
-          <Button
-            asChild
-            variant="ghost"
-            size="sm"
-            className="text-xs font-medium gap-1.5 hidden sm:flex text-amber-700 hover:text-amber-800"
+        <div className="flex items-center gap-4 sm:gap-6">
+          <Link
+            to="/generate"
+            className="nav-link hidden sm:flex items-center gap-1.5 text-foreground/75"
           >
-            <Link to="/generate">
-              <Sparkles className="size-3.5 text-amber-500" />
-              <span>AI Stylist</span>
-            </Link>
-          </Button>
-          <Button
-            asChild
-            variant="ghost"
-            size="sm"
-            className="text-xs font-medium gap-1.5 hidden sm:flex"
+            <span>AI Stylist</span>
+          </Link>
+          <Link
+            to="/closet"
+            className="nav-link hidden sm:flex items-center gap-1.5 text-foreground/75"
           >
-            <Link to="/closet">
-              <Shirt className="size-3.5 text-primary" />
-              <span>My Closet</span>
-            </Link>
-          </Button>
+            <Shirt className="size-3.5 text-foreground/60" />
+            <span>My Closet</span>
+          </Link>
           {photo && (
             <Button variant="ghost" size="sm" onClick={reset} className="gap-1.5 text-xs">
               <RefreshCw className="size-3.5" />
@@ -611,6 +664,11 @@ function Studio() {
               </div>
             ) : null}
 
+            {/* Height calibration prompt (runs before any analysis) */}
+            {status === "idle" && photo ? (
+              <HeightCalibrationCard initialCm={heightCm} onSubmit={handleHeightConfirmed} />
+            ) : null}
+
             {/* Analysis Loading State */}
             {status === "measuring" ? (
               <div className="surface flex flex-col items-center justify-center p-12 text-center space-y-4">
@@ -620,8 +678,9 @@ function Studio() {
                 <div className="space-y-1">
                   <h3 className="text-xl font-display">{analysisPhase}</h3>
                   <p className="text-sm text-muted-foreground max-w-md">
-                    Running TensorFlow MoveNet on your device. Detecting joint coordinates and
-                    proportions.
+                    Cleaning the background, then running TensorFlow MoveNet on your device and
+                    scaling everything to your {heightCm ? `${Math.round(heightCm)} cm` : ""}{" "}
+                    height.
                   </p>
                 </div>
                 <div className="flex items-center gap-2 text-xs text-muted-foreground pt-2">
@@ -651,7 +710,9 @@ function Studio() {
                     Skip to Fitting Room (Manual Garment Placement)
                   </Button>
                   <Button
-                    onClick={() => photo && void measure(photo)}
+                    onClick={() =>
+                      photo && (heightCm ? void measure(photo, heightCm) : setStatus("idle"))
+                    }
                     variant="outline"
                     className="gap-2 cursor-pointer"
                   >
@@ -749,12 +810,14 @@ function Studio() {
                       </span>
                     </div>
                     <PoseOverlay
-                      photoUrl={photo}
+                      photoUrl={analysisPhoto ?? photo}
                       keypoints={keypoints}
                       skeletonLines={skeletonLines}
                       confidence={measurements.confidence}
                       detectedCount={measurements.detectedLandmarksCount}
                       totalCount={measurements.totalLandmarksCount}
+                      lowConfidenceMeasurements={lowConfidenceLabels(resolved)}
+                      backgroundRemoved={backgroundRemoved}
                     />
                   </div>
 
@@ -762,8 +825,12 @@ function Studio() {
                   <div className="space-y-6">
                     <MeasurementsCard
                       measurements={measurements}
-                      original={original}
-                      onChange={setMeasurements}
+                      resolved={resolved}
+                      manual={manual}
+                      manualEnabled={manualEnabled}
+                      onManualChange={setManual}
+                      onManualEnabledChange={setManualEnabled}
+                      onRecalibrate={() => setStatus("idle")}
                     />
 
                     {/* Phase 4: Save Calibrated Proportions to User Profile */}
@@ -975,13 +1042,19 @@ function Studio() {
 
               {photo && (product || customGarmentDataUrl) ? (
                 <TryOnCanvas
-                  photoDataUrl={photo}
+                  photoDataUrl={analysisPhoto ?? photo}
                   garmentDataUrl={product?.imageDataUrl || customGarmentDataUrl || ""}
+                  garmentAnchor={
+                    garmentAnchor && garmentAnchor.source === product?.imageDataUrl
+                      ? garmentAnchor.anchor
+                      : null
+                  }
                   garmentTitle={product?.title || "Custom Colorway Garment"}
                   guide={guide}
                   customGarmentTheme={garmentTheme}
                   customGarmentDataUrl={customGarmentDataUrl}
                   onOpenColorStudio={() => setShowColorStudio(true)}
+                  fitScale={resolved.fitScale}
                 />
               ) : null}
             </section>

@@ -302,19 +302,21 @@ function GeneratePage() {
             </span>
           </div>
 
-          <div className="flex items-center gap-2 sm:gap-3">
-            <Button asChild variant="ghost" size="sm" className="text-xs font-medium gap-1.5">
-              <Link to="/closet">
-                <Shirt className="size-3.5 text-primary" />
-                <span>My Closet</span>
-              </Link>
-            </Button>
-            <Button asChild variant="ghost" size="sm" className="text-xs font-medium gap-1.5">
-              <Link to="/studio">
-                <Sparkles className="size-3.5 text-amber-500" />
-                <span className="hidden sm:inline">Fitting Studio</span>
-              </Link>
-            </Button>
+          <div className="flex items-center gap-4 sm:gap-6">
+            <Link
+              to="/closet"
+              className="nav-link inline-flex items-center gap-1.5 text-foreground/75"
+            >
+              <Shirt className="size-3.5 text-foreground/60" />
+              <span>My Closet</span>
+            </Link>
+            <Link
+              to="/studio"
+              className="nav-link inline-flex items-center gap-1.5 text-foreground/75"
+            >
+              <Sparkles className="size-3.5 text-gold" />
+              <span className="hidden sm:inline">Fitting Studio</span>
+            </Link>
             <div className="h-4 w-px bg-border hidden sm:block" />
             <HeaderAuthButtons />
           </div>

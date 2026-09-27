@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState } from "react";
-import { CheckCircle2, Eye, EyeOff, Sparkles } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Eye, EyeOff, Sparkles, Wand2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import type { DetectedKeypoint, SkeletonLine } from "@/lib/pose";
+
+const LOW_LANDMARK_SCORE = 0.5;
 
 export function PoseOverlay({
   photoUrl,
@@ -13,6 +15,8 @@ export function PoseOverlay({
   confidence,
   detectedCount,
   totalCount,
+  lowConfidenceMeasurements = [],
+  backgroundRemoved = false,
 }: {
   photoUrl: string;
   keypoints: DetectedKeypoint[];
@@ -20,6 +24,8 @@ export function PoseOverlay({
   confidence: number;
   detectedCount?: number;
   totalCount?: number;
+  lowConfidenceMeasurements?: string[];
+  backgroundRemoved?: boolean;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [showSkeleton, setShowSkeleton] = useState(true);
@@ -87,15 +93,16 @@ export function PoseOverlay({
         const x = kp.x * scaleFactor;
         const y = kp.y * scaleFactor;
 
-        // Outer translucent halo
+        // Outer translucent halo (amber for weakly detected joints)
+        const weak = kp.score < LOW_LANDMARK_SCORE;
         ctx.beginPath();
-        ctx.fillStyle = "rgba(184, 134, 102, 0.35)";
+        ctx.fillStyle = weak ? "rgba(217, 119, 6, 0.45)" : "rgba(184, 134, 102, 0.35)";
         ctx.arc(x, y, Math.max(5, width * 0.007), 0, Math.PI * 2);
         ctx.fill();
 
         // Inner solid core
         ctx.beginPath();
-        ctx.fillStyle = "#FAF8F5";
+        ctx.fillStyle = weak ? "#FDE68A" : "#FAF8F5";
         ctx.strokeStyle = "rgba(45, 38, 32, 0.9)";
         ctx.lineWidth = 1.5;
         ctx.arc(x, y, Math.max(2.5, width * 0.0035), 0, Math.PI * 2);
@@ -118,15 +125,21 @@ export function PoseOverlay({
         />
 
         {/* Floating status pill */}
-        <div className="absolute top-3 left-3 flex flex-wrap items-center gap-2">
+        <div className="absolute top-3 left-3 right-36 flex flex-wrap items-center gap-2">
           <span className="flex items-center gap-1.5 rounded-full bg-background/90 px-3 py-1 text-xs font-medium backdrop-blur-sm shadow-sm">
             <span className="size-2 rounded-full bg-emerald-500 animate-pulse" />
-            {confidencePct}% Confidence
+            {confidencePct}% landmark confidence
           </span>
           {detectedCount && totalCount ? (
             <span className="hidden items-center gap-1 rounded-full bg-background/90 px-2.5 py-1 text-xs text-muted-foreground backdrop-blur-sm sm:flex shadow-sm">
               <CheckCircle2 className="size-3 text-emerald-600" />
               {detectedCount}/{totalCount} landmarks
+            </span>
+          ) : null}
+          {backgroundRemoved ? (
+            <span className="hidden items-center gap-1 rounded-full bg-background/90 px-2.5 py-1 text-xs text-muted-foreground backdrop-blur-sm sm:flex shadow-sm">
+              <Wand2 className="size-3 text-accent-foreground/70" />
+              Background removed
             </span>
           ) : null}
         </div>
@@ -143,6 +156,23 @@ export function PoseOverlay({
             {showSkeleton ? "Hide overlay" : "Show overlay"}
           </Button>
         </div>
+      </div>
+
+      <div className="border-t border-border px-4 py-3 text-xs">
+        {lowConfidenceMeasurements.length > 0 ? (
+          <p className="flex items-start gap-1.5 text-amber-700">
+            <AlertTriangle className="mt-0.5 size-3.5 shrink-0" />
+            <span>
+              <span className="font-medium">Low confidence:</span>{" "}
+              {lowConfidenceMeasurements.join(", ")}. Amber joints were hard to see.
+            </span>
+          </p>
+        ) : (
+          <p className="flex items-center gap-1.5 text-emerald-700">
+            <CheckCircle2 className="size-3.5" />
+            All measurements detected with good confidence
+          </p>
+        )}
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border p-4 text-xs text-muted-foreground">

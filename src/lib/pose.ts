@@ -12,6 +12,9 @@ import {
   type PoseResult,
   classifyBodyType,
 } from "./pose-types";
+import { computeCalibratedMeasurements } from "./body-measurements";
+import type { Silhouette } from "./image-cleanup";
+import { initTfBackend } from "./tf-backend";
 
 export * from "./pose-types";
 
@@ -26,22 +29,10 @@ let detectorPromise: Promise<unknown> | null = null;
 async function getDetector() {
   if (!detectorPromise) {
     detectorPromise = (async () => {
-      const [tf, poseDetection] = await Promise.all([
-        import("@tensorflow/tfjs-core"),
+      const [, poseDetection] = await Promise.all([
+        initTfBackend(),
         import("@tensorflow-models/pose-detection"),
       ]);
-      try {
-        await import("@tensorflow/tfjs-backend-webgl");
-        await tf.setBackend("webgl");
-      } catch {
-        try {
-          await import("@tensorflow/tfjs-backend-cpu");
-          await tf.setBackend("cpu");
-        } catch {
-          /* fall back to registered backend */
-        }
-      }
-      await tf.ready();
       return poseDetection.createDetector(poseDetection.SupportedModels.MoveNet, {
         modelType: "SinglePose.Lightning",
       });
@@ -52,7 +43,7 @@ async function getDetector() {
   }
   return detectorPromise as Promise<{
     estimatePoses: (
-      image: HTMLImageElement,
+      image: HTMLImageElement | HTMLCanvasElement,
     ) => Promise<
       Array<{ keypoints: Array<{ name?: string; x: number; y: number; score?: number }> }>
     >;
@@ -75,7 +66,21 @@ const MAJOR_LANDMARKS = [
   "right_ankle",
 ] as const;
 
-export async function estimateBody(image: HTMLImageElement): Promise<PoseResult> {
+/** Raw MoveNet keypoints by name, without the full-body validation estimateBody applies. */
+export async function detectKeypoints(image: HTMLImageElement | HTMLCanvasElement) {
+  const detector = await getDetector();
+  const [pose] = await detector.estimatePoses(image);
+  const byName = new Map<string, { x: number; y: number; score?: number }>();
+  for (const kp of pose?.keypoints ?? []) {
+    if (kp.name) byName.set(kp.name, kp);
+  }
+  return byName;
+}
+
+export async function estimateBody(
+  image: HTMLImageElement,
+  options: { heightCm?: number | undefined; silhouette?: Silhouette | null | undefined } = {},
+): Promise<PoseResult> {
   const detector = await getDetector();
   const poses = await detector.estimatePoses(image);
   const pose = poses[0];
@@ -253,6 +258,9 @@ export async function estimateBody(image: HTMLImageElement): Promise<PoseResult>
       confidence: averageConfidence,
       detectedLandmarksCount: countOverThreshold,
       totalLandmarksCount: MAJOR_LANDMARKS.length,
+      calibrated: options.heightCm
+        ? computeCalibratedMeasurements(byName, options.heightCm, options.silhouette ?? null)
+        : null,
     },
     guide: {
       leftShoulder: { x: ls.x, y: ls.y },

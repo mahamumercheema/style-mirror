@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
+import type { GarmentAnchor } from "@/lib/garment-anchor";
 import type { PoseGuide } from "@/lib/pose";
 import type { GarmentColorTheme } from "@/lib/color-palette";
 
@@ -14,19 +15,21 @@ type Layer = { x: number; y: number; scale: number; rotation: number; opacity: n
 
 function useImage(src: string | null) {
   const [image, setImage] = useState<HTMLImageElement | null>(null);
+  const [failed, setFailed] = useState(false);
   useEffect(() => {
-    if (!src) {
-      setImage(null);
-      return;
-    }
+    setImage(null);
+    setFailed(false);
+    if (!src) return;
     const element = new Image();
     element.onload = () => setImage(element);
+    element.onerror = () => setFailed(true);
     element.src = src;
     return () => {
       element.onload = null;
+      element.onerror = null;
     };
   }, [src]);
-  return image;
+  return { image, failed };
 }
 
 export function TryOnCanvas({
@@ -37,6 +40,8 @@ export function TryOnCanvas({
   customGarmentTheme,
   customGarmentDataUrl,
   onOpenColorStudio,
+  fitScale = 1,
+  garmentAnchor = null,
 }: {
   photoDataUrl: string;
   garmentDataUrl: string;
@@ -44,23 +49,26 @@ export function TryOnCanvas({
   guide: PoseGuide | null;
   customGarmentTheme?: GarmentColorTheme | null;
   customGarmentDataUrl?: string | null;
-  onOpenColorStudio?: () => void;
+  onOpenColorStudio?: (() => void) | undefined;
+  /** Garment width multiplier from user-entered vs detected shoulder width */
+  fitScale?: number | undefined;
+  /** Shop model's landmarks in the garment image, for body-to-body alignment */
+  garmentAnchor?: GarmentAnchor | null | undefined;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const photo = useImage(photoDataUrl);
+  const { image: photo } = useImage(photoDataUrl);
 
-  // Toggle between custom colorway garment and original garment
-  const [useCustomGarment, setUseCustomGarment] = useState(Boolean(customGarmentDataUrl));
-
-  useEffect(() => {
-    if (customGarmentDataUrl) {
-      setUseCustomGarment(true);
-    }
-  }, [customGarmentDataUrl]);
+  // The fetched/uploaded garment is always the default layer. The Color Studio's
+  // illustrated colorway is only used when there is no real garment, or when the
+  // user explicitly switches to it.
+  const hasRealGarment = Boolean(garmentDataUrl) && garmentDataUrl !== customGarmentDataUrl;
+  const [preferCustomGarment, setPreferCustomGarment] = useState(false);
+  const useCustomGarment =
+    Boolean(customGarmentDataUrl) && (!hasRealGarment || preferCustomGarment);
 
   const activeGarmentSource =
     useCustomGarment && customGarmentDataUrl ? customGarmentDataUrl : garmentDataUrl;
-  const garment = useImage(activeGarmentSource);
+  const { image: garment, failed: garmentFailed } = useImage(activeGarmentSource);
 
   const [showGuide, setShowGuide] = useState(true);
   const [layer, setLayer] = useState<Layer>({
@@ -83,36 +91,79 @@ export function TryOnCanvas({
 
   const scaleFactor = photo ? size.width / photo.naturalWidth : 1;
 
-  /** Garment width at scale 1, in canvas px, aligned to shoulder span. */
-  const baseWidth = useMemo(() => {
+  const activeAnchor = useCustomGarment && customGarmentDataUrl ? null : garmentAnchor;
+
+  /**
+   * Garment size and centre at scale 1, in canvas px. With an anchor, the shop model's
+   * shoulders map onto the user's shoulders (width) and shoulder→hip onto the user's
+   * torso (height); otherwise the garment is sized from the shoulder span.
+   */
+  const placement = useMemo(() => {
+    if (guide && garment && activeAnchor) {
+      const userL = {
+        x: guide.leftShoulder.x * scaleFactor,
+        y: guide.leftShoulder.y * scaleFactor,
+      };
+      const userR = {
+        x: guide.rightShoulder.x * scaleFactor,
+        y: guide.rightShoulder.y * scaleFactor,
+      };
+      const userMid = { x: (userL.x + userR.x) / 2, y: (userL.y + userR.y) / 2 };
+      const { leftShoulder: gL, rightShoulder: gR, hipCenter: gHip } = activeAnchor;
+      const garmentMid = { x: (gL.x + gR.x) / 2, y: (gL.y + gR.y) / 2 };
+      const garmentSpan = Math.hypot(gL.x - gR.x, gL.y - gR.y);
+      const userSpan = Math.hypot(userL.x - userR.x, userL.y - userR.y);
+      if (garmentSpan > 4 && userSpan > 4) {
+        const sx = (userSpan / garmentSpan) * fitScale;
+        let sy = sx;
+        if (gHip) {
+          const garmentTorso = Math.hypot(gHip.x - garmentMid.x, gHip.y - garmentMid.y);
+          const userTorso = Math.hypot(
+            guide.hipCenter.x * scaleFactor - userMid.x,
+            guide.hipCenter.y * scaleFactor - userMid.y,
+          );
+          // Limit stretch so the garment isn't visibly distorted
+          if (garmentTorso > 4)
+            sy = Math.min(sx * 1.25, Math.max(sx * 0.8, userTorso / garmentTorso));
+        }
+        const width = garment.naturalWidth * sx;
+        const height = garment.naturalHeight * sy;
+        return {
+          width,
+          height,
+          center: {
+            x: (userMid.x + (garment.naturalWidth / 2 - garmentMid.x) * sx) / size.width,
+            y: (userMid.y + (garment.naturalHeight / 2 - garmentMid.y) * sy) / size.height,
+          },
+        };
+      }
+    }
+
+    let width = size.width * 0.55;
     if (guide) {
       const shoulderSpan =
         Math.hypot(
           guide.leftShoulder.x - guide.rightShoulder.x,
           guide.leftShoulder.y - guide.rightShoulder.y,
         ) * scaleFactor;
-      if (shoulderSpan > 4) return shoulderSpan * 1.9;
+      if (shoulderSpan > 4) width = shoulderSpan * 1.9 * fitScale;
     }
-    return size.width * 0.55;
-  }, [guide, scaleFactor, size.width]);
+    const height = garment ? (garment.naturalHeight / garment.naturalWidth) * width : width;
+    const center = guide
+      ? {
+          x: (((guide.leftShoulder.x + guide.rightShoulder.x) / 2) * scaleFactor) / size.width,
+          y:
+            (((guide.leftShoulder.y + guide.rightShoulder.y) / 2) * scaleFactor +
+              guide.torsoHeight * scaleFactor * 0.55) /
+            size.height,
+        }
+      : { x: 0.5, y: 0.42 };
+    return { width, height, center };
+  }, [activeAnchor, fitScale, garment, guide, scaleFactor, size.height, size.width]);
 
   const alignToBody = useCallback(() => {
-    if (!guide || !photo) {
-      setLayer({ x: 0.5, y: 0.42, scale: 1, rotation: 0, opacity: 1 });
-      return;
-    }
-    const shoulderMidX =
-      (((guide.leftShoulder.x + guide.rightShoulder.x) / 2) * scaleFactor) / size.width;
-    const shoulderMidY = ((guide.leftShoulder.y + guide.rightShoulder.y) / 2) * scaleFactor;
-    const torso = guide.torsoHeight * scaleFactor;
-    setLayer({
-      x: shoulderMidX,
-      y: (shoulderMidY + torso * 0.55) / size.height,
-      scale: 1,
-      rotation: 0,
-      opacity: 1,
-    });
-  }, [guide, photo, scaleFactor, size.height, size.width]);
+    setLayer({ ...placement.center, scale: 1, rotation: 0, opacity: 1 });
+  }, [placement.center]);
 
   useEffect(() => {
     alignToBody();
@@ -149,8 +200,8 @@ export function TryOnCanvas({
     }
 
     if (garment) {
-      const width = baseWidth * layer.scale;
-      const height = (garment.naturalHeight / garment.naturalWidth) * width;
+      const width = placement.width * layer.scale;
+      const height = placement.height * layer.scale;
       ctx.save();
       ctx.globalAlpha = layer.opacity;
       ctx.translate(layer.x * size.width, layer.y * size.height);
@@ -158,7 +209,7 @@ export function TryOnCanvas({
       ctx.drawImage(garment, -width / 2, -height / 2, width, height);
       ctx.restore();
     }
-  }, [baseWidth, garment, guide, layer, photo, scaleFactor, showGuide, size.height, size.width]);
+  }, [garment, guide, layer, photo, placement, scaleFactor, showGuide, size.height, size.width]);
 
   const onPointerDown = (event: React.PointerEvent<HTMLCanvasElement>) => {
     const rect = event.currentTarget.getBoundingClientRect();
@@ -200,8 +251,16 @@ export function TryOnCanvas({
   };
 
   return (
-    <section className="grid gap-6 lg:grid-cols-[1.35fr_1fr] lg:items-start">
-      <div className="surface overflow-hidden p-3">
+    <section className="grid gap-6 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)] lg:items-start">
+      <div className="surface relative overflow-hidden p-3">
+        {garmentFailed ? (
+          <div
+            role="alert"
+            className="absolute inset-x-6 top-6 z-10 rounded-md border border-destructive/40 bg-background/95 p-3 text-sm text-destructive shadow-sm"
+          >
+            Couldn't load this image directly — try uploading it instead.
+          </div>
+        ) : null}
         <canvas
           ref={canvasRef}
           onPointerDown={onPointerDown}
@@ -245,12 +304,14 @@ export function TryOnCanvas({
                 <Palette className="size-3.5 text-primary" />
                 <span>Active Palette Channels:</span>
               </span>
-              {customGarmentDataUrl && garmentDataUrl && (
+              {customGarmentDataUrl && hasRealGarment && (
                 <div className="flex items-center gap-2">
-                  <span className="text-[11px] text-muted-foreground">Custom Colors</span>
+                  <span className="text-[11px] text-muted-foreground">
+                    Use Color Studio illustration
+                  </span>
                   <Switch
                     checked={useCustomGarment}
-                    onCheckedChange={setUseCustomGarment}
+                    onCheckedChange={setPreferCustomGarment}
                     aria-label="Toggle custom garment colors"
                   />
                 </div>

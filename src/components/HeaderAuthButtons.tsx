@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { LogIn, LogOut, ShieldCheck, UserPlus, User, Shirt, Sparkles } from "lucide-react";
 
-export function HeaderAuthButtons() {
+export function HeaderAuthButtons({ onDark = false }: { onDark?: boolean }) {
   const { user, isAuthenticated, openLogin, openSignUp, logout } = useAuth();
 
   if (isAuthenticated && user) {
@@ -95,7 +95,11 @@ export function HeaderAuthButtons() {
           e.stopPropagation();
           openLogin();
         }}
-        className="gap-1.5 text-xs font-medium h-8 px-3 text-muted-foreground hover:text-foreground cursor-pointer transition-colors active:scale-95"
+        className={
+          onDark
+            ? "gap-1.5 text-xs font-medium h-8 px-3 text-cream/80 hover:bg-cream/10 hover:text-cream cursor-pointer transition-colors active:scale-95"
+            : "gap-1.5 text-xs font-medium h-8 px-3 text-muted-foreground hover:text-foreground cursor-pointer transition-colors active:scale-95"
+        }
         aria-label="Log in to your account"
       >
         <LogIn className="size-3.5" />
@@ -112,7 +116,11 @@ export function HeaderAuthButtons() {
           e.stopPropagation();
           openSignUp();
         }}
-        className="gap-1.5 text-xs font-medium h-8 px-3.5 bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm cursor-pointer transition-all active:scale-95"
+        className={
+          onDark
+            ? "gap-1.5 text-xs font-medium h-8 px-3.5 bg-cream text-foreground hover:bg-cream/90 shadow-sm cursor-pointer transition-all active:scale-95"
+            : "gap-1.5 text-xs font-medium h-8 px-3.5 bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm cursor-pointer transition-all active:scale-95"
+        }
         aria-label="Sign up with 2-step verification"
       >
         <UserPlus className="size-3.5" />

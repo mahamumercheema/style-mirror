@@ -1,3 +1,5 @@
+import type { CalibratedMeasurements } from "./body-measurements";
+
 export type Landmark = { x: number; y: number };
 
 export type BodyType = "Rectangle" | "Triangle" | "Inverted triangle" | "Hourglass";
@@ -34,13 +36,8 @@ export type Measurements = {
   /** Count of detected landmarks out of 13 */
   detectedLandmarksCount: number;
   totalLandmarksCount: number;
-  /** Optional calibration: user's known height in cm */
-  userHeightCm?: number | undefined;
-  /** Estimated real measurements based on userHeightCm */
-  estimatedShoulderWidthCm?: number | undefined;
-  estimatedHipWidthCm?: number | undefined;
-  estimatedTorsoHeightCm?: number | undefined;
-  estimatedLegLengthCm?: number | undefined;
+  /** Real-world cm measurements, scaled from the user's entered height */
+  calibrated?: CalibratedMeasurements | null | undefined;
 };
 
 export type PoseGuide = {

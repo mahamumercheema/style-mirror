@@ -6,8 +6,8 @@
 
 /*
  * Virtual Try Room design system.
- * Warm neutral, editorial fashion aesthetic: bone paper, ink text,
- * clay accent. All colors in oklch, all tokens semantic.
+ * Warm neutral, editorial fashion aesthetic: cream paper, soft charcoal text,
+ * muted gold and silver metal accents. All tokens semantic.
  */
 
 @theme inline {
@@ -39,6 +39,9 @@
   --color-ring: var(--ring);
   --color-ring-offset-background: var(--background);
   --color-canvas: var(--canvas);
+  --color-gold: var(--gold);
+  --color-silver: var(--silver);
+  --color-cream: #f7f5f1;
   --color-chart-1: var(--chart-1);
   --color-chart-2: var(--chart-2);
   --color-chart-3: var(--chart-3);
@@ -61,8 +64,8 @@
 
 :root {
   --radius: 0.25rem;
-  --background: oklch(0.973 0.008 84);
-  --foreground: oklch(0.216 0.012 55);
+  --background: #f7f5f1;
+  --foreground: #2b2825;
   --card: oklch(0.99 0.005 90);
   --card-foreground: oklch(0.216 0.012 55);
   --popover: oklch(0.99 0.005 90);
@@ -81,6 +84,8 @@
   --input: oklch(0.888 0.012 78);
   --ring: oklch(0.728 0.062 52);
   --canvas: oklch(0.912 0.012 80);
+  --gold: #c9a961;
+  --silver: #b9b7b1;
   --chart-1: oklch(0.728 0.062 52);
   --chart-2: oklch(0.6 0.05 160);
   --chart-3: oklch(0.45 0.04 250);
@@ -117,6 +122,8 @@
   --input: oklch(1 0 0 / 16%);
   --ring: oklch(0.728 0.062 52);
   --canvas: oklch(0.26 0.01 60);
+  --gold: #c9a961;
+  --silver: #8f8d88;
   --chart-1: oklch(0.728 0.062 52);
   --chart-2: oklch(0.7 0.06 160);
   --chart-3: oklch(0.6 0.06 250);
@@ -142,6 +149,16 @@
     color: var(--color-foreground);
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
+  }
+
+  :where(a, button):not(:disabled):hover {
+    text-shadow: 0 0 8px rgb(201 169 97 / 0.6);
+  }
+  :where(a, button):not(:disabled):active {
+    text-shadow: 0 0 12px rgb(201 169 97 / 0.8);
+  }
+  :where(a, button):not(:disabled):hover svg {
+    filter: drop-shadow(0 0 4px rgb(201 169 97 / 0.55));
   }
 
   h1,
@@ -181,4 +198,87 @@
     0 10px,
     10px -10px,
     -10px 0px;
+}
+
+/* Soft underline that slides in from the left on hover/focus */
+@utility link-underline {
+  position: relative;
+  &::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -3px;
+    height: 1px;
+    background-color: currentColor;
+    transform: scaleX(0);
+    transform-origin: right;
+    transition: transform 350ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  &:hover::after,
+  &:focus-visible::after {
+    transform: scaleX(1);
+    transform-origin: left;
+  }
+}
+
+/* Quiet page-load entrance: fade with a slight rise, no bounce */
+@keyframes fade-rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@utility fade-rise {
+  animation: fade-rise 550ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+}
+
+/*
+ * Gold hover/press glow for text links: colour shifts toward gold, soft text-shadow,
+ * and any icon inside picks up a matching drop-shadow.
+ */
+@utility glow {
+  transition:
+    color 250ms ease,
+    text-shadow 250ms ease;
+  & svg {
+    transition: filter 250ms ease;
+  }
+  &:hover,
+  &:focus-visible {
+    /* Set --glow-base to the link's resting colour on dark backgrounds */
+    color: color-mix(in oklab, var(--glow-base, var(--color-foreground)) 55%, var(--color-gold));
+    text-shadow: 0 0 8px rgb(201 169 97 / 0.6);
+  }
+  &:hover svg,
+  &:focus-visible svg {
+    filter: drop-shadow(0 0 4px rgb(201 169 97 / 0.6));
+  }
+  &:active {
+    text-shadow: 0 0 12px rgb(201 169 97 / 0.8);
+  }
+  &:active svg {
+    filter: drop-shadow(0 0 6px rgb(201 169 97 / 0.8));
+  }
+}
+
+/* Plain-text navigation/action link: small caps, letter-spaced, underline + glow */
+@utility nav-link {
+  @apply link-underline glow;
+  white-space: nowrap;
+  font-size: 0.6875rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  &:focus-visible {
+    outline: none;
+  }
 }
