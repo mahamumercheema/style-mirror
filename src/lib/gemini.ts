@@ -8,6 +8,7 @@ import {
   generateFallbackOutfitRecommendations,
   type StylingRequestPayload,
 } from "./styling-fallback";
+import type { GenerateContentConfig, ThinkingLevel } from "@google/genai";
 
 export { generateFallbackOutfitRecommendations, type StylingRequestPayload };
 
@@ -16,7 +17,7 @@ export { generateFallbackOutfitRecommendations, type StylingRequestPayload };
  * Uses @google/genai SDK with User-Agent: aistudio-build as required
  */
 export async function getGeminiClient(): Promise<import("@google/genai").GoogleGenAI | null> {
-  const apiKey = process.env.GEMINI_API_KEY;
+  const apiKey = process.env["GEMINI_API_KEY"];
   if (!apiKey) {
     return null;
   }
@@ -114,19 +115,14 @@ Produce a JSON object with this exact shape:
   // Try model cascade with 15s timeout
   for (const model of MODEL_CANDIDATES) {
     try {
-      const config: {
-        systemInstruction: string;
-        temperature: number;
-        responseMimeType: string;
-        thinkingConfig?: { thinkingLevel: string };
-      } = {
+      const config: GenerateContentConfig = {
         systemInstruction: systemPrompt,
         temperature: 0.7,
         responseMimeType: "application/json",
       };
 
       if (model === "gemini-3.8-flash") {
-        config.thinkingConfig = { thinkingLevel: "LOW" };
+        config.thinkingConfig = { thinkingLevel: "LOW" as ThinkingLevel };
       }
 
       const response = await withTimeout(

@@ -116,7 +116,7 @@ class GenerateErrorBoundary extends React.Component<
     return { hasError: true, error: error?.message || "Unexpected styling engine error" };
   }
 
-  render() {
+  override render() {
     if (this.state.hasError) {
       return (
         <main className="mx-auto w-full max-w-5xl px-4 py-16 text-center space-y-4">

@@ -26,8 +26,8 @@ interface GarmentColorCustomizerProps {
   theme: GarmentColorTheme;
   onChange: (newTheme: GarmentColorTheme) => void;
   extractedPalette: ExtractedColor[];
-  onGenerateCustomGarmentUrl?: (dataUrl: string) => void;
-  className?: string;
+  onGenerateCustomGarmentUrl?: ((dataUrl: string) => void) | undefined;
+  className?: string | undefined;
 }
 
 export function GarmentColorCustomizer({

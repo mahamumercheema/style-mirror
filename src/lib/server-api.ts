@@ -3,6 +3,7 @@ import {
   handleVerifyCode,
   handleResendCode,
   handleLogin,
+  type AuthResult,
 } from "./server-auth";
 import {
   getStoredWardrobeItems,
@@ -22,6 +23,7 @@ import {
 import type {
   CreateWardrobeItemInput,
   UpdateWardrobeItemInput,
+  UserProfile,
   WardrobeFilterOptions,
 } from "@/types/wardrobe";
 
@@ -40,7 +42,7 @@ export async function handleApiRouter(request: Request): Promise<Response | null
       }
     }
 
-    let result: { status: number; body: Record<string, unknown> };
+    let result: AuthResult;
 
     switch (pathname) {
       case "/api/auth/register":
@@ -89,9 +91,11 @@ export async function handleApiRouter(request: Request): Promise<Response | null
 
     if (request.method === "POST" || request.method === "PATCH") {
       try {
-        const body = (await request.json()) as Record<string, unknown> & { userId?: string };
-        const targetUserId = body.userId || activeUserId;
-        const updated = saveUserProfile(targetUserId, body);
+        const { userId, ...profileData } = (await request.json()) as Partial<UserProfile> & {
+          userId?: string;
+        };
+        const targetUserId = userId || activeUserId;
+        const updated = saveUserProfile(targetUserId, profileData);
         return new Response(JSON.stringify({ success: true, profile: updated }), {
           status: 200,
           headers: { "Content-Type": "application/json" },

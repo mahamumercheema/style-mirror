@@ -22,6 +22,37 @@ export interface UserRecord {
   created_at: string;
 }
 
+export interface AuthUser {
+  id: string;
+  email: string;
+  name: string;
+  is_verified: boolean;
+  emailVerified: boolean;
+  twoFactorVerified: boolean;
+  createdAt: string;
+}
+
+export interface AuthResponseBody {
+  success: boolean;
+  error?: string | undefined;
+  message?: string | undefined;
+  email?: string | undefined;
+  retryAfter?: number | undefined;
+  devOtpCode?: string | undefined;
+  isSandbox?: boolean | undefined;
+  token?: string | undefined;
+  user?: AuthUser | undefined;
+  expired?: boolean | undefined;
+  locked?: boolean | undefined;
+  attempts?: number | undefined;
+  remainingAttempts?: number | undefined;
+}
+
+export interface AuthResult {
+  status: number;
+  body: AuthResponseBody;
+}
+
 // In-memory persistent database collections
 const emailVerifications = new Map<string, EmailVerificationRecord>();
 const users = new Map<string, UserRecord>();
@@ -62,10 +93,10 @@ export function sanitizeEmail(email: unknown): string {
  * Create a configured Nodemailer transporter with SMTP or fallback
  */
 function getTransporter() {
-  const host = process.env.SMTP_HOST;
-  const port = Number(process.env.SMTP_PORT) || 587;
-  const user = process.env.SMTP_USER;
-  const pass = process.env.SMTP_PASS;
+  const host = process.env["SMTP_HOST"];
+  const port = Number(process.env["SMTP_PORT"]) || 587;
+  const user = process.env["SMTP_USER"];
+  const pass = process.env["SMTP_PASS"];
 
   if (host && user && pass) {
     return nodemailer.createTransport({
@@ -84,7 +115,7 @@ function getTransporter() {
  * Sends a real email with the 6-digit OTP code
  */
 export async function sendOtpEmail(toEmail: string, otpCode: string): Promise<boolean> {
-  const from = process.env.SMTP_FROM || '"Virtual Try Room" <noreply@virtualtryroom.com>';
+  const from = process.env["SMTP_FROM"] || '"Virtual Try Room" <noreply@virtualtryroom.com>';
   const subject = "Your 6-Digit Verification Code — Virtual Try Room";
   const htmlContent = `
     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 560px; margin: 0 auto; padding: 32px 24px; background-color: #faf9f7; color: #1c1917; border-radius: 8px; border: 1px solid #e7e5e4;">
@@ -143,11 +174,11 @@ export async function sendOtpEmail(toEmail: string, otpCode: string): Promise<bo
  * Triggered on Step 1 submit
  */
 export async function handleRegisterIntent(body: {
-  email?: string;
-  password?: string;
-  confirmPassword?: string;
-  name?: string;
-}): Promise<{ status: number; body: Record<string, unknown> }> {
+  email?: string | undefined;
+  password?: string | undefined;
+  confirmPassword?: string | undefined;
+  name?: string | undefined;
+}): Promise<AuthResult> {
   const email = sanitizeEmail(body.email);
   const password = typeof body.password === "string" ? body.password : "";
   const confirmPassword =
@@ -256,9 +287,9 @@ export async function handleRegisterIntent(body: {
  * Triggered on Step 2 submit
  */
 export async function handleVerifyCode(body: {
-  email?: string;
-  code?: string;
-}): Promise<{ status: number; body: Record<string, unknown> }> {
+  email?: string | undefined;
+  code?: string | undefined;
+}): Promise<AuthResult> {
   const email = sanitizeEmail(body.email);
   const code = typeof body.code === "string" ? body.code.trim() : "";
 
@@ -372,9 +403,7 @@ export async function handleVerifyCode(body: {
  * Endpoint 3: Resend Code
  * Triggered by "Resend Code" button
  */
-export async function handleResendCode(body: {
-  email?: string;
-}): Promise<{ status: number; body: Record<string, unknown> }> {
+export async function handleResendCode(body: { email?: string | undefined }): Promise<AuthResult> {
   const email = sanitizeEmail(body.email);
 
   if (!email) {
@@ -443,9 +472,9 @@ export async function handleResendCode(body: {
  * Login Handler (Password verification against hashed credentials)
  */
 export async function handleLogin(body: {
-  email?: string;
-  password?: string;
-}): Promise<{ status: number; body: Record<string, unknown> }> {
+  email?: string | undefined;
+  password?: string | undefined;
+}): Promise<AuthResult> {
   const email = sanitizeEmail(body.email);
   const password = typeof body.password === "string" ? body.password : "";
 

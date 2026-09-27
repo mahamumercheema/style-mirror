@@ -563,7 +563,8 @@ function ProfilePage() {
 
             {/* Selected Body Shape Guidance Card */}
             {(() => {
-              const activeShape = BODY_SHAPES.find((s) => s.id === bodyType) || BODY_SHAPES[0];
+              const activeShape = BODY_SHAPES.find((s) => s.id === bodyType) ?? BODY_SHAPES[0];
+              if (!activeShape) return null;
               return (
                 <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 text-xs space-y-2.5">
                   <div className="flex items-center justify-between">

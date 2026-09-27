@@ -26,22 +26,22 @@ export type BodyShapeType =
   "Rectangle" | "Hourglass" | "Pear" | "Inverted Triangle" | "Athletic" | "Apple";
 
 export interface UserMeasurements {
-  unit?: "in" | "cm";
-  shoulderWidth?: number | null;
-  bustChest?: number | null;
-  waist?: number | null;
-  hips?: number | null;
-  inseam?: number | null;
-  torsoLength?: number | null;
+  unit?: "in" | "cm" | undefined;
+  shoulderWidth?: number | null | undefined;
+  bustChest?: number | null | undefined;
+  waist?: number | null | undefined;
+  hips?: number | null | undefined;
+  inseam?: number | null | undefined;
+  torsoLength?: number | null | undefined;
 }
 
 export interface UserStylingPreferences {
-  defaultOccasion?: string | null;
-  styleAesthetics?: string[];
+  defaultOccasion?: string | null | undefined;
+  styleAesthetics?: string[] | undefined;
   modestyPreference?:
-    "Standard" | "Moderate" | "Modest & Loose Fit" | "Full Coverage & Dupatta" | string;
-  preferredColors?: string[];
-  avoidColors?: string[];
+    "Standard" | "Moderate" | "Modest & Loose Fit" | "Full Coverage & Dupatta" | string | undefined;
+  preferredColors?: string[] | undefined;
+  avoidColors?: string[] | undefined;
 }
 
 export interface UserEntity {
@@ -67,16 +67,16 @@ export interface UserProfile {
   email: string;
   full_name: string;
   user_photo_url: string | null;
-  bodyPhotoUrl?: string | null;
-  height?: string | number | null;
-  heightUnit?: "cm" | "ft_in";
-  heightCm?: number | null;
-  heightFt?: number | null;
-  heightIn?: number | null;
-  bodyType?: BodyShapeType | string | null;
+  bodyPhotoUrl?: string | null | undefined;
+  height?: string | number | null | undefined;
+  heightUnit?: "cm" | "ft_in" | undefined;
+  heightCm?: number | null | undefined;
+  heightFt?: number | null | undefined;
+  heightIn?: number | null | undefined;
+  bodyType?: BodyShapeType | string | null | undefined;
   body_type_notes: string | null;
-  measurements?: UserMeasurements | null;
-  preferences?: UserStylingPreferences | null;
+  measurements?: UserMeasurements | null | undefined;
+  preferences?: UserStylingPreferences | null | undefined;
   created_at: string;
   updated_at: string;
 }
@@ -125,38 +125,38 @@ export interface WardrobeItemWithDetails extends WardrobeItemEntity {
 }
 
 export interface CreateWardrobeItemInput {
-  title?: string;
-  category_id?: number | null;
+  title?: string | undefined;
+  category_id?: number | null | undefined;
   image_url: string;
-  thumbnail_url?: string;
-  primary_color?: string;
-  secondary_color?: string;
-  fabric_type?: string;
-  season?: SeasonType | string;
-  is_favorite?: boolean;
-  occasion_ids?: number[];
+  thumbnail_url?: string | undefined;
+  primary_color?: string | undefined;
+  secondary_color?: string | undefined;
+  fabric_type?: string | undefined;
+  season?: SeasonType | string | undefined;
+  is_favorite?: boolean | undefined;
+  occasion_ids?: number[] | undefined;
 }
 
 export interface UpdateWardrobeItemInput {
-  title?: string;
-  category_id?: number | null;
-  image_url?: string;
-  thumbnail_url?: string;
-  primary_color?: string;
-  secondary_color?: string;
-  fabric_type?: string;
-  season?: SeasonType | string;
-  is_favorite?: boolean;
-  occasion_ids?: number[];
+  title?: string | undefined;
+  category_id?: number | null | undefined;
+  image_url?: string | undefined;
+  thumbnail_url?: string | undefined;
+  primary_color?: string | undefined;
+  secondary_color?: string | undefined;
+  fabric_type?: string | undefined;
+  season?: SeasonType | string | undefined;
+  is_favorite?: boolean | undefined;
+  occasion_ids?: number[] | undefined;
 }
 
 export interface WardrobeFilterOptions {
-  category_id?: number;
-  parent_type?: ParentCategoryType | string;
-  occasion_id?: number;
-  season?: SeasonType | string;
-  is_favorite?: boolean;
-  search_query?: string;
+  category_id?: number | undefined;
+  parent_type?: ParentCategoryType | string | undefined;
+  occasion_id?: number | undefined;
+  season?: SeasonType | string | undefined;
+  is_favorite?: boolean | undefined;
+  search_query?: string | undefined;
 }
 
 export interface AIOutfitRecommendationRequest {

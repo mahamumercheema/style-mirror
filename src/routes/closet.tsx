@@ -87,7 +87,7 @@ class ClosetErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBound
     return { hasError: true, errorMessage: error?.message || "An unexpected error occurred." };
   }
 
-  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+  override componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     console.error("ClosetErrorBoundary caught error:", error, errorInfo);
   }
 
@@ -95,7 +95,7 @@ class ClosetErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBound
     this.setState({ hasError: false, errorMessage: "" });
   };
 
-  render() {
+  override render() {
     if (this.state.hasError) {
       return (
         <main className="mx-auto w-full max-w-6xl px-4 sm:px-6 py-12">

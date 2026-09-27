@@ -10,7 +10,6 @@ import {
   type Measurements,
   type PoseGuide,
   type PoseResult,
-  MAJOR_LANDMARKS,
   classifyBodyType,
 } from "./pose-types";
 

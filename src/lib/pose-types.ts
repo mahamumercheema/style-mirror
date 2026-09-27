@@ -35,12 +35,12 @@ export type Measurements = {
   detectedLandmarksCount: number;
   totalLandmarksCount: number;
   /** Optional calibration: user's known height in cm */
-  userHeightCm?: number;
+  userHeightCm?: number | undefined;
   /** Estimated real measurements based on userHeightCm */
-  estimatedShoulderWidthCm?: number;
-  estimatedHipWidthCm?: number;
-  estimatedTorsoHeightCm?: number;
-  estimatedLegLengthCm?: number;
+  estimatedShoulderWidthCm?: number | undefined;
+  estimatedHipWidthCm?: number | undefined;
+  estimatedTorsoHeightCm?: number | undefined;
+  estimatedLegLengthCm?: number | undefined;
 };
 
 export type PoseGuide = {

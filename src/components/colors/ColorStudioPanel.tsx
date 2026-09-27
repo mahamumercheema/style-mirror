@@ -23,17 +23,17 @@ import {
 import { cn } from "@/lib/utils";
 
 interface ColorStudioPanelProps {
-  userPhotoUrl?: string | null;
-  garmentPhotoUrl?: string | null;
-  garmentTitle?: string;
+  userPhotoUrl?: string | null | undefined;
+  garmentPhotoUrl?: string | null | undefined;
+  garmentTitle?: string | undefined;
   theme: GarmentColorTheme;
   onThemeChange: (theme: GarmentColorTheme) => void;
   extractedPalette: ExtractedColor[];
   onPaletteExtracted: (palette: ExtractedColor[]) => void;
   baseColorHex: string;
   onBaseColorChange: (hex: string) => void;
-  onCustomGarmentGenerated?: (dataUrl: string) => void;
-  onApplyAndClose?: () => void;
+  onCustomGarmentGenerated?: ((dataUrl: string) => void) | undefined;
+  onApplyAndClose?: (() => void) | undefined;
 }
 
 export function ColorStudioPanel({

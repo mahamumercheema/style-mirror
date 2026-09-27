@@ -6,13 +6,13 @@ import type {
 } from "@/types/wardrobe";
 
 export interface StylingRequestPayload {
-  occasionId?: number | string;
-  occasionName?: string;
-  timeOfDay?: string; // "Day", "Evening", "Night"
-  season?: string; // "Summer", "Winter", "All Season", etc.
-  vibePreference?: string; // "Minimalist Chic", "Royal Regal", "Modern Fusion", etc.
-  heroItemId?: string;
-  userId?: string;
+  occasionId?: number | string | undefined;
+  occasionName?: string | undefined;
+  timeOfDay?: string | undefined; // "Day", "Evening", "Night"
+  season?: string | undefined; // "Summer", "Winter", "All Season", etc.
+  vibePreference?: string | undefined; // "Minimalist Chic", "Royal Regal", "Modern Fusion", etc.
+  heroItemId?: string | undefined;
+  userId?: string | undefined;
 }
 
 /**
@@ -116,7 +116,7 @@ export function generateFallbackOutfitRecommendations(
           ? "Dewy fresh skin tint, feathered brows, luminous cream blush, and satin nude velvet lips."
           : "Soft kohl smokey eye with finely milled champagne highlighter and bold burgundy or classic scarlet lips.",
     });
-  } else if (fullBody.length > 0) {
+  } else if (fullBody[0]) {
     const mainGarment = fullBody[0];
     const shoe = footwear.find(
       (f) => f.title?.toLowerCase().includes("heel") || f.title?.toLowerCase().includes("khussa"),
@@ -152,13 +152,13 @@ export function generateFallbackOutfitRecommendations(
 
     recommendations.push({
       option_name: `Option 1: Monochrome Sophistication`,
-      style_reasoning: `Combining ${top.title} with ${bottom.title} creates an elongated vertical line that flatters your proportions for ${occasion}.`,
+      style_reasoning: `Combining ${top.title || "your top"} with ${bottom.title || "your bottom"} creates an elongated vertical line that flatters your proportions for ${occasion}.`,
       selected_item_ids: [top.id, bottom.id, shoe.id, acc.id].filter(Boolean) as string[],
       outfit_breakdown: {
-        top_or_full_body: top.title,
-        bottom: bottom.title,
-        footwear: shoe.title,
-        jewelry_and_accessories: [acc.title],
+        top_or_full_body: top.title || "Structured Silk Blouse",
+        bottom: bottom.title || "High-Waisted Tailored Pants",
+        footwear: shoe.title || "Pointed Stiletto Pumps",
+        jewelry_and_accessories: [acc.title || "Minimalist Pendant & Huggie Earrings"],
       },
       styling_instructions: `French-tuck the top slightly into the waistband to create a defined waist silhouette and leg-lengthening proportion.`,
       hair_style_recommendation: "Polished low ponytail with hair-wrapped elastic band.",
@@ -170,32 +170,26 @@ export function generateFallbackOutfitRecommendations(
   // =========================================================================
   // Option 2: Contemporary Contrast / Fusion Look
   // =========================================================================
-  const altTop =
-    tops.length > 1
-      ? tops[1]
-      : tops[0] || items[0] || { id: "opt2_top", title: "Tailored Crisp Shirt / Kurti" };
-  const altBottom =
-    bottoms.length > 1
-      ? bottoms[1]
-      : bottoms[0] || items[1] || { id: "opt2_bot", title: "Straight-Leg Denim or Trousers" };
-  const altShoe =
-    footwear.length > 1
-      ? footwear[1]
-      : footwear[0] || { id: "opt2_shoe", title: "Sleek Ankle Strap Heels" };
-  const altAcc =
-    accessories.length > 1
-      ? accessories[1]
-      : accessories[0] || { id: "opt2_acc", title: "Sculptural Metal Cuff & Structured Bag" };
+  const altTop = tops[1] ??
+    tops[0] ??
+    items[0] ?? { id: "opt2_top", title: "Tailored Crisp Shirt / Kurti" };
+  const altBottom = bottoms[1] ??
+    bottoms[0] ??
+    items[1] ?? { id: "opt2_bot", title: "Straight-Leg Denim or Trousers" };
+  const altShoe = footwear[1] ??
+    footwear[0] ?? { id: "opt2_shoe", title: "Sleek Ankle Strap Heels" };
+  const altAcc = accessories[1] ??
+    accessories[0] ?? { id: "opt2_acc", title: "Sculptural Metal Cuff & Structured Bag" };
 
   recommendations.push({
     option_name: `Option 2: Modern Fusion Silhouette`,
-    style_reasoning: `A sharp balance between structure and effortless comfort. Pairing ${altTop.title} with ${altBottom.title} delivers a striking ${vibe.toLowerCase()} look that transitions seamlessly into ${time.toLowerCase()} festivities.`,
+    style_reasoning: `A sharp balance between structure and effortless comfort. Pairing ${altTop.title || "a crisp top"} with ${altBottom.title || "tailored bottoms"} delivers a striking ${vibe.toLowerCase()} look that transitions seamlessly into ${time.toLowerCase()} festivities.`,
     selected_item_ids: [altTop.id, altBottom.id, altShoe.id, altAcc.id].filter(Boolean) as string[],
     outfit_breakdown: {
-      top_or_full_body: altTop.title,
-      bottom: altBottom.title,
-      footwear: altShoe.title,
-      jewelry_and_accessories: [altAcc.title],
+      top_or_full_body: altTop.title || "Tailored Crisp Shirt / Kurti",
+      bottom: altBottom.title || "Straight-Leg Denim or Trousers",
+      footwear: altShoe.title || "Sleek Ankle Strap Heels",
+      jewelry_and_accessories: [altAcc.title || "Sculptural Metal Cuff & Structured Bag"],
     },
     styling_instructions: `Push sleeves to three-quarters length to show delicate wrist accessories. Ground the ensemble with pointed footwear to elongate the stance.`,
     hair_style_recommendation:

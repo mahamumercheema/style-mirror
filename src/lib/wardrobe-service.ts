@@ -414,6 +414,11 @@ function safeSetLocalStorage(key: string, value: string): void {
   }
 }
 
+// Copy each sample item so toggling favorites never mutates the shared mock objects
+function cloneMockWardrobeItems(): WardrobeItemWithDetails[] {
+  return MOCK_WARDROBE_ITEMS.map((item) => ({ ...item }));
+}
+
 export function getCategories(): CategoryEntity[] {
   return DEFAULT_CATEGORIES;
 }
@@ -430,12 +435,12 @@ export function getStoredWardrobeItems(
     const key = WARDROBE_STORAGE_PREFIX + (userId || "default_user");
     let items: WardrobeItemWithDetails[] | null = null;
 
-    // 1. Try reading from localStorage
+    // 1. Try reading from localStorage (an empty array is a valid, emptied wardrobe)
     const raw = safeGetLocalStorage(key);
     if (raw) {
       try {
         const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed) && parsed.length > 0) {
+        if (Array.isArray(parsed)) {
           items = parsed;
         }
       } catch {
@@ -444,15 +449,13 @@ export function getStoredWardrobeItems(
     }
 
     // 2. Fall back to in-memory store
-    if (!items || items.length === 0) {
-      if (inMemoryWardrobeStore[key] && inMemoryWardrobeStore[key].length > 0) {
-        items = inMemoryWardrobeStore[key];
-      }
+    if (!items) {
+      items = inMemoryWardrobeStore[key] ?? null;
     }
 
-    // 3. Fall back to guaranteed MOCK_WARDROBE_ITEMS
-    if (!items || items.length === 0) {
-      items = [...MOCK_WARDROBE_ITEMS];
+    // 3. First visit only: seed with sample items
+    if (!items) {
+      items = cloneMockWardrobeItems();
       inMemoryWardrobeStore[key] = items;
       safeSetLocalStorage(key, JSON.stringify(items));
     }
@@ -493,7 +496,7 @@ export function getStoredWardrobeItems(
     return items;
   } catch (err) {
     console.warn("Recovered from error in getStoredWardrobeItems, returning mock data:", err);
-    return [...MOCK_WARDROBE_ITEMS];
+    return cloneMockWardrobeItems();
   }
 }
 
@@ -548,6 +551,7 @@ export function updateWardrobeItem(
   if (index === -1) return null;
 
   const item = currentItems[index];
+  if (!item) return null;
   const category =
     updates.category_id !== undefined
       ? DEFAULT_CATEGORIES.find((c) => c.id === updates.category_id) || null
@@ -558,11 +562,23 @@ export function updateWardrobeItem(
       ? DEFAULT_OCCASIONS.filter((o) => updates.occasion_ids?.includes(o.id))
       : item.occasions;
 
+  // A key present with an undefined value means the user cleared that field
+  const orCleared = <T>(field: keyof UpdateWardrobeItemInput, next: T | undefined, current: T) =>
+    field in updates ? (next ?? null) : current;
+
   const updatedItem: WardrobeItemWithDetails = {
     ...item,
-    ...updates,
-    category,
-    occasions,
+    title: orCleared("title", updates.title, item.title),
+    category_id: orCleared("category_id", updates.category_id, item.category_id),
+    thumbnail_url: orCleared("thumbnail_url", updates.thumbnail_url, item.thumbnail_url),
+    primary_color: orCleared("primary_color", updates.primary_color, item.primary_color),
+    secondary_color: orCleared("secondary_color", updates.secondary_color, item.secondary_color),
+    fabric_type: orCleared("fabric_type", updates.fabric_type, item.fabric_type),
+    season: orCleared("season", updates.season, item.season),
+    image_url: updates.image_url ?? item.image_url,
+    is_favorite: updates.is_favorite ?? item.is_favorite,
+    category: category ?? null,
+    occasions: occasions ?? [],
     updated_at: new Date().toISOString(),
   };
 
@@ -601,7 +617,7 @@ export function toggleFavoriteWardrobeItem(userId: string, itemId: string): bool
 
 export function seedSampleWardrobe(userId: string): WardrobeItemWithDetails[] {
   const key = WARDROBE_STORAGE_PREFIX + (userId || "default_user");
-  const seeded = [...MOCK_WARDROBE_ITEMS];
+  const seeded = cloneMockWardrobeItems();
   inMemoryWardrobeStore[key] = seeded;
   safeSetLocalStorage(key, JSON.stringify(seeded));
   return seeded;

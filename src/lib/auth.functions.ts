@@ -5,6 +5,7 @@ import {
   handleVerifyCode,
   handleResendCode,
   handleLogin,
+  type AuthUser,
 } from "./server-auth";
 
 export interface AuthApiResponse<T = Record<string, unknown>> {
@@ -70,19 +71,38 @@ export const loginServerFn = createServerFn({ method: "POST" })
   });
 
 // Client-side API fetchers calling POST /api/auth/* with serverFn fallback
+export type RegisterIntentResult = {
+  success: boolean;
+  error?: string | undefined;
+  message?: string | undefined;
+  retryAfter?: number | undefined;
+  devOtpCode?: string | undefined;
+  isSandbox?: boolean | undefined;
+};
+
+export type VerifyCodeResult = {
+  success: boolean;
+  error?: string | undefined;
+  message?: string | undefined;
+  token?: string | undefined;
+  user?: AuthUser | undefined;
+  expired?: boolean | undefined;
+  locked?: boolean | undefined;
+};
+
+export type LoginResult = {
+  success: boolean;
+  error?: string | undefined;
+  token?: string | undefined;
+  user?: AuthUser | undefined;
+};
+
 export async function apiRegisterIntent(payload: {
   email: string;
   password: string;
-  confirmPassword?: string;
-  name?: string;
-}): Promise<{
-  success: boolean;
-  error?: string;
-  message?: string;
-  retryAfter?: number;
-  devOtpCode?: string;
-  isSandbox?: boolean;
-}> {
+  confirmPassword?: string | undefined;
+  name?: string | undefined;
+}): Promise<RegisterIntentResult> {
   try {
     const res = await fetch("/api/auth/register-intent", {
       method: "POST",
@@ -110,15 +130,15 @@ export async function apiRegisterIntent(payload: {
       if (res.status >= 400) {
         return {
           success: false,
-          error: (res.body.error as string) || "Failed to send verification code.",
-          retryAfter: res.body.retryAfter as number | undefined,
+          error: res.body.error || "Failed to send verification code.",
+          retryAfter: res.body.retryAfter,
         };
       }
       return {
         success: true,
-        message: (res.body.message as string) || "Verification code sent to your email",
-        devOtpCode: res.body.devOtpCode as string | undefined,
-        isSandbox: res.body.isSandbox as boolean | undefined,
+        message: res.body.message || "Verification code sent to your email",
+        devOtpCode: res.body.devOtpCode,
+        isSandbox: res.body.isSandbox,
       };
     } catch (e) {
       return {
@@ -129,23 +149,10 @@ export async function apiRegisterIntent(payload: {
   }
 }
 
-export async function apiVerifyCode(payload: { email: string; code: string }): Promise<{
-  success: boolean;
-  error?: string;
-  message?: string;
-  token?: string;
-  user?: {
-    id: string;
-    email: string;
-    name: string;
-    is_verified: boolean;
-    emailVerified: boolean;
-    twoFactorVerified: boolean;
-    createdAt: string;
-  };
-  expired?: boolean;
-  locked?: boolean;
-}> {
+export async function apiVerifyCode(payload: {
+  email: string;
+  code: string;
+}): Promise<VerifyCodeResult> {
   try {
     const res = await fetch("/api/auth/verify-code", {
       method: "POST",
@@ -174,24 +181,16 @@ export async function apiVerifyCode(payload: { email: string; code: string }): P
       if (res.status >= 400) {
         return {
           success: false,
-          error: (res.body.error as string) || "Verification failed.",
-          expired: res.body.expired as boolean | undefined,
-          locked: res.body.locked as boolean | undefined,
+          error: res.body.error || "Verification failed.",
+          expired: res.body.expired,
+          locked: res.body.locked,
         };
       }
       return {
         success: true,
-        message: res.body.message as string,
-        token: res.body.token as string,
-        user: res.body.user as {
-          id: string;
-          email: string;
-          name: string;
-          is_verified: boolean;
-          emailVerified: boolean;
-          twoFactorVerified: boolean;
-          createdAt: string;
-        },
+        message: res.body.message,
+        token: res.body.token,
+        user: res.body.user,
       };
     } catch (e) {
       return {
@@ -202,14 +201,7 @@ export async function apiVerifyCode(payload: { email: string; code: string }): P
   }
 }
 
-export async function apiResendCode(payload: { email: string }): Promise<{
-  success: boolean;
-  error?: string;
-  message?: string;
-  retryAfter?: number;
-  devOtpCode?: string;
-  isSandbox?: boolean;
-}> {
+export async function apiResendCode(payload: { email: string }): Promise<RegisterIntentResult> {
   try {
     const res = await fetch("/api/auth/resend-code", {
       method: "POST",
@@ -236,15 +228,15 @@ export async function apiResendCode(payload: { email: string }): Promise<{
       if (res.status >= 400) {
         return {
           success: false,
-          error: (res.body.error as string) || "Failed to resend code.",
-          retryAfter: res.body.retryAfter as number | undefined,
+          error: res.body.error || "Failed to resend code.",
+          retryAfter: res.body.retryAfter,
         };
       }
       return {
         success: true,
-        message: (res.body.message as string) || "Verification code sent to your email",
-        devOtpCode: res.body.devOtpCode as string | undefined,
-        isSandbox: res.body.isSandbox as boolean | undefined,
+        message: res.body.message || "Verification code sent to your email",
+        devOtpCode: res.body.devOtpCode,
+        isSandbox: res.body.isSandbox,
       };
     } catch (e) {
       return {
@@ -255,20 +247,7 @@ export async function apiResendCode(payload: { email: string }): Promise<{
   }
 }
 
-export async function apiLogin(payload: { email: string; password: string }): Promise<{
-  success: boolean;
-  error?: string;
-  token?: string;
-  user?: {
-    id: string;
-    email: string;
-    name: string;
-    is_verified: boolean;
-    emailVerified: boolean;
-    twoFactorVerified: boolean;
-    createdAt: string;
-  };
-}> {
+export async function apiLogin(payload: { email: string; password: string }): Promise<LoginResult> {
   try {
     const res = await fetch("/api/auth/login", {
       method: "POST",
@@ -293,21 +272,13 @@ export async function apiLogin(payload: { email: string; password: string }): Pr
       if (res.status >= 400) {
         return {
           success: false,
-          error: (res.body.error as string) || "Login failed.",
+          error: res.body.error || "Login failed.",
         };
       }
       return {
         success: true,
-        token: res.body.token as string,
-        user: res.body.user as {
-          id: string;
-          email: string;
-          name: string;
-          is_verified: boolean;
-          emailVerified: boolean;
-          twoFactorVerified: boolean;
-          createdAt: string;
-        },
+        token: res.body.token,
+        user: res.body.user,
       };
     } catch (e) {
       return {

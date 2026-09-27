@@ -25,8 +25,8 @@ interface MoodBoardPaletteExtractorProps {
   onSelectBaseColor: (hex: string) => void;
   garmentTheme: GarmentColorTheme;
   onUpdateGarmentTheme: (partial: Partial<GarmentColorTheme>) => void;
-  userPhotoUrl?: string | null;
-  garmentPhotoUrl?: string | null;
+  userPhotoUrl?: string | null | undefined;
+  garmentPhotoUrl?: string | null | undefined;
 }
 
 export function MoodBoardPaletteExtractor({

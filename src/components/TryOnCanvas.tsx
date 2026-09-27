@@ -312,7 +312,9 @@ export function TryOnCanvas({
               min={0.2}
               max={2.5}
               step={0.01}
-              onValueChange={([value]) => setLayer((current) => ({ ...current, scale: value }))}
+              onValueChange={([value]) =>
+                setLayer((current) => ({ ...current, scale: value ?? current.scale }))
+              }
             />
           </div>
           <div className="space-y-2">
@@ -325,7 +327,9 @@ export function TryOnCanvas({
               min={-45}
               max={45}
               step={1}
-              onValueChange={([value]) => setLayer((current) => ({ ...current, rotation: value }))}
+              onValueChange={([value]) =>
+                setLayer((current) => ({ ...current, rotation: value ?? current.rotation }))
+              }
             />
           </div>
           <div className="space-y-2">
@@ -338,7 +342,9 @@ export function TryOnCanvas({
               min={0.1}
               max={1}
               step={0.01}
-              onValueChange={([value]) => setLayer((current) => ({ ...current, opacity: value }))}
+              onValueChange={([value]) =>
+                setLayer((current) => ({ ...current, opacity: value ?? current.opacity }))
+              }
             />
           </div>
         </div>
