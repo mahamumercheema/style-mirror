@@ -185,10 +185,10 @@ function Landing() {
                 </Link>
                 <Link
                   to="/generate"
-                  onClick={(e) => handleFeatureClick(e, "/generate", "the AI Stylist")}
+                  onClick={(e) => handleFeatureClick(e, "/generate", "What to Wear")}
                   className="nav-link text-gold"
                 >
-                  AI Stylist
+                  What to Wear
                 </Link>
                 <Link
                   to="/studio"
@@ -230,8 +230,8 @@ function Landing() {
             </h1>
             <p className="mt-6 text-base leading-relaxed text-cream/80">
               Upload one full-body photo, get an approximate read of your proportions, manage your
-              Western &amp; ethnic wardrobe, and receive bespoke AI outfit recommendations with hair
-              and makeup inspiration.
+              Western &amp; ethnic wardrobe, and find paired outfit options directly from your
+              closet for any event or occasion.
             </p>
           </div>
 
@@ -246,10 +246,10 @@ function Landing() {
             </Link>
             <Link
               to="/generate"
-              onClick={(e) => handleFeatureClick(e, "/generate", "the AI Stylist")}
+              onClick={(e) => handleFeatureClick(e, "/generate", "What to Wear")}
               className="hero-link text-gold"
             >
-              AI Stylist
+              What to Wear
             </Link>
             <Link
               to="/closet"

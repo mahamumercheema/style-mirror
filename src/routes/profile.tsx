@@ -475,7 +475,7 @@ function ProfilePage() {
                 to="/generate"
                 className="nav-link inline-flex items-center gap-1.5 text-foreground/75"
               >
-                <span>AI Stylist</span>
+                <span>What to Wear</span>
               </Link>
               <Link
                 to="/studio"

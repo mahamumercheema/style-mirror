@@ -9,7 +9,16 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { LogIn, LogOut, ShieldCheck, UserPlus, User, Shirt, Sparkles } from "lucide-react";
+import {
+  LogIn,
+  LogOut,
+  ShieldCheck,
+  UserPlus,
+  User,
+  Shirt,
+  Sparkles,
+  Calendar,
+} from "lucide-react";
 
 export function HeaderAuthButtons({ onDark = false }: { onDark?: boolean }) {
   const { user, isAuthenticated, openLogin, openSignUp, logout } = useAuth();
@@ -49,6 +58,12 @@ export function HeaderAuthButtons({ onDark = false }: { onDark?: boolean }) {
               <Link to="/closet">
                 <Shirt className="size-3.5 text-primary" />
                 <span>My Closet</span>
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild className="cursor-pointer gap-2 text-xs">
+              <Link to="/generate">
+                <Calendar className="size-3.5 text-primary" />
+                <span>What to Wear</span>
               </Link>
             </DropdownMenuItem>
             <DropdownMenuItem asChild className="cursor-pointer gap-2 text-xs">
