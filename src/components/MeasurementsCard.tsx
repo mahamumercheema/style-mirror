@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { AlertTriangle, BadgeCheck, Info, PencilLine, RotateCcw, Ruler } from "lucide-react";
+import { AlertTriangle, Info, PencilLine, RotateCcw, Ruler } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -65,29 +65,15 @@ const MANUAL_FIELDS: {
   },
 ];
 
-function SourceBadge({ value }: { value: ResolvedValue | { source: "user" | "ai" } }) {
-  return value.source === "user" ? (
-    <span className="inline-block whitespace-nowrap rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-emerald-700">
-      User-provided
-    </span>
-  ) : (
-    <span className="inline-block whitespace-nowrap rounded-full bg-background/70 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-      AI-estimated
-    </span>
-  );
-}
-
 function Stat({
   label,
   value,
   hint,
-  resolved,
   lowConfidence,
 }: {
   label: string;
   value: string;
   hint?: string | undefined;
-  resolved?: ResolvedValue | { source: "user" | "ai" } | null | undefined;
   lowConfidence?: boolean | undefined;
 }) {
   return (
@@ -98,11 +84,6 @@ function Stat({
       )}
     >
       <p className="eyebrow">{label}</p>
-      {resolved ? (
-        <div className="mt-1.5">
-          <SourceBadge value={resolved} />
-        </div>
-      ) : null}
       <p className="mt-2 font-display text-3xl leading-none">{value}</p>
       {hint ? <p className="mt-1.5 text-xs text-muted-foreground">{hint}</p> : null}
       {lowConfidence ? (
@@ -197,20 +178,12 @@ export function MeasurementsCard({
           <p className="eyebrow">Step 02 — Body read</p>
           <h2 className="mt-1 text-2xl font-display">Your measurements</h2>
         </div>
-        {calibrated ? (
-          <span className="flex items-center gap-1.5 rounded-full bg-emerald-500/15 px-3 py-1 text-xs font-medium text-emerald-700">
-            <BadgeCheck className="size-3.5" />
-            Confirmed via manual height · {Math.round(
-              resolved.height?.cm ?? calibrated.heightCm,
-            )}{" "}
-            cm
-          </span>
-        ) : (
+        {!calibrated ? (
           <span className="flex items-center gap-1.5 rounded-full bg-amber-500/15 px-3 py-1 text-xs font-medium text-amber-700">
             <Info className="size-3.5" />
             Estimated
           </span>
-        )}
+        ) : null}
       </div>
 
       {calibrated ? (
@@ -246,13 +219,11 @@ export function MeasurementsCard({
             label="Height"
             value={cm(resolved.height)}
             hint="Reference baseline for the scale"
-            resolved={resolved.height}
           />
           <Stat
             label="Shoulder width"
             value={cm(resolved.shoulderWidth)}
             hint="Straight line, shoulder to shoulder"
-            resolved={resolved.shoulderWidth}
             lowConfidence={isLow(resolved.shoulderWidth)}
           />
           <Stat
@@ -263,7 +234,6 @@ export function MeasurementsCard({
                 ? `≈ ${Math.round(resolved.waistCircumference.cm)} cm around`
                 : undefined
             }
-            resolved={resolved.waistWidth}
             lowConfidence={isLow(resolved.waistWidth)}
           />
           <Stat
@@ -274,7 +244,6 @@ export function MeasurementsCard({
                 ? `≈ ${Math.round(resolved.hipCircumference.cm)} cm around`
                 : undefined
             }
-            resolved={resolved.hipWidth}
             lowConfidence={isLow(resolved.hipWidth)}
           />
           <Stat
@@ -285,7 +254,6 @@ export function MeasurementsCard({
                 ? `${curveShape} per side · L ${Math.round(curve.leftCm)} / R ${Math.round(curve.rightCm)} cm · waist:hip ${curve.waistToHipWidthRatio.toFixed(2)}`
                 : undefined
             }
-            resolved={curve}
             lowConfidence={Boolean(
               curve && curve.source === "ai" && curve.confidence < LOW_CONFIDENCE,
             )}
@@ -294,21 +262,18 @@ export function MeasurementsCard({
             label="Torso length"
             value={cm(resolved.torsoLength)}
             hint="Shoulder to hip"
-            resolved={resolved.torsoLength}
             lowConfidence={isLow(resolved.torsoLength)}
           />
           <Stat
             label="Inseam / leg length"
             value={cm(resolved.legLength)}
             hint="Hip to ankle"
-            resolved={resolved.legLength}
             lowConfidence={isLow(resolved.legLength)}
           />
           <Stat
             label="Arm length"
             value={cm(resolved.armLength)}
             hint="Shoulder to wrist"
-            resolved={resolved.armLength}
             lowConfidence={isLow(resolved.armLength)}
           />
           <Stat
@@ -376,10 +341,7 @@ export function MeasurementsCard({
                       }
                       value={draft}
                       onChange={(e) => setField(field.key, e.target.value, field.min, field.max)}
-                      className={cn(
-                        applied && "border-emerald-500/60",
-                        invalid && "border-destructive",
-                      )}
+                      className={cn(invalid && "border-destructive")}
                     />
                     <p
                       className={cn(

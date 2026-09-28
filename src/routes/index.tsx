@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { AtelierOraLogo } from "@/components/AtelierOraLogo";
 import { useEffect, useState } from "react";
 import { ArrowRight, Ruler, ScanLine, Shirt } from "lucide-react";
 
@@ -24,14 +25,6 @@ export const Route = createFileRoute("/")({
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
-    ],
-    links: [
-      { rel: "preconnect", href: "https://fonts.googleapis.com" },
-      { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
-      {
-        rel: "stylesheet",
-        href: "https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,400..900&display=swap",
-      },
     ],
   }),
   component: Landing,
@@ -174,12 +167,7 @@ function Landing() {
             }`}
           >
             <nav className="mx-auto flex w-full max-w-6xl flex-wrap items-baseline justify-between gap-4 px-6 py-7">
-              <Link
-                to="/"
-                className="glow font-wordmark text-lg tracking-[0.15em] text-white md:text-[22px]"
-              >
-                <span className="font-normal">Atelier</span> <span className="font-bold">Ora</span>
-              </Link>
+              <AtelierOraLogo tone="light" />
               <div className="flex flex-wrap items-center gap-x-5 gap-y-3 sm:gap-x-8">
                 <Link to="/closet" className="nav-link text-cream/85">
                   My Closet

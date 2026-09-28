@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { AtelierOraLogo } from "@/components/AtelierOraLogo";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ArrowLeft,
@@ -56,13 +57,13 @@ import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/studio")({
   head: () => ({
     meta: [
-      { title: "Try-on studio — Virtual Try Room" },
+      { title: "Try-on studio — Atelier Ora" },
       {
         name: "description",
         content:
           "Upload a full-body photo, get approximate body proportions read in your browser, then layer a garment from any shop link onto your photo.",
       },
-      { property: "og:title", content: "Try-on studio — Virtual Try Room" },
+      { property: "og:title", content: "Try-on studio — Atelier Ora" },
       {
         property: "og:description",
         content:
@@ -379,13 +380,7 @@ function Studio() {
     <main className="mx-auto w-full max-w-6xl px-6 py-10 md:py-16">
       {/* Navigation Header */}
       <header className="flex flex-wrap items-center justify-between gap-4 border-b border-border/60 pb-6">
-        <Link
-          to="/"
-          className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
-        >
-          <ArrowLeft className="size-4" />
-          Virtual Try Room
-        </Link>
+        <AtelierOraLogo />
 
         {/* Step Indicator Breadcrumbs */}
         <div className="flex items-center gap-1.5 overflow-x-auto text-xs">
@@ -643,22 +638,6 @@ function Studio() {
                   </div>
                 </div>
               </div>
-            ) : user ? (
-              <div
-                id="authenticated-user-badge"
-                className="flex items-center justify-between gap-2 text-xs text-emerald-600 font-medium bg-emerald-500/10 border border-emerald-500/20 px-3.5 py-2.5 rounded-lg"
-              >
-                <div className="flex items-center gap-2">
-                  <ShieldCheck className="size-4 shrink-0" />
-                  <span>
-                    Authenticated as <strong className="font-semibold">{user.email}</strong> —
-                    Measurements unlocked
-                  </span>
-                </div>
-                <span className="text-[10px] uppercase tracking-wider bg-emerald-500/20 text-emerald-700 font-semibold px-2 py-0.5 rounded-full">
-                  Verified
-                </span>
-              </div>
             ) : null}
 
             {/* Height calibration prompt (runs before any analysis) */}
@@ -801,10 +780,6 @@ function Studio() {
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
                       <p className="eyebrow">Detected joints & skeleton</p>
-                      <span className="flex items-center gap-1 text-xs text-emerald-600 font-medium">
-                        <CheckCircle2 className="size-3.5" />
-                        Landmarks verified
-                      </span>
                     </div>
                     <PoseOverlay
                       photoUrl={analysisPhoto ?? photo}
@@ -939,7 +914,6 @@ function Studio() {
               {profile?.bodyPhotoUrl && (
                 <div className="rounded-xl border border-primary/20 bg-primary/5 p-3 flex flex-wrap items-center justify-between gap-3 text-xs">
                   <div className="flex items-center gap-2">
-                    <CheckCircle2 className="size-4 text-emerald-600 shrink-0" />
                     <div>
                       <span className="font-medium text-foreground">
                         Profile Base Model Active ({profile.bodyType || "Hourglass"} •{" "}

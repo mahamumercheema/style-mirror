@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
+import { AtelierOraLogo } from "@/components/AtelierOraLogo";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
   getCategories,
@@ -48,13 +49,13 @@ import { toast } from "sonner";
 export const Route = createFileRoute("/closet")({
   head: () => ({
     meta: [
-      { title: "My Wardrobe & Closet — Virtual Try Room" },
+      { title: "My Wardrobe & Closet — Atelier Ora" },
       {
         name: "description",
         content:
           "Manage your personal digital wardrobe. Organize Western and traditional ethnic attire, categorize items by occasion, and curate your wardrobe for virtual try-on.",
       },
-      { property: "og:title", content: "My Wardrobe & Closet — Virtual Try Room" },
+      { property: "og:title", content: "My Wardrobe & Closet — Atelier Ora" },
       {
         property: "og:description",
         content:
@@ -341,13 +342,7 @@ function ClosetPage() {
       <header className="border-b border-border bg-card/60 backdrop-blur-md sticky top-0 z-20">
         <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-4 sm:px-6 py-4">
           <div className="flex items-center gap-3">
-            <Link
-              to="/"
-              className="flex items-center gap-1.5 text-xs sm:text-sm text-muted-foreground hover:text-foreground transition-colors"
-            >
-              <ArrowLeft className="size-4" />
-              <span>Virtual Try Room</span>
-            </Link>
+            <AtelierOraLogo />
             <span className="text-border">/</span>
             <span className="text-xs sm:text-sm font-medium text-foreground flex items-center gap-1.5">
               <Shirt className="size-4 text-primary" />

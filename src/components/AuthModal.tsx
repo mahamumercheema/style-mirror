@@ -408,11 +408,6 @@ export function AuthModal() {
                   <Label htmlFor="signup-confirm-password" className="text-xs font-medium">
                     Confirm Password
                   </Label>
-                  {passwordsMatch && (
-                    <span className="flex items-center gap-1 text-[11px] text-emerald-600 font-medium">
-                      <Check className="size-3" /> Passwords match
-                    </span>
-                  )}
                   {passwordsMismatch && (
                     <span className="text-[11px] text-destructive font-medium">
                       Passwords do not match
@@ -431,11 +426,7 @@ export function AuthModal() {
                       if (signUpError) setSignUpError(null);
                     }}
                     className={`pl-9 pr-10 text-sm ${
-                      passwordsMismatch
-                        ? "border-destructive focus-visible:ring-destructive"
-                        : passwordsMatch
-                          ? "border-emerald-600 focus-visible:ring-emerald-600"
-                          : ""
+                      passwordsMismatch ? "border-destructive focus-visible:ring-destructive" : ""
                     }`}
                     autoComplete="new-password"
                     required

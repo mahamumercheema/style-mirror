@@ -127,12 +127,10 @@ export function PoseOverlay({
         {/* Floating status pill */}
         <div className="absolute top-3 left-3 right-36 flex flex-wrap items-center gap-2">
           <span className="flex items-center gap-1.5 rounded-full bg-background/90 px-3 py-1 text-xs font-medium backdrop-blur-sm shadow-sm">
-            <span className="size-2 rounded-full bg-emerald-500 animate-pulse" />
             {confidencePct}% landmark confidence
           </span>
           {detectedCount && totalCount ? (
             <span className="hidden items-center gap-1 rounded-full bg-background/90 px-2.5 py-1 text-xs text-muted-foreground backdrop-blur-sm sm:flex shadow-sm">
-              <CheckCircle2 className="size-3 text-emerald-600" />
               {detectedCount}/{totalCount} landmarks
             </span>
           ) : null}
@@ -158,8 +156,8 @@ export function PoseOverlay({
         </div>
       </div>
 
-      <div className="border-t border-border px-4 py-3 text-xs">
-        {lowConfidenceMeasurements.length > 0 ? (
+      {lowConfidenceMeasurements.length > 0 ? (
+        <div className="border-t border-border px-4 py-3 text-xs">
           <p className="flex items-start gap-1.5 text-amber-700">
             <AlertTriangle className="mt-0.5 size-3.5 shrink-0" />
             <span>
@@ -167,13 +165,8 @@ export function PoseOverlay({
               {lowConfidenceMeasurements.join(", ")}. Amber joints were hard to see.
             </span>
           </p>
-        ) : (
-          <p className="flex items-center gap-1.5 text-emerald-700">
-            <CheckCircle2 className="size-3.5" />
-            All measurements detected with good confidence
-          </p>
-        )}
-      </div>
+        </div>
+      ) : null}
 
       <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border p-4 text-xs text-muted-foreground">
         <div className="flex items-center gap-2">

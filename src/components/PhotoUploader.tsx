@@ -164,22 +164,10 @@ export function PhotoUploader({
             </div>
           ) : null}
 
-          {validationNote ? (
-            <div
-              className={cn(
-                "flex items-start gap-2.5 rounded-md p-3 text-xs",
-                validationNote.type === "warning" &&
-                  "bg-amber-500/10 text-amber-900 dark:text-amber-200",
-                validationNote.type === "success" &&
-                  "bg-emerald-500/10 text-emerald-900 dark:text-emerald-200",
-                validationNote.type === "info" && "bg-secondary text-secondary-foreground",
-              )}
-            >
-              {validationNote.type === "warning" ? (
-                <AlertCircle className="size-4 shrink-0 mt-0.5 text-amber-600 dark:text-amber-400" />
-              ) : (
-                <CheckCircle2 className="size-4 shrink-0 mt-0.5 text-emerald-600 dark:text-emerald-400" />
-              )}
+          {/* Validation still runs for every photo; only warnings are shown */}
+          {validationNote && validationNote.type === "warning" ? (
+            <div className="flex items-start gap-2.5 rounded-md bg-amber-500/10 p-3 text-xs text-amber-900 dark:text-amber-200">
+              <AlertCircle className="size-4 shrink-0 mt-0.5 text-amber-600 dark:text-amber-400" />
               <p>{validationNote.message}</p>
             </div>
           ) : null}

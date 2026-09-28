@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from "react";
+import { AtelierOraLogo } from "@/components/AtelierOraLogo";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { HeaderAuthButtons } from "@/components/HeaderAuthButtons";
 import { Button } from "@/components/ui/button";
@@ -39,13 +40,13 @@ import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/profile")({
   head: () => ({
     meta: [
-      { title: "User Profile & Try-On Proportions — Virtual Try Room" },
+      { title: "User Profile & Try-On Proportions — Atelier Ora" },
       {
         name: "description",
         content:
           "Manage your full-body base try-on photo, body proportions, measurements, silhouette shape, and modesty preferences.",
       },
-      { property: "og:title", content: "Profile & Measurements — Virtual Try Room" },
+      { property: "og:title", content: "Profile & Measurements — Atelier Ora" },
     ],
   }),
   component: ProfilePage,
@@ -399,12 +400,7 @@ function ProfilePage() {
       <nav className="border-b border-border/80 bg-card/60 backdrop-blur-md sticky top-0 z-30">
         <div className="mx-auto flex w-full max-w-5xl items-center justify-between gap-4 px-4 sm:px-6 py-3.5">
           <div className="flex items-center gap-6">
-            <Link
-              to="/"
-              className="font-display text-lg tracking-tight hover:opacity-90 transition-opacity"
-            >
-              Virtual Try Room
-            </Link>
+            <AtelierOraLogo />
             <div className="hidden md:flex items-center gap-6 ml-4">
               <Link
                 to="/closet"
@@ -529,7 +525,7 @@ function ProfilePage() {
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-muted-foreground">Modesty Setting</span>
-                  <span className="font-medium text-emerald-600 dark:text-emerald-400 truncate max-w-[130px]">
+                  <span className="font-medium text-foreground truncate max-w-[130px]">
                     {modestyPreference}
                   </span>
                 </div>
@@ -698,17 +694,12 @@ function ProfilePage() {
                         className="h-48 w-36 rounded-lg object-cover object-top border border-border shadow-sm shrink-0 bg-background"
                       />
                       <div className="text-left space-y-2">
-                        <div className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-xs font-medium text-emerald-600 dark:text-emerald-400">
-                          <CheckCircle2 className="size-3" />
-                          <span>Persistent Try-On Base Active</span>
-                        </div>
                         <p className="text-xs text-foreground font-medium">
                           Front-Facing Model Synchronized
                         </p>
                         <p className="text-[11px] text-muted-foreground leading-relaxed">
-                          Whenever you open the Virtual Try Room, this base photo is automatically
-                          loaded, skipping manual re-uploads. Click or drop a file to replace it
-                          anytime.
+                          Whenever you open Atelier Ora, this base photo is automatically loaded,
+                          skipping manual re-uploads. Click or drop a file to replace it anytime.
                         </p>
                         <div className="pt-1 flex flex-wrap items-center gap-2">
                           <Button
@@ -765,7 +756,7 @@ function ProfilePage() {
                       <span>Body Measurements & Sizing Proportions</span>
                     </h2>
                     <p className="text-xs text-muted-foreground mt-0.5">
-                      Precise measurements calibrated for the Virtual Try Room overlay
+                      Precise measurements calibrated for the Atelier Ora overlay
                     </p>
                   </div>
 

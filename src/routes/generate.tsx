@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
+import { AtelierOraLogo } from "@/components/AtelierOraLogo";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
   getStoredWardrobeItems,
@@ -46,13 +47,13 @@ import { toast } from "sonner";
 export const Route = createFileRoute("/generate")({
   head: () => ({
     meta: [
-      { title: "AI Stylist & Outfit Recommendation Engine — Style Mirror" },
+      { title: "AI Stylist & Outfit Recommendation Engine — Atelier Ora" },
       {
         name: "description",
         content:
           "Custom AI-curated outfit recommendations with hairstyle, makeup, and styling guidance tailored for your events, season, and physical wardrobe collection.",
       },
-      { property: "og:title", content: "AI Stylist & Outfit Generator — Style Mirror" },
+      { property: "og:title", content: "AI Stylist & Outfit Generator — Atelier Ora" },
       {
         property: "og:description",
         content:
@@ -285,13 +286,7 @@ function GeneratePage() {
       <header className="border-b border-border/70 bg-card/70 backdrop-blur-md sticky top-0 z-20">
         <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-4 sm:px-6 py-4">
           <div className="flex items-center gap-3">
-            <Link
-              to="/"
-              className="flex items-center gap-1.5 text-xs sm:text-sm text-muted-foreground hover:text-foreground transition-colors"
-            >
-              <ArrowLeft className="size-4" />
-              <span>Virtual Try Room</span>
-            </Link>
+            <AtelierOraLogo />
             <span className="text-border">/</span>
             <span className="text-xs sm:text-sm font-medium text-foreground flex items-center gap-1.5">
               <Sparkles className="size-4 text-amber-600" />

@@ -33,7 +33,6 @@ export function HeaderAuthButtons({ onDark = false }: { onDark?: boolean }) {
               <span className="max-w-[130px] truncate text-foreground font-medium sm:inline">
                 {user.email}
               </span>
-              <span className="size-2 rounded-full bg-emerald-500 ring-2 ring-emerald-500/20" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56 p-1.5 shadow-[var(--shadow-lift)]">
@@ -43,10 +42,6 @@ export function HeaderAuthButtons({ onDark = false }: { onDark?: boolean }) {
                 <p className="text-[11px] leading-none text-muted-foreground truncate">
                   {user.email}
                 </p>
-                <div className="mt-1 flex items-center gap-1 text-[10px] text-emerald-600 font-medium">
-                  <ShieldCheck className="size-3" />
-                  <span>2-Step Verified Account</span>
-                </div>
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
