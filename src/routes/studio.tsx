@@ -475,7 +475,8 @@ function Studio() {
             to="/generate"
             className="nav-link hidden sm:flex items-center gap-1.5 text-foreground/75"
           >
-            <span>What to Wear</span>
+            <Sparkles className="size-3.5 text-amber-500" />
+            <span>AI Stylist</span>
           </Link>
           <Link
             to="/closet"

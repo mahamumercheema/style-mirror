@@ -62,8 +62,8 @@ export function HeaderAuthButtons({ onDark = false }: { onDark?: boolean }) {
             </DropdownMenuItem>
             <DropdownMenuItem asChild className="cursor-pointer gap-2 text-xs">
               <Link to="/generate">
-                <Calendar className="size-3.5 text-primary" />
-                <span>What to Wear</span>
+                <Sparkles className="size-3.5 text-amber-500" />
+                <span>AI Stylist</span>
               </Link>
             </DropdownMenuItem>
             <DropdownMenuItem asChild className="cursor-pointer gap-2 text-xs">

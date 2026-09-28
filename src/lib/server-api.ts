@@ -16,7 +16,10 @@ import {
   DEFAULT_CATEGORIES,
   DEFAULT_OCCASIONS,
 } from "./wardrobe-service";
-import { generateFallbackOutfitRecommendations } from "./styling-fallback";
+import {
+  generateOutfitRecommendationsWithGemini,
+  generateFallbackOutfitRecommendations,
+} from "./gemini";
 import type {
   CreateWardrobeItemInput,
   UpdateWardrobeItemInput,
@@ -314,7 +317,7 @@ export async function handleApiRouter(request: Request): Promise<Response | null
         if (occ) resolvedOccasion = occ.name;
       }
 
-      const result = generateFallbackOutfitRecommendations(
+      const result = await generateOutfitRecommendationsWithGemini(
         items,
         {
           occasionId: body.occasionId,

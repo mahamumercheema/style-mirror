@@ -1,29 +1,37 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { AtelierOraLogo } from "@/components/AtelierOraLogo";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { getStoredWardrobeItems, seedSampleWardrobe } from "@/lib/wardrobe-service";
-import { matchClosetForOccasion, type ClosetMatchResult } from "@/lib/closet-matcher";
-import type { WardrobeItemWithDetails } from "@/types/wardrobe";
+import {
+  getStoredWardrobeItems,
+  seedSampleWardrobe,
+  DEFAULT_OCCASIONS,
+} from "@/lib/wardrobe-service";
+import type {
+  WardrobeItemWithDetails,
+  RecommendOutfitResponse,
+  OutfitRecommendationItem,
+} from "@/types/wardrobe";
 import { HeaderAuthButtons } from "@/components/HeaderAuthButtons";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
 import { useAuth } from "@/context/AuthContext";
 import {
+  Sparkles,
   ArrowRight,
   Shirt,
   Calendar,
   Compass,
   Check,
   RotateCcw,
-  Sparkles,
   Layers,
   Heart,
   Plus,
   LogIn,
   UserPlus,
-  Search,
-  ExternalLink,
+  Scissors,
+  Palette,
+  Eye,
+  SlidersHorizontal,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
@@ -31,48 +39,62 @@ import { toast } from "sonner";
 export const Route = createFileRoute("/generate")({
   head: () => ({
     meta: [
-      { title: "What to Wear • Occasion Outfits from Your Closet — Atelier Ora" },
+      { title: "AI Stylist • Bespoke Wardrobe Recommendations — Atelier Ora" },
       {
         name: "description",
         content:
-          "Enter your event or occasion to see matching outfit options and pieces directly from your uploaded closet.",
+          "Generate personalized outfit formulas, styling advice, hairstyle, and makeup inspiration from your private wardrobe.",
       },
-      { property: "og:title", content: "What to Wear — Atelier Ora" },
+      { property: "og:title", content: "AI Stylist — Atelier Ora" },
       {
         property: "og:description",
         content:
-          "Pick or enter any occasion to see coordinated outfits paired directly from your uploaded wardrobe.",
+          "AI-powered styling recommendations and hair/makeup pairings from your uploaded wardrobe.",
       },
     ],
   }),
-  component: OccasionOutfitsPage,
+  component: GeneratePage,
 });
 
-const PRESET_OCCASIONS = [
-  { id: "Wedding / Festive / Fancy", label: "Wedding & Festive", icon: "💍" },
-  { id: "Dinner / Party", label: "Dinner & Party", icon: "🥂" },
-  { id: "Office / Work", label: "Office & Work", icon: "💼" },
-  { id: "Casual / Daily", label: "Casual & Daily", icon: "☕" },
-  { id: "Formal / Gala", label: "Formal & Gala", icon: "🎪" },
-  { id: "Traditional / Religious", label: "Traditional & Religious", icon: "🕌" },
-];
+const TIME_OPTIONS = ["Day", "Evening", "Night"] as const;
+const SEASON_OPTIONS = [
+  "Spring / Summer",
+  "Autumn / Winter",
+  "All Season",
+  "Monsoon Festive",
+] as const;
+const VIBE_OPTIONS = [
+  "Royal Regal Glam",
+  "Minimalist Modern Chic",
+  "Bohemian Fusion",
+  "Structured Power Dressing",
+  "Romantic Soft Aesthetic",
+] as const;
 
-function OccasionOutfitsPage() {
+function GeneratePage() {
+  const navigate = useNavigate();
   const { user, isAuthenticated, openLogin, openSignUp } = useAuth();
   const activeUserId = user?.id || "";
 
   const [wardrobe, setWardrobe] = useState<WardrobeItemWithDetails[]>([]);
-  const [selectedOccasion, setSelectedOccasion] = useState<string>("Wedding / Festive / Fancy");
-  const [customOccasionInput, setCustomOccasionInput] = useState<string>("");
+  const [selectedOccasionId, setSelectedOccasionId] = useState<string>("1");
+  const [customOccasion, setCustomOccasion] = useState<string>("");
+  const [selectedTime, setSelectedTime] = useState<string>("Evening");
+  const [selectedSeason, setSelectedSeason] = useState<string>("All Season");
+  const [selectedVibe, setSelectedVibe] = useState<string>("Royal Regal Glam");
   const [heroItemId, setHeroItemId] = useState<string>("none");
-  const [activeOptionTab, setActiveOptionTab] = useState<number>(0);
+
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [recommendations, setRecommendations] = useState<OutfitRecommendationItem[]>([]);
+  const [activeRecommendationTab, setActiveRecommendationTab] = useState<number>(0);
+  const [hasGeneratedOnce, setHasGeneratedOnce] = useState<boolean>(false);
 
   // Prompt log in / sign up on mount if unauthenticated
   useEffect(() => {
     if (!isAuthenticated) {
       openSignUp(
         undefined,
-        "Sign in or create an account to view outfit options from your uploaded clothes.",
+        "Sign in or create an account to get personalized AI styling recommendations.",
       );
     }
   }, [isAuthenticated, openSignUp]);
@@ -96,30 +118,70 @@ function OccasionOutfitsPage() {
     refreshWardrobe();
   }, [refreshWardrobe]);
 
-  // Active occasion determination (custom typed event takes precedence if filled)
-  const currentOccasion = customOccasionInput.trim() || selectedOccasion;
+  // Map item ID to item entity for fast lookup
+  const wardrobeMap = useMemo(() => {
+    const map = new Map<string, WardrobeItemWithDetails>();
+    for (const item of wardrobe) {
+      map.set(item.id, item);
+    }
+    return map;
+  }, [wardrobe]);
 
-  // Compute matched outfit options directly from the user's uploaded clothes
-  const matchResult: ClosetMatchResult = useMemo(() => {
-    return matchClosetForOccasion(
-      wardrobe,
-      currentOccasion,
-      heroItemId !== "none" ? heroItemId : undefined,
-    );
-  }, [wardrobe, currentOccasion, heroItemId]);
+  const occasions = DEFAULT_OCCASIONS;
 
-  const activeOption = matchResult.options[activeOptionTab] || matchResult.options[0];
+  const handleGenerate = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
 
-  const handleSelectPreset = (occId: string) => {
-    setCustomOccasionInput("");
-    setSelectedOccasion(occId);
-    setActiveOptionTab(0);
-  };
+    if (!isAuthenticated || !activeUserId) {
+      openSignUp(undefined, "Please sign in or create an account to generate outfit styling.");
+      return;
+    }
 
-  const handleCustomSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (customOccasionInput.trim()) {
-      setActiveOptionTab(0);
+    if (wardrobe.length === 0) {
+      toast.error("Your wardrobe is empty. Please add items or import starter garments first.");
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const selectedOccasionObj = occasions.find(
+        (o) => String(o.id) === String(selectedOccasionId),
+      );
+      const resolvedOccasionName =
+        customOccasion.trim() || selectedOccasionObj?.name || "Special Occasion";
+
+      const res = await fetch("/api/recommend-outfit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          occasionId: selectedOccasionId,
+          occasionName: resolvedOccasionName,
+          timeOfDay: selectedTime,
+          season: selectedSeason,
+          vibePreference: selectedVibe,
+          heroItemId: heroItemId !== "none" ? heroItemId : undefined,
+          userId: activeUserId,
+        }),
+      });
+
+      if (!res.ok) {
+        throw new Error(`Failed with status ${res.status}`);
+      }
+
+      const data = (await res.json()) as RecommendOutfitResponse;
+      if (Array.isArray(data.recommendations) && data.recommendations.length > 0) {
+        setRecommendations(data.recommendations);
+        setActiveRecommendationTab(0);
+        setHasGeneratedOnce(true);
+        toast.success("Bespoke outfits styled for you!");
+      } else {
+        toast.error("Unable to generate outfit recommendations. Please try different options.");
+      }
+    } catch (err) {
+      console.error("Styling generation error:", err);
+      toast.error("Could not complete styling request. Using local wardrobe fallback.");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -130,8 +192,10 @@ function OccasionOutfitsPage() {
     }
     const seeded = seedSampleWardrobe(activeUserId);
     setWardrobe(seeded);
-    toast.success("Sample garments imported to your wardrobe!");
+    toast.success("Sample collection imported to your closet!");
   };
+
+  const activeRec = recommendations[activeRecommendationTab] || recommendations[0];
 
   return (
     <main className="min-h-screen bg-background pb-24 text-foreground">
@@ -147,8 +211,9 @@ function OccasionOutfitsPage() {
               >
                 My Closet
               </Link>
-              <Link to="/generate" className="text-primary font-semibold">
-                What to Wear
+              <Link to="/generate" className="text-primary font-semibold flex items-center gap-1.5">
+                <Sparkles className="size-3.5 text-amber-500" />
+                <span>AI Stylist</span>
               </Link>
               <Link
                 to="/studio"
@@ -177,17 +242,17 @@ function OccasionOutfitsPage() {
         <div className="border-b border-border pb-6 space-y-2">
           <div className="flex items-center gap-2">
             <span className="flex size-7 items-center justify-center rounded-full bg-primary/10 text-primary">
-              <Calendar className="size-4" />
+              <Sparkles className="size-4" />
             </span>
-            <span className="eyebrow text-primary">Occasion Outfit Matcher</span>
+            <span className="eyebrow text-primary">Private Styling Studio</span>
           </div>
           <h1 className="text-3xl sm:text-4xl font-display font-medium text-foreground tracking-tight">
-            What to Wear from Your Closet
+            AI Stylist &amp; Outfit Generator
           </h1>
           <p className="text-sm text-muted-foreground max-w-2xl leading-relaxed">
-            Enter or select any event or occasion below. We will pair together items from the
-            clothes you&apos;ve uploaded to show you exactly what to wear with photos from your own
-            wardrobe.
+            Select an occasion, season, time of day, and desired aesthetic vibe. Our styling
+            director will curate complete outfit formulas from your uploaded wardrobe, paired with
+            tailored hair and makeup inspiration.
           </p>
         </div>
 
@@ -197,18 +262,18 @@ function OccasionOutfitsPage() {
             <div className="space-y-1 text-center sm:text-left">
               <p className="text-sm font-semibold text-foreground flex items-center justify-center sm:justify-start gap-1.5">
                 <Shirt className="size-4 text-primary" />
-                <span>Sign in to access your personal closet options</span>
+                <span>Sign in to access your personal AI Stylist</span>
               </p>
               <p className="text-xs text-muted-foreground">
-                Each member has their own private wardrobe. Sign in to see options from your own
-                clothes.
+                Each member has their own private wardrobe and proportions. Sign in to curate
+                outfits.
               </p>
             </div>
             <div className="flex items-center gap-2.5 shrink-0">
               <Button
                 size="sm"
                 onClick={() =>
-                  openSignUp(undefined, "Create an account to see what to wear from your clothes.")
+                  openSignUp(undefined, "Create an account to use the AI Stylist feature.")
                 }
                 className="gap-1.5 text-xs font-medium cursor-pointer"
               >
@@ -228,323 +293,348 @@ function OccasionOutfitsPage() {
           </div>
         )}
 
-        {/* Occasion Selection & Input Controls */}
-        <section className="rounded-2xl border border-border bg-card p-5 sm:p-6 shadow-xs space-y-6">
-          <div className="space-y-2">
-            <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center justify-between">
-              <span>Select or Type Your Occasion</span>
-              <span className="text-[11px] text-muted-foreground/80 font-normal">
-                {wardrobe.length} items in your closet
-              </span>
-            </label>
-
-            {/* Quick Preset Occasion Chips */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
-              {PRESET_OCCASIONS.map((occ) => {
-                const isSelected = !customOccasionInput && selectedOccasion === occ.id;
-                return (
-                  <button
-                    key={occ.id}
-                    type="button"
-                    onClick={() => handleSelectPreset(occ.id)}
-                    className={`flex items-center justify-center gap-2 p-2.5 rounded-xl border text-xs font-medium transition-all cursor-pointer ${
-                      isSelected
-                        ? "border-primary bg-primary text-primary-foreground shadow-xs"
-                        : "border-border bg-background hover:bg-muted text-foreground"
-                    }`}
-                  >
-                    <span>{occ.icon}</span>
-                    <span className="truncate">{occ.label}</span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Custom Occasion Input Bar */}
-          <form
-            onSubmit={handleCustomSubmit}
-            className="flex flex-col sm:flex-row items-center gap-2.5"
-          >
-            <div className="relative flex-1 w-full">
-              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-              <Input
-                type="text"
-                placeholder="Or type custom event (e.g. Birthday Dinner, Beach Day, Job Interview, Eid Party)..."
-                value={customOccasionInput}
-                onChange={(e) => {
-                  setCustomOccasionInput(e.target.value);
-                  setActiveOptionTab(0);
-                }}
-                className="pl-9 h-11 text-xs sm:text-sm bg-background"
-              />
-            </div>
-            {customOccasionInput && (
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => setCustomOccasionInput("")}
-                className="text-xs text-muted-foreground"
-              >
-                Clear
-              </Button>
-            )}
-          </form>
-
-          {/* Optional Anchor / Centerpiece Item Filter */}
-          {wardrobe.length > 0 && (
-            <div className="pt-2 border-t border-border flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
-              <span className="text-muted-foreground font-medium">
-                Want to build the outfit around a specific item from your closet?
-              </span>
-              <select
-                value={heroItemId}
-                onChange={(e) => {
-                  setHeroItemId(e.target.value);
-                  setActiveOptionTab(0);
-                }}
-                className="h-9 rounded-lg border border-border bg-background px-3 text-xs text-foreground focus:outline-hidden focus:ring-1 focus:ring-primary max-w-xs"
-              >
-                <option value="none">No centerpiece (Pair best matching pieces)</option>
-                {wardrobe.map((item) => (
-                  <option key={item.id} value={item.id}>
-                    {item.title} ({item.category?.name || "Garment"})
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
-        </section>
-
-        {/* ========================================================================= */}
-        {/* Results Area */}
-        {/* ========================================================================= */}
-        {wardrobe.length === 0 ? (
-          /* Empty Closet State */
-          <div className="rounded-2xl border border-dashed border-border bg-card p-10 sm:p-14 text-center space-y-5 shadow-xs">
-            <div className="mx-auto flex size-16 items-center justify-center rounded-full bg-secondary text-muted-foreground">
-              <Shirt className="size-8 opacity-70" />
-            </div>
-            <div className="space-y-2 max-w-md mx-auto">
-              <h2 className="text-xl font-display font-medium text-foreground">
-                Your Closet is Empty
+        {/* Styling Configuration Form */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+          {/* Controls Column */}
+          <div className="lg:col-span-5 rounded-2xl border border-border bg-card p-6 shadow-xs space-y-6">
+            <div className="flex items-center justify-between border-b border-border pb-3">
+              <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+                <SlidersHorizontal className="size-4 text-primary" />
+                <span>Styling Parameters</span>
               </h2>
-              <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
-                Upload photos of your clothes in My Closet, and this page will automatically pair
-                your tops, bottoms, dresses, and shoes into options to wear for {currentOccasion}.
-              </p>
+              <span className="text-[11px] text-muted-foreground">
+                {wardrobe.length} closet items
+              </span>
             </div>
-            <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
-              <Button asChild size="default" className="gap-2 font-medium cursor-pointer">
-                <Link to="/closet">
-                  <Plus className="size-4" />
-                  <span>Go to My Closet to Add Clothes</span>
-                </Link>
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                size="default"
-                onClick={handleSeedDefaults}
-                className="gap-2 font-medium cursor-pointer"
-              >
-                <Sparkles className="size-4 text-amber-500" />
-                <span>Import Starter Sample Garments</span>
-              </Button>
-            </div>
-          </div>
-        ) : matchResult.options.length > 0 ? (
-          <div className="space-y-8">
-            {/* Options Tabs Header */}
-            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-4">
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mr-1">
-                  Outfit Options:
-                </span>
-                <div className="flex flex-wrap items-center gap-2">
-                  {matchResult.options.map((opt, idx) => (
+
+            <form onSubmit={handleGenerate} className="space-y-5">
+              {/* Occasion */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                  <Calendar className="size-3.5 text-primary" />
+                  <span>Occasion / Event</span>
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  {occasions.map((occ) => (
                     <button
-                      key={opt.id}
+                      key={occ.id}
                       type="button"
-                      onClick={() => setActiveOptionTab(idx)}
-                      className={`px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer ${
-                        activeOptionTab === idx
-                          ? "bg-primary text-primary-foreground shadow-xs font-semibold"
-                          : "bg-card text-muted-foreground border border-border hover:bg-muted hover:text-foreground"
+                      onClick={() => {
+                        setSelectedOccasionId(String(occ.id));
+                        setCustomOccasion("");
+                      }}
+                      className={`px-3 py-2 rounded-lg border text-xs text-left font-medium transition-all cursor-pointer ${
+                        !customOccasion && selectedOccasionId === String(occ.id)
+                          ? "border-primary bg-primary text-primary-foreground shadow-xs"
+                          : "border-border bg-background hover:bg-muted text-foreground"
                       }`}
                     >
-                      Option {idx + 1}
+                      <span className="truncate block">{occ.name}</span>
+                    </button>
+                  ))}
+                </div>
+
+                <div className="pt-2">
+                  <input
+                    type="text"
+                    placeholder="Or type custom event (e.g. Mehendi Night, Gallery Opening)..."
+                    value={customOccasion}
+                    onChange={(e) => setCustomOccasion(e.target.value)}
+                    className="w-full h-9 rounded-lg border border-border bg-background px-3 text-xs text-foreground placeholder:text-muted-foreground focus:outline-hidden focus:ring-1 focus:ring-primary"
+                  />
+                </div>
+              </div>
+
+              {/* Time of Day */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-foreground">Time of Day</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {TIME_OPTIONS.map((t) => (
+                    <button
+                      key={t}
+                      type="button"
+                      onClick={() => setSelectedTime(t)}
+                      className={`py-1.5 rounded-lg border text-xs font-medium transition-all cursor-pointer ${
+                        selectedTime === t
+                          ? "border-primary bg-primary text-primary-foreground shadow-xs"
+                          : "border-border bg-background hover:bg-muted text-foreground"
+                      }`}
+                    >
+                      {t}
                     </button>
                   ))}
                 </div>
               </div>
 
-              <div className="text-xs text-muted-foreground flex items-center gap-2">
-                <span>Showing options for:</span>
-                <Badge
-                  variant="outline"
-                  className="font-semibold text-xs border-primary/40 text-primary"
+              {/* Season */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-foreground">Season</label>
+                <select
+                  value={selectedSeason}
+                  onChange={(e) => setSelectedSeason(e.target.value)}
+                  className="w-full h-9 rounded-lg border border-border bg-background px-3 text-xs text-foreground focus:outline-hidden focus:ring-1 focus:ring-primary"
                 >
-                  {currentOccasion}
-                </Badge>
+                  {SEASON_OPTIONS.map((s) => (
+                    <option key={s} value={s}>
+                      {s}
+                    </option>
+                  ))}
+                </select>
               </div>
-            </div>
 
-            {/* Active Curated Outfit Look Card */}
-            {activeOption && (
-              <div className="rounded-2xl border border-border bg-card p-6 sm:p-8 shadow-xs space-y-6">
-                <div className="space-y-1.5 border-b border-border pb-4">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <h2 className="text-xl sm:text-2xl font-display font-medium text-foreground">
-                      {activeOption.name}
-                    </h2>
-                    <Badge variant="secondary" className="text-xs">
-                      {activeOption.pieces.length} Pieces Paired
-                    </Badge>
-                  </div>
-                  <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
-                    {activeOption.stylingNote}
-                  </p>
-                </div>
+              {/* Vibe Preference */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-foreground">Aesthetic Vibe</label>
+                <select
+                  value={selectedVibe}
+                  onChange={(e) => setSelectedVibe(e.target.value)}
+                  className="w-full h-9 rounded-lg border border-border bg-background px-3 text-xs text-foreground focus:outline-hidden focus:ring-1 focus:ring-primary"
+                >
+                  {VIBE_OPTIONS.map((v) => (
+                    <option key={v} value={v}>
+                      {v}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-                {/* The Uploaded Pictures of What to Wear Side-by-Side */}
-                <div className="space-y-3">
-                  <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center justify-between">
-                    <span>What to Wear from Your Closet</span>
-                    <span className="text-[11px] font-normal text-muted-foreground/80">
-                      Photos from your uploaded garments
-                    </span>
-                  </h3>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                    {activeOption.pieces.map((piece, pIdx) => (
-                      <div
-                        key={`${piece.item.id}-${pIdx}`}
-                        className="group relative flex flex-col rounded-xl border border-border bg-background overflow-hidden hover:border-primary/50 transition-all shadow-xs"
-                      >
-                        {/* Garment Role Badge */}
-                        <div className="absolute top-2.5 left-2.5 z-10">
-                          <Badge className="bg-primary/90 text-primary-foreground text-[10px] font-medium shadow-xs">
-                            {piece.role}
-                          </Badge>
-                        </div>
-
-                        {/* Uploaded Photo */}
-                        <div className="aspect-square w-full bg-muted/40 overflow-hidden relative">
-                          <img
-                            src={piece.item.image_url}
-                            alt={piece.item.title || "Garment photo"}
-                            className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
-                          />
-                        </div>
-
-                        {/* Garment Details & Action */}
-                        <div className="p-3 space-y-1.5 flex-1 flex flex-col justify-between">
-                          <div className="space-y-0.5">
-                            <p className="text-[11px] text-muted-foreground font-medium">
-                              {piece.item.category?.name || "Garment"}
-                            </p>
-                            <h4 className="text-xs font-semibold text-foreground line-clamp-1">
-                              {piece.item.title}
-                            </h4>
-                            <p className="text-[10px] text-muted-foreground truncate">
-                              {piece.item.primary_color || "Color"}
-                              {piece.item.fabric_type ? ` · ${piece.item.fabric_type}` : ""}
-                            </p>
-                          </div>
-
-                          <Button
-                            asChild
-                            variant="outline"
-                            size="sm"
-                            className="w-full mt-2 h-7 text-[11px] font-medium cursor-pointer gap-1"
-                          >
-                            <Link to="/studio">
-                              <span>Try in Studio</span>
-                              <ArrowRight className="size-3" />
-                            </Link>
-                          </Button>
-                        </div>
-                      </div>
+              {/* Optional Hero Centerpiece */}
+              {wardrobe.length > 0 && (
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-foreground flex items-center justify-between">
+                    <span>Anchor on Specific Item (Optional)</span>
+                  </label>
+                  <select
+                    value={heroItemId}
+                    onChange={(e) => setHeroItemId(e.target.value)}
+                    className="w-full h-9 rounded-lg border border-border bg-background px-3 text-xs text-foreground focus:outline-hidden focus:ring-1 focus:ring-primary"
+                  >
+                    <option value="none">Auto-select anchor piece</option>
+                    {wardrobe.map((item) => (
+                      <option key={item.id} value={item.id}>
+                        {item.title} ({item.category?.name || "Garment"})
+                      </option>
                     ))}
-                  </div>
+                  </select>
                 </div>
+              )}
 
-                {/* Bottom Bar: Action to Try on Full Look */}
-                <div className="pt-4 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-3">
-                  <p className="text-xs text-muted-foreground">
-                    Want to see how this combination looks draped over your proportions?
+              {/* Action Button */}
+              <div className="pt-2">
+                <Button
+                  type="submit"
+                  disabled={isLoading || wardrobe.length === 0}
+                  className="w-full h-11 gap-2 font-medium cursor-pointer text-sm shadow-xs"
+                >
+                  {isLoading ? (
+                    <>
+                      <RotateCcw className="size-4 animate-spin" />
+                      <span>Curating Outfits...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="size-4 text-amber-300" />
+                      <span>Generate AI Outfits</span>
+                    </>
+                  )}
+                </Button>
+              </div>
+            </form>
+          </div>
+
+          {/* Output / Results Column */}
+          <div className="lg:col-span-7 space-y-6">
+            {wardrobe.length === 0 ? (
+              <div className="rounded-2xl border border-dashed border-border bg-card p-10 sm:p-14 text-center space-y-5 shadow-xs">
+                <div className="mx-auto flex size-16 items-center justify-center rounded-full bg-secondary text-muted-foreground">
+                  <Shirt className="size-8 opacity-70" />
+                </div>
+                <div className="space-y-2 max-w-md mx-auto">
+                  <h2 className="text-xl font-display font-medium text-foreground">
+                    Your Wardrobe is Empty
+                  </h2>
+                  <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
+                    Upload photos of your clothes in My Closet, or import our sample collection to
+                    see how the AI Stylist pairs your tops, bottoms, and accessories.
                   </p>
-                  <Button asChild size="default" className="gap-2 cursor-pointer w-full sm:w-auto">
-                    <Link to="/studio">
-                      <span>Open in Fitting Studio</span>
-                      <ArrowRight className="size-4" />
+                </div>
+                <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+                  <Button asChild size="default" className="gap-2 font-medium cursor-pointer">
+                    <Link to="/closet">
+                      <Plus className="size-4" />
+                      <span>Add Clothes in My Closet</span>
                     </Link>
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="default"
+                    onClick={handleSeedDefaults}
+                    className="gap-2 font-medium cursor-pointer"
+                  >
+                    <Sparkles className="size-4 text-amber-500" />
+                    <span>Import Sample Garments</span>
                   </Button>
                 </div>
               </div>
-            )}
-
-            {/* ========================================================================= */}
-            {/* All Pieces in Your Closet for this Occasion */}
-            {/* ========================================================================= */}
-            <section className="space-y-4 pt-4 border-t border-border">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                <div>
-                  <h3 className="text-lg font-display font-medium text-foreground">
-                    All Garments in Your Closet
-                  </h3>
-                  <p className="text-xs text-muted-foreground">
-                    Individual uploaded pieces you can pick or switch into for {currentOccasion}.
+            ) : recommendations.length === 0 ? (
+              <div className="rounded-2xl border border-border bg-card p-10 sm:p-14 text-center space-y-5 shadow-xs">
+                <div className="mx-auto flex size-16 items-center justify-center rounded-full bg-primary/10 text-primary">
+                  <Compass className="size-8" />
+                </div>
+                <div className="space-y-2 max-w-md mx-auto">
+                  <h2 className="text-xl font-display font-medium text-foreground">
+                    Ready to Style Your Outfits
+                  </h2>
+                  <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
+                    Configure your event, time, season, and vibe preferences on the left, then click{" "}
+                    <strong>Generate AI Outfits</strong> to receive bespoke formulas and beauty
+                    pairings.
                   </p>
                 </div>
                 <Button
-                  asChild
-                  variant="outline"
-                  size="sm"
-                  className="gap-1.5 text-xs cursor-pointer"
+                  type="button"
+                  onClick={() => void handleGenerate()}
+                  disabled={isLoading}
+                  className="gap-2 font-medium cursor-pointer"
                 >
-                  <Link to="/closet">
-                    <Plus className="size-3.5" />
-                    <span>Upload More Clothes</span>
-                  </Link>
+                  <Sparkles className="size-4" />
+                  <span>Generate Now</span>
                 </Button>
               </div>
-
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
-                {matchResult.allMatchingItems.map((item) => (
-                  <div
-                    key={item.id}
-                    className="group relative rounded-xl border border-border bg-card overflow-hidden hover:border-primary/50 transition-all flex flex-col justify-between"
-                  >
-                    <div className="aspect-square w-full bg-muted/40 overflow-hidden">
-                      <img
-                        src={item.image_url}
-                        alt={item.title || "Garment"}
-                        className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
-                      />
-                    </div>
-                    <div className="p-2 space-y-0.5">
-                      <p className="text-[10px] text-muted-foreground truncate">
-                        {item.category?.name || "Garment"}
-                      </p>
-                      <p className="text-xs font-medium text-foreground truncate">{item.title}</p>
-                      <Button
-                        asChild
-                        variant="ghost"
-                        size="sm"
-                        className="w-full h-6 text-[10px] p-0 text-primary cursor-pointer hover:underline"
+            ) : (
+              <div className="space-y-6">
+                {/* Option Tabs */}
+                <div className="flex items-center justify-between border-b border-border pb-3">
+                  <div className="flex items-center gap-2">
+                    {recommendations.map((rec, idx) => (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => setActiveRecommendationTab(idx)}
+                        className={`px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer ${
+                          activeRecommendationTab === idx
+                            ? "bg-primary text-primary-foreground shadow-xs font-semibold"
+                            : "bg-card text-muted-foreground border border-border hover:bg-muted hover:text-foreground"
+                        }`}
                       >
-                        <Link to="/studio">Try On →</Link>
+                        Option {idx + 1}
+                      </button>
+                    ))}
+                  </div>
+
+                  <Badge variant="outline" className="text-xs text-primary border-primary/30">
+                    {recommendations.length} Formulas Curated
+                  </Badge>
+                </div>
+
+                {/* Active Outfit Card */}
+                {activeRec && (
+                  <div className="rounded-2xl border border-border bg-card p-6 sm:p-8 shadow-xs space-y-6">
+                    <div className="space-y-2 border-b border-border pb-4">
+                      <div className="flex items-center justify-between gap-2">
+                        <h3 className="text-xl sm:text-2xl font-display font-medium text-foreground">
+                          {activeRec.option_name}
+                        </h3>
+                      </div>
+                      <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
+                        {activeRec.style_reasoning}
+                      </p>
+                    </div>
+
+                    {/* Curated Garments from Closet */}
+                    <div className="space-y-3">
+                      <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                        Selected Closet Pieces
+                      </h4>
+
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                        {activeRec.selected_item_ids.map((id) => {
+                          const item = wardrobeMap.get(id);
+                          if (!item) return null;
+                          return (
+                            <div
+                              key={item.id}
+                              className="group relative rounded-xl border border-border bg-background overflow-hidden hover:border-primary/50 transition-all shadow-xs flex flex-col justify-between"
+                            >
+                              <div className="aspect-square w-full bg-muted/40 overflow-hidden">
+                                <img
+                                  src={item.image_url}
+                                  alt={item.title || "Garment"}
+                                  className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                />
+                              </div>
+                              <div className="p-2.5 space-y-1">
+                                <p className="text-[10px] text-muted-foreground truncate">
+                                  {item.category?.name || "Garment"}
+                                </p>
+                                <h5 className="text-xs font-semibold text-foreground truncate">
+                                  {item.title}
+                                </h5>
+                                <Button
+                                  asChild
+                                  variant="outline"
+                                  size="sm"
+                                  className="w-full mt-1.5 h-6 text-[10px] cursor-pointer"
+                                >
+                                  <Link to="/studio">Try In Studio</Link>
+                                </Button>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Breakdown & Styling Directives */}
+                    <div className="rounded-xl border border-border bg-background/60 p-4 space-y-3 text-xs">
+                      <div className="space-y-1">
+                        <span className="font-semibold text-foreground flex items-center gap-1.5">
+                          <Scissors className="size-3.5 text-primary" />
+                          <span>Styling Instructions</span>
+                        </span>
+                        <p className="text-muted-foreground leading-relaxed">
+                          {activeRec.styling_instructions}
+                        </p>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-border">
+                        <div className="space-y-1">
+                          <span className="font-semibold text-foreground flex items-center gap-1.5">
+                            <Sparkles className="size-3 text-amber-500" />
+                            <span>Hairstyle Recommendation</span>
+                          </span>
+                          <p className="text-muted-foreground text-[11px] leading-relaxed">
+                            {activeRec.hair_style_recommendation}
+                          </p>
+                        </div>
+                        <div className="space-y-1">
+                          <span className="font-semibold text-foreground flex items-center gap-1.5">
+                            <Palette className="size-3 text-rose-500" />
+                            <span>Makeup Inspiration</span>
+                          </span>
+                          <p className="text-muted-foreground text-[11px] leading-relaxed">
+                            {activeRec.makeup_inspiration}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Open in Fitting Studio */}
+                    <div className="pt-2 flex items-center justify-end">
+                      <Button asChild size="default" className="gap-2 cursor-pointer">
+                        <Link to="/studio">
+                          <span>Open Look in Fitting Studio</span>
+                          <ArrowRight className="size-4" />
+                        </Link>
                       </Button>
                     </div>
                   </div>
-                ))}
+                )}
               </div>
-            </section>
+            )}
           </div>
-        ) : null}
+        </div>
       </div>
     </main>
   );
