@@ -198,6 +198,7 @@ function Studio() {
               measurements: {
                 unit: "cm" as const,
                 shoulderWidth: round(resolved.shoulderWidth),
+                bustChest: round(resolved.bustCircumference),
                 waist: round(resolved.waistCircumference),
                 hips: round(resolved.hipCircumference),
                 inseam: round(resolved.legLength),

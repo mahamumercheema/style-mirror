@@ -30,7 +30,11 @@ export type CalibratedMeasurements = {
   /** How reliably head top and heels were located (drives every cm value) */
   scaleConfidence: number;
   scaleMethod: "silhouette" | "landmarks" | "extrapolated";
+  /** Outer-edge shoulder width (joint-to-joint plus edge allowance) */
   shoulderWidth: CmMeasurement;
+  /** Raw distance between the shoulder joints */
+  shoulderJointWidth: CmMeasurement;
+  bustWidth: CmMeasurement;
   waistWidth: CmMeasurement;
   hipWidth: CmMeasurement;
   torsoLength: CmMeasurement;
@@ -41,6 +45,7 @@ export type CalibratedMeasurements = {
 
 /** Front-view width → approximate circumference (elliptical cross-section). */
 export const WAIST_WIDTH_TO_CIRCUMFERENCE = 2.7;
+export const BUST_WIDTH_TO_CIRCUMFERENCE = 2.75;
 export const HIP_WIDTH_TO_CIRCUMFERENCE = 2.8;
 
 export const MIN_HEIGHT_CM = 100;
@@ -48,6 +53,12 @@ export const MAX_HEIGHT_CM = 230;
 export const LOW_CONFIDENCE = 0.5;
 
 const USABLE_SCORE = 0.3;
+/**
+ * Pose shoulder keypoints sit on the joints, a few centimetres inside the outer edge of
+ * each shoulder. Adding ~1.8% of height per side gives the edge-to-edge width a tape
+ * measure (and garment sizing) uses.
+ */
+const SHOULDER_EDGE_ALLOWANCE_PER_SIDE = 0.018;
 /** Ankle joint sits ~4% of stature above the floor */
 const ANKLE_HEIGHT_SHARE = 0.042;
 
@@ -220,12 +231,31 @@ export function computeCalibratedMeasurements(
       }
     }
   }
+  // Bust: chest band just below the armpits; median of clean rows (arms often touch here)
+  const bustWidths: number[] = [];
+  if (silhouette) {
+    for (
+      let y = Math.round(shoulderMid.y + torsoPx * 0.2);
+      y <= shoulderMid.y + torsoPx * 0.4;
+      y++
+    ) {
+      const run = cleanRun(y, shoulderPx * 1.1);
+      if (run) bustWidths.push(run.width);
+    }
+  }
+  bustWidths.sort((a, b) => a - b);
+  const bustRunWidth =
+    bustWidths.length >= 3 ? (bustWidths[Math.floor(bustWidths.length / 2)] ?? null) : null;
   if (waistRows < 3) waistRun = null;
   if (hipRows < 3) hipRun = null;
 
   const torsoScore = Math.min(score(ls), score(rs), score(lh), score(rh));
   const hipWidthPx = hipRun?.width ?? hipJointPx * 1.6;
   const waistWidthPx = waistRun?.width ?? hipWidthPx * 0.8;
+  const bustWidth =
+    bustRunWidth !== null
+      ? measure(bustRunWidth, Math.min(score(ls), score(rs)), "silhouette")
+      : measure((shoulderPx * 0.95 + hipWidthPx) / 2, Math.min(0.3, torsoScore), "approximation");
   const hipWidth = hipRun
     ? measure(hipWidthPx, Math.min(score(lh), score(rh)), "silhouette")
     : measure(hipWidthPx, Math.min(0.35, torsoScore), "approximation");
@@ -268,7 +298,13 @@ export function computeCalibratedMeasurements(
     pixelsPerCm: pxPerCm,
     scaleConfidence,
     scaleMethod,
-    shoulderWidth: measure(shoulderPx, Math.min(score(ls), score(rs)), "landmarks"),
+    shoulderWidth: measure(
+      shoulderPx + 2 * SHOULDER_EDGE_ALLOWANCE_PER_SIDE * heightCm * pxPerCm,
+      Math.min(score(ls), score(rs)),
+      "landmarks",
+    ),
+    shoulderJointWidth: measure(shoulderPx, Math.min(score(ls), score(rs)), "landmarks"),
+    bustWidth,
     waistWidth,
     hipWidth,
     torsoLength: measure(dist(shoulderMid, hipMid), torsoScore, "landmarks"),
@@ -288,8 +324,9 @@ export function computeCalibratedMeasurements(
 // Manual overrides
 // ============================================================================
 
-export type ManualKey = "height" | "shoulderWidth" | "waist" | "hips" | "inseam";
-/** User-entered values in cm. Waist and hips are circumferences (what a tape measure gives). */
+export type ManualKey =
+  "height" | "shoulderWidth" | "bust" | "waist" | "hips" | "torsoLength" | "inseam" | "armLength";
+/** User-entered values, always stored in cm. Bust, waist and hips are circumferences. */
 export type ManualMeasurements = Partial<Record<ManualKey, number>>;
 
 export type ResolvedValue = {
@@ -302,11 +339,14 @@ export type ResolvedValue = {
 export type ResolvedMeasurements = {
   height: ResolvedValue | null;
   shoulderWidth: ResolvedValue | null;
+  bustWidth: ResolvedValue | null;
   waistWidth: ResolvedValue | null;
   hipWidth: ResolvedValue | null;
   torsoLength: ResolvedValue | null;
   legLength: ResolvedValue | null;
   armLength: ResolvedValue | null;
+  /** Circumferences: the user's tape value when entered, otherwise estimated from width */
+  bustCircumference: ResolvedValue | null;
   waistCircumference: ResolvedValue | null;
   hipCircumference: ResolvedValue | null;
   hipCurve: (HipCurve & { source: "user" | "ai" }) | null;
@@ -336,15 +376,30 @@ export function resolveMeasurements(
   const aiShoulder = ai(calibrated?.shoulderWidth);
   const shoulderWidth = manual.shoulderWidth ? userValue(manual.shoulderWidth) : aiShoulder;
 
-  const waistWidth = manual.waist
-    ? userValue(manual.waist / WAIST_WIDTH_TO_CIRCUMFERENCE)
-    : ai(calibrated?.waistWidth);
-  const hipWidth = manual.hips
-    ? userValue(manual.hips / HIP_WIDTH_TO_CIRCUMFERENCE)
-    : ai(calibrated?.hipWidth);
+  const fromCircumference = (circumferenceCm: number, factor: number): ResolvedValue => ({
+    cm: round1(circumferenceCm / factor),
+    source: "user",
+    confidence: 1,
+    basis: "approximation",
+  });
+  // Priority for front-view widths: a real photo measurement, then an estimate from the
+  // user's tape circumference, then the photo's rough approximation.
+  const width = (
+    measured: CmMeasurement | null | undefined,
+    tapeCm: number | undefined,
+    factor: number,
+  ): ResolvedValue | null => {
+    const fromPhoto = ai(measured);
+    if (fromPhoto && fromPhoto.basis !== "approximation") return fromPhoto;
+    if (tapeCm) return fromCircumference(tapeCm, factor);
+    return fromPhoto;
+  };
+  const bustWidth = width(calibrated?.bustWidth, manual.bust, BUST_WIDTH_TO_CIRCUMFERENCE);
+  const waistWidth = width(calibrated?.waistWidth, manual.waist, WAIST_WIDTH_TO_CIRCUMFERENCE);
+  const hipWidth = width(calibrated?.hipWidth, manual.hips, HIP_WIDTH_TO_CIRCUMFERENCE);
 
   let hipCurve: ResolvedMeasurements["hipCurve"] = null;
-  if (manual.waist || manual.hips) {
+  if (!calibrated && (manual.waist || manual.hips)) {
     if (waistWidth && hipWidth) {
       const perSide = round1((hipWidth.cm - waistWidth.cm) / 2);
       hipCurve = {
@@ -376,11 +431,15 @@ export function resolveMeasurements(
   return {
     height,
     shoulderWidth,
+    bustWidth,
     waistWidth,
     hipWidth,
-    torsoLength: ai(calibrated?.torsoLength),
+    torsoLength: manual.torsoLength ? userValue(manual.torsoLength) : ai(calibrated?.torsoLength),
     legLength: manual.inseam ? userValue(manual.inseam) : ai(calibrated?.legLength),
-    armLength: ai(calibrated?.armLength),
+    armLength: manual.armLength ? userValue(manual.armLength) : ai(calibrated?.armLength),
+    bustCircumference: manual.bust
+      ? userValue(manual.bust)
+      : circumference(bustWidth, BUST_WIDTH_TO_CIRCUMFERENCE),
     waistCircumference: manual.waist
       ? userValue(manual.waist)
       : circumference(waistWidth, WAIST_WIDTH_TO_CIRCUMFERENCE),
@@ -408,4 +467,41 @@ export function cmToFeetInches(cm: number) {
     inches = 0;
   }
   return { feet, inches };
+}
+
+// ============================================================================
+// Display units (values are always stored in cm)
+// ============================================================================
+
+export type LengthUnit = "cm" | "in";
+export const CM_PER_INCH = 2.54;
+
+export const toUnit = (cm: number, unit: LengthUnit) =>
+  Math.round((unit === "in" ? cm / CM_PER_INCH : cm) * 10) / 10;
+export const fromUnit = (value: number, unit: LengthUnit) =>
+  unit === "in" ? value * CM_PER_INCH : value;
+/** e.g. "38.1 cm", "15 in" — one decimal, trailing ".0" dropped */
+export const formatLength = (cm: number, unit: LengthUnit) => `${toUnit(cm, unit)} ${unit}`;
+
+/** Shared display-unit preference (height prompt + measurements card). Defaults to inches. */
+const UNIT_STORAGE_KEY = "ora_length_unit";
+
+export function readUnitPreference(): LengthUnit {
+  try {
+    if (typeof window !== "undefined") {
+      const saved = window.localStorage.getItem(UNIT_STORAGE_KEY);
+      if (saved === "cm" || saved === "in") return saved;
+    }
+  } catch {
+    /* storage unavailable */
+  }
+  return "in";
+}
+
+export function saveUnitPreference(unit: LengthUnit) {
+  try {
+    window.localStorage.setItem(UNIT_STORAGE_KEY, unit);
+  } catch {
+    /* storage unavailable: the choice lasts for this visit */
+  }
 }

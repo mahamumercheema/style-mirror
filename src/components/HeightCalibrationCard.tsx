@@ -10,6 +10,8 @@ import {
   feetInchesToCm,
   MAX_HEIGHT_CM,
   MIN_HEIGHT_CM,
+  readUnitPreference,
+  saveUnitPreference,
 } from "@/lib/body-measurements";
 
 type Unit = "cm" | "ft_in";
@@ -22,7 +24,14 @@ export function HeightCalibrationCard({
   onSubmit: (heightCm: number) => void;
 }) {
   const initialFtIn = initialCm ? cmToFeetInches(initialCm) : null;
-  const [unit, setUnit] = useState<Unit>("cm");
+  // Follows the shared unit preference: inches → feet/inches (the default), cm → cm
+  const [unit, setUnitState] = useState<Unit>(() =>
+    readUnitPreference() === "cm" ? "cm" : "ft_in",
+  );
+  const setUnit = (next: Unit) => {
+    setUnitState(next);
+    saveUnitPreference(next === "cm" ? "cm" : "in");
+  };
   const [cmInput, setCmInput] = useState(initialCm ? String(Math.round(initialCm)) : "");
   const [ftInput, setFtInput] = useState(initialFtIn ? String(initialFtIn.feet) : "");
   const [inInput, setInInput] = useState(initialFtIn ? String(initialFtIn.inches) : "");

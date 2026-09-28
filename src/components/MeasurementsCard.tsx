@@ -5,8 +5,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import {
+  formatLength,
+  fromUnit,
   LOW_CONFIDENCE,
+  readUnitPreference,
+  saveUnitPreference,
+  toUnit,
+  type LengthUnit,
   type ManualKey,
   type ManualMeasurements,
   type ResolvedMeasurements,
@@ -15,6 +22,7 @@ import {
 import type { Measurements } from "@/lib/pose";
 import { cn } from "@/lib/utils";
 
+/** Manual entry fields. min/max are in cm; values are always stored in cm. */
 const MANUAL_FIELDS: {
   key: ManualKey;
   label: string;
@@ -26,7 +34,7 @@ const MANUAL_FIELDS: {
   {
     key: "height",
     label: "Height",
-    hint: "Barefoot",
+    hint: "Stand barefoot against a wall; measure floor to the top of your head",
     min: 100,
     max: 230,
     aiValue: (r) => r.height,
@@ -34,34 +42,58 @@ const MANUAL_FIELDS: {
   {
     key: "shoulderWidth",
     label: "Shoulder width",
-    hint: "Straight across",
-    min: 20,
+    hint: "Across the back, from the outer edge of one shoulder to the other",
+    min: 25,
     max: 70,
     aiValue: (r) => r.shoulderWidth,
   },
   {
+    key: "bust",
+    label: "Bust circumference",
+    hint: "Wrap the tape around the fullest part of your chest, under the arms, kept level",
+    min: 60,
+    max: 200,
+    aiValue: (r) => r.bustCircumference,
+  },
+  {
     key: "waist",
-    label: "Waist",
-    hint: "Around, at the narrowest point",
+    label: "Waist circumference",
+    hint: "Wrap the tape around your natural waist, the narrowest point",
     min: 40,
     max: 200,
     aiValue: (r) => r.waistCircumference,
   },
   {
     key: "hips",
-    label: "Hips",
-    hint: "Around, at the widest point",
+    label: "Hip circumference",
+    hint: "Wrap the tape around the fullest part of your hips and seat",
     min: 50,
     max: 200,
     aiValue: (r) => r.hipCircumference,
   },
   {
+    key: "torsoLength",
+    label: "Torso length",
+    hint: "From the top of your shoulder straight down to your hip bone",
+    min: 30,
+    max: 90,
+    aiValue: (r) => r.torsoLength,
+  },
+  {
     key: "inseam",
-    label: "Inseam / leg length",
-    hint: "Hip to ankle",
+    label: "Inseam",
+    hint: "Along the inside of your leg, from the crotch to the ankle",
     min: 40,
     max: 130,
     aiValue: (r) => r.legLength,
+  },
+  {
+    key: "armLength",
+    label: "Arm length",
+    hint: "Arm relaxed, from the outer shoulder edge down to the wrist bone",
+    min: 35,
+    max: 100,
+    aiValue: (r) => r.armLength,
   },
 ];
 
@@ -96,7 +128,32 @@ function Stat({
   );
 }
 
-const cm = (value: ResolvedValue | null) => (value ? `${Math.round(value.cm)} cm` : "—");
+function UnitToggle({
+  unit,
+  onChange,
+}: {
+  unit: LengthUnit;
+  onChange: (unit: LengthUnit) => void;
+}) {
+  return (
+    <ToggleGroup
+      type="single"
+      size="sm"
+      variant="outline"
+      value={unit}
+      onValueChange={(value) => value && onChange(value as LengthUnit)}
+      aria-label="Measurement units"
+    >
+      <ToggleGroupItem value="cm" className="px-3 text-xs">
+        cm
+      </ToggleGroupItem>
+      <ToggleGroupItem value="in" className="px-3 text-xs">
+        in
+      </ToggleGroupItem>
+    </ToggleGroup>
+  );
+}
+
 const isLow = (value: ResolvedValue | null) =>
   Boolean(value && value.source === "ai" && value.confidence < LOW_CONFIDENCE);
 
@@ -104,6 +161,7 @@ const isLow = (value: ResolvedValue | null) =>
 export function lowConfidenceLabels(resolved: ResolvedMeasurements) {
   const entries: [string, ResolvedValue | null][] = [
     ["Shoulder width", resolved.shoulderWidth],
+    ["Bust", resolved.bustWidth],
     ["Waist", resolved.waistWidth],
     ["Hips", resolved.hipWidth],
     ["Torso length", resolved.torsoLength],
@@ -113,7 +171,7 @@ export function lowConfidenceLabels(resolved: ResolvedMeasurements) {
   const labels = entries.filter(([, value]) => isLow(value)).map(([label]) => label);
   const curve = resolved.hipCurve;
   if (curve && curve.source === "ai" && curve.confidence < LOW_CONFIDENCE) {
-    labels.push("Hip curvature");
+    labels.push("Hip curve");
   }
   return labels;
 }
@@ -136,15 +194,37 @@ export function MeasurementsCard({
   onRecalibrate: () => void;
 }) {
   const calibrated = measurements.calibrated;
+
+  // Display unit only — every value is stored and passed around in cm
+  const [unit, setUnitState] = useState<LengthUnit>(readUnitPreference);
+
   const [drafts, setDrafts] = useState<Partial<Record<ManualKey, string>>>(() =>
-    Object.fromEntries(Object.entries(manual).map(([k, v]) => [k, String(v)])),
+    Object.fromEntries(
+      Object.entries(manual).map(([k, v]) => [k, String(toUnit(v, readUnitPreference()))]),
+    ),
   );
+
+  const setUnit = (next: LengthUnit) => {
+    setUnitState(next);
+    saveUnitPreference(next);
+    // Re-express typed values in the new unit
+    setDrafts((prev) => {
+      const converted: Partial<Record<ManualKey, string>> = { ...prev };
+      for (const key of Object.keys(manual) as ManualKey[]) {
+        const cmValue = manual[key];
+        if (cmValue !== undefined) converted[key] = String(toUnit(cmValue, next));
+      }
+      return converted;
+    });
+  };
+
+  const fmt = (value: ResolvedValue | null) => (value ? formatLength(value.cm, unit) : "—");
 
   const setField = (key: ManualKey, text: string, min: number, max: number) => {
     setDrafts((prev) => ({ ...prev, [key]: text }));
-    const value = Number(text);
+    const cmValue = fromUnit(Number(text), unit);
     const next = { ...manual };
-    if (text !== "" && value >= min && value <= max) next[key] = value;
+    if (text !== "" && cmValue >= min && cmValue <= max) next[key] = cmValue;
     else delete next[key];
     onManualChange(next);
   };
@@ -178,12 +258,15 @@ export function MeasurementsCard({
           <p className="eyebrow">Step 02 — Body read</p>
           <h2 className="mt-1 text-2xl font-display">Your measurements</h2>
         </div>
-        {!calibrated ? (
-          <span className="flex items-center gap-1.5 rounded-full bg-amber-500/15 px-3 py-1 text-xs font-medium text-amber-700">
-            <Info className="size-3.5" />
-            Estimated
-          </span>
-        ) : null}
+        <div className="flex items-center gap-2">
+          {!calibrated ? (
+            <span className="flex items-center gap-1.5 rounded-full bg-amber-500/15 px-3 py-1 text-xs font-medium text-amber-700">
+              <Info className="size-3.5" />
+              Estimated
+            </span>
+          ) : null}
+          <UnitToggle unit={unit} onChange={setUnit} />
+        </div>
       </div>
 
       {calibrated ? (
@@ -217,41 +300,93 @@ export function MeasurementsCard({
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           <Stat
             label="Height"
-            value={cm(resolved.height)}
+            value={fmt(resolved.height)}
             hint="Reference baseline for the scale"
           />
           <Stat
-            label="Shoulder width"
-            value={cm(resolved.shoulderWidth)}
-            hint="Straight line, shoulder to shoulder"
+            label="Shoulder width (outer edge)"
+            value={fmt(resolved.shoulderWidth)}
+            hint={
+              resolved.shoulderWidth?.source === "user"
+                ? "You entered this"
+                : calibrated
+                  ? `Joint-to-joint ${formatLength(calibrated.shoulderJointWidth.cm * (resolved.height ? resolved.height.cm / calibrated.heightCm : 1), unit)} + edge allowance`
+                  : undefined
+            }
             lowConfidence={isLow(resolved.shoulderWidth)}
           />
           <Stat
-            label="Waist width"
-            value={cm(resolved.waistWidth)}
+            label="Bust width (front view)"
+            value={fmt(resolved.bustWidth)}
             hint={
-              resolved.waistCircumference
-                ? `≈ ${Math.round(resolved.waistCircumference.cm)} cm around`
-                : undefined
+              resolved.bustWidth?.basis === "approximation"
+                ? resolved.bustWidth.source === "user"
+                  ? "Estimated from your bust circumference"
+                  : "Estimated from shoulders and hips — arms hid the chest outline"
+                : "Straight line across the chest, as seen from the front"
+            }
+            lowConfidence={isLow(resolved.bustWidth)}
+          />
+          <Stat
+            label="Bust (around)"
+            value={fmt(resolved.bustCircumference)}
+            hint={
+              resolved.bustCircumference?.source === "user" &&
+              resolved.bustCircumference.basis === "user"
+                ? "You entered this"
+                : "Estimated from front width — enter a tape measurement to be exact"
+            }
+          />
+          <Stat
+            label="Waist width (front view)"
+            value={fmt(resolved.waistWidth)}
+            hint={
+              resolved.waistWidth?.basis === "approximation"
+                ? resolved.waistWidth.source === "user"
+                  ? "Estimated from your waist circumference"
+                  : "Rough estimate — arms hid the waist outline"
+                : "Straight line across, as seen from the front"
             }
             lowConfidence={isLow(resolved.waistWidth)}
           />
           <Stat
-            label="Hip width"
-            value={cm(resolved.hipWidth)}
+            label="Waist (around)"
+            value={fmt(resolved.waistCircumference)}
             hint={
-              resolved.hipCircumference
-                ? `≈ ${Math.round(resolved.hipCircumference.cm)} cm around`
-                : undefined
+              resolved.waistCircumference?.source === "user" &&
+              resolved.waistCircumference.basis === "user"
+                ? "You entered this"
+                : "Estimated from front width — enter a tape measurement to be exact"
+            }
+          />
+          <Stat
+            label="Hip width (front view)"
+            value={fmt(resolved.hipWidth)}
+            hint={
+              resolved.hipWidth?.basis === "approximation"
+                ? resolved.hipWidth.source === "user"
+                  ? "Estimated from your hip circumference"
+                  : "Rough estimate — arms hid the hip outline"
+                : "Straight line across, as seen from the front"
             }
             lowConfidence={isLow(resolved.hipWidth)}
           />
           <Stat
-            label="Hip curvature"
-            value={curve ? `+${Math.max(0, Math.round(curve.averageCm))} cm` : "—"}
+            label="Hips (around)"
+            value={fmt(resolved.hipCircumference)}
+            hint={
+              resolved.hipCircumference?.source === "user" &&
+              resolved.hipCircumference.basis === "user"
+                ? "You entered this"
+                : "Estimated from front width — enter a tape measurement to be exact"
+            }
+          />
+          <Stat
+            label="Hip curve (outward bulge per side)"
+            value={curve ? `+${formatLength(Math.max(0, curve.averageCm), unit)}` : "—"}
             hint={
               curve
-                ? `${curveShape} per side · L ${Math.round(curve.leftCm)} / R ${Math.round(curve.rightCm)} cm · waist:hip ${curve.waistToHipWidthRatio.toFixed(2)}`
+                ? `${curveShape} · L ${formatLength(curve.leftCm, unit)} / R ${formatLength(curve.rightCm, unit)} · waist:hip width ${curve.waistToHipWidthRatio.toFixed(2)}`
                 : undefined
             }
             lowConfidence={Boolean(
@@ -260,20 +395,20 @@ export function MeasurementsCard({
           />
           <Stat
             label="Torso length"
-            value={cm(resolved.torsoLength)}
-            hint="Shoulder to hip"
+            value={fmt(resolved.torsoLength)}
+            hint={resolved.torsoLength?.source === "user" ? "You entered this" : "Shoulder to hip"}
             lowConfidence={isLow(resolved.torsoLength)}
           />
           <Stat
             label="Inseam / leg length"
-            value={cm(resolved.legLength)}
-            hint="Hip to ankle"
+            value={fmt(resolved.legLength)}
+            hint={resolved.legLength?.source === "user" ? "You entered this" : "Hip to ankle"}
             lowConfidence={isLow(resolved.legLength)}
           />
           <Stat
             label="Arm length"
-            value={cm(resolved.armLength)}
-            hint="Shoulder to wrist"
+            value={fmt(resolved.armLength)}
+            hint={resolved.armLength?.source === "user" ? "You entered this" : "Shoulder to wrist"}
             lowConfidence={isLow(resolved.armLength)}
           />
           <Stat
@@ -294,15 +429,19 @@ export function MeasurementsCard({
                 Manually enter measurements
               </Label>
               <p className="text-xs text-muted-foreground">
-                Your numbers replace the AI estimates everywhere, including garment fit.
+                Your numbers replace the AI estimates. Shoulder width also sets the garment size on
+                the try-on canvas.
               </p>
             </div>
           </div>
-          <Switch
-            id="manual-toggle"
-            checked={manualEnabled}
-            onCheckedChange={onManualEnabledChange}
-          />
+          <div className="flex items-center gap-3">
+            {manualEnabled ? <UnitToggle unit={unit} onChange={setUnit} /> : null}
+            <Switch
+              id="manual-toggle"
+              checked={manualEnabled}
+              onCheckedChange={onManualEnabledChange}
+            />
+          </div>
         </div>
 
         {manualEnabled ? (
@@ -317,7 +456,7 @@ export function MeasurementsCard({
                   <div key={field.key} className="space-y-1.5">
                     <div className="flex items-center justify-between gap-2">
                       <Label htmlFor={`manual-${field.key}`} className="text-xs">
-                        {field.label} <span className="text-muted-foreground">(cm)</span>
+                        {field.label} <span className="text-muted-foreground">({unit})</span>
                       </Label>
                       {applied ? (
                         <button
@@ -334,11 +473,8 @@ export function MeasurementsCard({
                       id={`manual-${field.key}`}
                       type="number"
                       inputMode="decimal"
-                      min={field.min}
-                      max={field.max}
-                      placeholder={
-                        ai && ai.source === "ai" ? `AI: ${Math.round(ai.cm)}` : field.hint
-                      }
+                      step="0.1"
+                      placeholder={ai && ai.source === "ai" ? `AI: ${toUnit(ai.cm, unit)}` : ""}
                       value={draft}
                       onChange={(e) => setField(field.key, e.target.value, field.min, field.max)}
                       className={cn(invalid && "border-destructive")}
@@ -349,7 +485,9 @@ export function MeasurementsCard({
                         invalid ? "text-destructive" : "text-muted-foreground",
                       )}
                     >
-                      {invalid ? `Enter ${field.min}–${field.max} cm` : field.hint}
+                      {invalid
+                        ? `Enter ${toUnit(field.min, unit)}–${toUnit(field.max, unit)} ${unit}`
+                        : field.hint}
                     </p>
                   </div>
                 );
