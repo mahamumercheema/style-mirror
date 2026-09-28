@@ -28,7 +28,7 @@ import { HeightCalibrationCard } from "@/components/HeightCalibrationCard";
 import { lowConfidenceLabels, MeasurementsCard } from "@/components/MeasurementsCard";
 import { PhotoUploader } from "@/components/PhotoUploader";
 import { PoseOverlay } from "@/components/PoseOverlay";
-import { TryOnCanvas } from "@/components/TryOnCanvas";
+import { AiTryOnPanel } from "@/components/AiTryOnPanel";
 import { ColorStudioPanel } from "@/components/colors/ColorStudioPanel";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
@@ -45,7 +45,6 @@ import {
 } from "@/lib/pose-types";
 import type { ProductPreview } from "@/lib/product.functions";
 import { resolveMeasurements, type ManualMeasurements } from "@/lib/body-measurements";
-import type { GarmentAnchor } from "@/lib/garment-anchor";
 import {
   extractColorPaletteFromImage,
   FALLBACK_MOOD_BOARD_PALETTE,
@@ -102,12 +101,6 @@ function Studio() {
   const [backgroundRemoved, setBackgroundRemoved] = useState(false);
   const [manual, setManual] = useState<ManualMeasurements>({});
   const [manualEnabled, setManualEnabled] = useState(false);
-
-  // Shop model's shoulders/hips in the fetched photo, used only to position that photo
-  const [garmentAnchor, setGarmentAnchor] = useState<{
-    source: string;
-    anchor: GarmentAnchor | null;
-  } | null>(null);
 
   const resolved = useMemo(
     () => resolveMeasurements(measurements?.calibrated, manualEnabled ? manual : {}),
@@ -312,13 +305,6 @@ function Studio() {
 
   const handleProductSelect = (newProduct: ProductPreview | null) => {
     setProduct(newProduct);
-    setGarmentAnchor(null);
-    const source = newProduct?.imageDataUrl;
-    if (source) {
-      void import("@/lib/garment-anchor")
-        .then(({ findGarmentAnchor }) => findGarmentAnchor(source))
-        .then((anchor) => setGarmentAnchor({ source, anchor }));
-    }
     if (newProduct?.imageDataUrl) {
       void extractColorPaletteFromImage(newProduct.imageDataUrl).then((palette) => {
         if (palette && palette.length > 0) {
@@ -366,7 +352,6 @@ function Studio() {
     setSkeletonLines([]);
     setPoseError(null);
     setProduct(null);
-    setGarmentAnchor(null);
     setAnalysisPhoto(null);
     setBackgroundRemoved(false);
   };
@@ -1011,21 +996,18 @@ function Studio() {
                 )}
               </div>
 
+              {/* Real AI try-on (Leffa): the garment is a reference, not pasted onto the photo */}
               {photo && (product || customGarmentDataUrl) ? (
-                <TryOnCanvas
-                  photoDataUrl={analysisPhoto ?? photo}
-                  garmentDataUrl={product?.imageDataUrl || customGarmentDataUrl || ""}
-                  garmentAnchor={
-                    garmentAnchor && garmentAnchor.source === product?.imageDataUrl
-                      ? garmentAnchor.anchor
-                      : null
+                <AiTryOnPanel
+                  personPhoto={photo}
+                  garment={
+                    product ?? {
+                      title: "Custom colorway garment",
+                      siteName: "Color Studio",
+                      sourceUrl: "",
+                      imageDataUrl: customGarmentDataUrl ?? "",
+                    }
                   }
-                  garmentTitle={product?.title || "Custom Colorway Garment"}
-                  guide={guide}
-                  customGarmentTheme={garmentTheme}
-                  customGarmentDataUrl={customGarmentDataUrl}
-                  onOpenColorStudio={() => setShowColorStudio(true)}
-                  fitScale={resolved.fitScale}
                 />
               ) : null}
             </section>

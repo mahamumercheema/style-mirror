@@ -7,7 +7,46 @@ export type ProductPreview = {
   sourceUrl: string;
   /** Clothing image inlined as a data URL so the canvas stays untainted. */
   imageDataUrl: string;
+  /** Shop's product description (og:description / meta description / JSON-LD) */
+  description?: string | null | undefined;
+  /** Shop-provided category or product type, when the page publishes one */
+  productCategory?: string | null | undefined;
+  /** Closet items only: the wardrobe's parent category (Tops, Bottoms, Full Body…) */
+  closetParentType?: string | null | undefined;
 };
+
+/** Category and description from schema.org Product JSON-LD and common shop metadata. */
+function structuredProductInfo(html: string) {
+  let category: string | null = null;
+  let description: string | null = null;
+  for (const [, block] of html.matchAll(
+    /<script[^>]+type\s*=\s*["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi,
+  )) {
+    try {
+      const parsed: unknown = JSON.parse(block ?? "");
+      const nodes: unknown[] = Array.isArray(parsed)
+        ? parsed
+        : ((parsed as { "@graph"?: unknown[] })["@graph"] ?? [parsed]);
+      for (const node of nodes) {
+        const item = node as { "@type"?: unknown; category?: unknown; description?: unknown };
+        const types = ([] as unknown[]).concat(item["@type"] ?? []);
+        if (!types.includes("Product") && !types.includes("ProductGroup")) continue;
+        if (!category && item.category) {
+          category = ([] as unknown[]).concat(item.category).map(String).join(" ");
+        }
+        if (!description && typeof item.description === "string") description = item.description;
+      }
+    } catch {
+      /* ignore malformed JSON-LD */
+    }
+  }
+  // Shopify and similar storefronts expose a product type in their page JSON
+  const productType = html.match(/"product_?[tT]ype"\s*:\s*"([^"]{2,60})"/)?.[1] ?? null;
+  return {
+    category: [category, productType].filter(Boolean).join(" ") || null,
+    description,
+  };
+}
 
 const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
 
@@ -118,10 +157,17 @@ export const fetchProductPreview = createServerFn({ method: "POST" })
       binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
     }
 
+    const structured = structuredProductInfo(html);
     return {
       title: title || "Clothing item",
       siteName: metaContent(html, "og:site_name") ?? target.hostname.replace(/^www\./, ""),
       sourceUrl: target.toString(),
       imageDataUrl: `data:${contentType};base64,${btoa(binary)}`,
+      description:
+        metaContent(html, "og:description") ??
+        metaContent(html, "description") ??
+        structured.description?.slice(0, 600) ??
+        null,
+      productCategory: metaContent(html, "product:category") ?? structured.category,
     };
   });
