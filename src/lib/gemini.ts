@@ -8,7 +8,7 @@ import {
   generateFallbackOutfitRecommendations,
   type StylingRequestPayload,
 } from "./styling-fallback";
-import { ThinkingLevel, type GenerateContentConfig } from "@google/genai";
+import type { GenerateContentConfig, ThinkingLevel } from "@google/genai";
 
 export { generateFallbackOutfitRecommendations, type StylingRequestPayload };
 
@@ -32,8 +32,8 @@ export async function getGeminiClient(): Promise<import("@google/genai").GoogleG
   });
 }
 
-// Candidates in preference order. gemini-3.8-flash is the primary model for structured text generation
-const MODEL_CANDIDATES = ["gemini-3.8-flash", "gemini-flash-latest"];
+// Candidates in preference order. Start with ultra-fast gemini-3.1-flash-lite and gemini-3.8-flash
+const MODEL_CANDIDATES = ["gemini-3.1-flash-lite", "gemini-3.8-flash"];
 
 /**
  * Timeout helper to prevent long hanging API calls while giving models adequate time
@@ -42,10 +42,7 @@ function withTimeout<T>(promise: Promise<T>, timeoutMs: number, label: string): 
   return Promise.race([
     promise,
     new Promise<never>((_, reject) =>
-      setTimeout(
-        () => reject(new Error(`${label} request timed out after ${timeoutMs}ms`)),
-        timeoutMs,
-      ),
+      setTimeout(() => reject(new Error(`${label} timed out after ${timeoutMs}ms`)), timeoutMs),
     ),
   ]);
 }
@@ -115,7 +112,7 @@ Produce a JSON object with this exact shape:
   ]
 }`;
 
-  // Try model cascade with 35s timeout
+  // Try model cascade with 15s timeout
   for (const model of MODEL_CANDIDATES) {
     try {
       const config: GenerateContentConfig = {
@@ -124,8 +121,8 @@ Produce a JSON object with this exact shape:
         responseMimeType: "application/json",
       };
 
-      if (model.includes("3.8") || model.includes("3.1")) {
-        config.thinkingConfig = { thinkingLevel: ThinkingLevel.LOW };
+      if (model === "gemini-3.8-flash") {
+        config.thinkingConfig = { thinkingLevel: "LOW" as ThinkingLevel };
       }
 
       const response = await withTimeout(
@@ -134,7 +131,7 @@ Produce a JSON object with this exact shape:
           contents: userPrompt,
           config,
         }),
-        35000,
+        15000,
         `Model ${model}`,
       );
 
@@ -156,10 +153,8 @@ Produce a JSON object with this exact shape:
         };
       }
     } catch (err: unknown) {
-      const reason = err instanceof Error ? err.message : String(err);
-      console.warn(
-        `Model candidate ${model} was not reached (${reason}). Attempting next candidate.`,
-      );
+      const errMsg = String(err);
+      console.info(`Model ${model} candidate trial status: ${errMsg}`);
       // Continue to next model candidate
     }
   }

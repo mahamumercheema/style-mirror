@@ -108,14 +108,7 @@ function OraWordmark({ className }: { className?: string }) {
 }
 
 function Landing() {
-  const { isAuthenticated, openSignUp } = useAuth();
-
-  const handleFeatureClick = (e: React.MouseEvent, _featurePath: string, featureName: string) => {
-    if (!isAuthenticated) {
-      e.preventDefault();
-      openSignUp(undefined, `Please create an account or sign in to access ${featureName}.`);
-    }
-  };
+  const { isAuthenticated } = useAuth();
 
   // The header gets a dark blurred backdrop once the page is scrolled, so the nav stays
   // legible over the wordmark and photos.
@@ -176,25 +169,13 @@ function Landing() {
             <nav className="mx-auto flex w-full max-w-6xl flex-wrap items-baseline justify-between gap-4 px-6 py-7">
               <AtelierOraLogo tone="light" />
               <div className="flex flex-wrap items-center gap-x-5 gap-y-3 sm:gap-x-8">
-                <Link
-                  to="/closet"
-                  onClick={(e) => handleFeatureClick(e, "/closet", "your private wardrobe")}
-                  className="nav-link text-cream/85"
-                >
+                <Link to="/closet" className="nav-link text-cream/85">
                   My Closet
                 </Link>
-                <Link
-                  to="/generate"
-                  onClick={(e) => handleFeatureClick(e, "/generate", "the AI Stylist")}
-                  className="nav-link text-gold"
-                >
+                <Link to="/generate" className="nav-link text-gold">
                   AI Stylist
                 </Link>
-                <Link
-                  to="/studio"
-                  onClick={(e) => handleFeatureClick(e, "/studio", "the Fitting Studio")}
-                  className="nav-link text-cream/85"
-                >
+                <Link to="/studio" className="nav-link text-cream/85">
                   Fitting Studio
                 </Link>
                 {/* The signed-in account pill is hidden on the landing page; the session itself
@@ -230,32 +211,20 @@ function Landing() {
             </h1>
             <p className="mt-6 text-base leading-relaxed text-cream/80">
               Upload one full-body photo, get an approximate read of your proportions, manage your
-              Western &amp; ethnic wardrobe, and receive bespoke AI outfit recommendations with hair
-              and makeup inspiration.
+              Western & ethnic wardrobe, and receive bespoke AI outfit recommendations with hair and
+              makeup inspiration.
             </p>
           </div>
 
           <div className="flex flex-wrap items-center justify-center gap-x-8 gap-y-5 md:mt-12 md:gap-x-11">
-            <Link
-              to="/studio"
-              onClick={(e) => handleFeatureClick(e, "/studio", "the Fitting Studio")}
-              className="hero-link inline-flex items-center gap-2.5 text-cream"
-            >
+            <Link to="/studio" className="hero-link inline-flex items-center gap-2.5 text-cream">
               Try it now
               <ArrowRight className="size-3.5 md:size-4" />
             </Link>
-            <Link
-              to="/generate"
-              onClick={(e) => handleFeatureClick(e, "/generate", "the AI Stylist")}
-              className="hero-link text-gold"
-            >
+            <Link to="/generate" className="hero-link text-gold">
               AI Stylist
             </Link>
-            <Link
-              to="/closet"
-              onClick={(e) => handleFeatureClick(e, "/closet", "your private wardrobe")}
-              className="hero-link text-cream"
-            >
+            <Link to="/closet" className="hero-link text-cream">
               Manage Closet
             </Link>
           </div>
