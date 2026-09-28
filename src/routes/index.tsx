@@ -104,7 +104,7 @@ function Landing() {
         <section className="mx-auto flex w-full max-w-6xl flex-1 items-center px-6 pt-10 pb-24 md:pb-32">
           <div className="fade-rise max-w-xl">
             <p className="text-[0.6875rem] font-medium uppercase tracking-[0.18em] text-cream/75">
-              A fitting room & AI stylist in your browser
+              A fitting room in your browser
             </p>
             <h1 className="mt-7 text-5xl leading-[1.04] text-cream md:text-7xl">
               See it on you
@@ -128,9 +128,6 @@ function Landing() {
                 Manage Closet
               </Link>
             </div>
-            <p className="mt-8 text-[0.6875rem] font-medium uppercase tracking-[0.18em] text-cream/65">
-              Free · runs on your device · smart curation
-            </p>
           </div>
         </section>
       </div>
