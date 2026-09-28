@@ -33,6 +33,8 @@ import {
   X,
   Compass,
   Layers,
+  LogIn,
+  UserPlus,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -158,8 +160,18 @@ const OCCASION_OPTIONS = [
 ];
 
 function ProfilePage() {
-  const { user, isAuthenticated, openLogin } = useAuth();
-  const activeUserId = user?.id || "guest_user";
+  const { user, isAuthenticated, openLogin, openSignUp } = useAuth();
+  const activeUserId = user?.id || "";
+
+  // Prompt log in on mount if unauthenticated
+  useEffect(() => {
+    if (!isAuthenticated) {
+      openLogin(
+        undefined,
+        "Please log in or sign up to view and customize your fitting profile and body measurements.",
+      );
+    }
+  }, [isAuthenticated, openLogin]);
 
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [fullName, setFullName] = useState("");
@@ -196,6 +208,7 @@ function ProfilePage() {
   // Load profile on mount
   useEffect(() => {
     async function loadData() {
+      if (!isAuthenticated || !activeUserId) return;
       const p = await apiGetUserProfile(activeUserId);
       setProfile(p);
       setFullName(p.full_name || "");
@@ -220,7 +233,7 @@ function ProfilePage() {
     }
 
     void loadData();
-  }, [activeUserId]);
+  }, [activeUserId, isAuthenticated]);
 
   // Handle Photo upload
   const handlePhotoUpload = (file: File) => {
@@ -393,6 +406,56 @@ function ProfilePage() {
   };
 
   const wardrobeItems = getStoredWardrobeItems(activeUserId);
+
+  if (!isAuthenticated) {
+    return (
+      <main className="min-h-screen bg-background pb-20">
+        <header className="border-b border-border bg-card/60 backdrop-blur-md sticky top-0 z-20">
+          <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-4 sm:px-6 py-4">
+            <AtelierOraLogo />
+            <HeaderAuthButtons />
+          </div>
+        </header>
+
+        <div className="mx-auto w-full max-w-md px-4 pt-16 sm:pt-20 text-center space-y-6">
+          <div className="mx-auto flex size-16 items-center justify-center rounded-full bg-primary/10 text-primary">
+            <ShieldCheck className="size-8" />
+          </div>
+          <div className="space-y-2">
+            <span className="eyebrow text-primary">Private Fit Proportions</span>
+            <h1 className="text-2xl sm:text-3xl font-display font-medium text-foreground">
+              Profile Access Restricted
+            </h1>
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              Your body proportions, measurements, silhouette shape, and modesty preferences are
+              private to your personal account. Sign in or register to manage your fitting profile.
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+            <Button
+              onClick={() =>
+                openSignUp(undefined, "Create an account to configure your fit profile.")
+              }
+              size="default"
+              className="gap-2 font-medium cursor-pointer"
+            >
+              <UserPlus className="size-4" />
+              <span>Create Free Account</span>
+            </Button>
+            <Button
+              onClick={() => openLogin(undefined, "Sign in to access your fitting profile.")}
+              variant="outline"
+              size="default"
+              className="gap-2 font-medium cursor-pointer"
+            >
+              <LogIn className="size-4" />
+              <span>Sign In</span>
+            </Button>
+          </div>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="min-h-screen bg-background pb-20">

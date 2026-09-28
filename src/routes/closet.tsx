@@ -147,11 +147,11 @@ const CATEGORY_TABS = [
 const OCCASION_TAGS = ["Office", "Casual", "Dinner", "Wedding"];
 
 function ClosetPage() {
-  const { user } = useAuth();
-  const activeUserId = user?.id || "guest_user";
+  const { user, isAuthenticated, openLogin, openSignUp } = useAuth();
+  const activeUserId = user?.id || "";
 
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [items, setItems] = useState<WardrobeItemWithDetails[]>(MOCK_WARDROBE_ITEMS);
+  const [items, setItems] = useState<WardrobeItemWithDetails[]>([]);
 
   // Filters State
   const [selectedCategoryTab, setSelectedCategoryTab] = useState<string>("All");
@@ -163,6 +163,16 @@ function ClosetPage() {
   // Modals State
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<WardrobeItemWithDetails | null>(null);
+
+  // Prompt log in / sign up on mount if unauthenticated
+  useEffect(() => {
+    if (!isAuthenticated) {
+      openSignUp(
+        undefined,
+        "Please create an account or sign in to access your personal digital wardrobe.",
+      );
+    }
+  }, [isAuthenticated, openSignUp]);
 
   // Categories & Occasions definition
   const allCategories: CategoryEntity[] = useMemo(() => {
@@ -181,22 +191,23 @@ function ClosetPage() {
     }
   }, []);
 
-  // Safe load of items
+  // Safe load of items strictly for the active authenticated user
   const refreshItems = useCallback(() => {
     try {
-      const loaded = getStoredWardrobeItems(activeUserId);
-      if (Array.isArray(loaded) && loaded.length > 0) {
-        setItems(loaded);
-      } else {
-        setItems(MOCK_WARDROBE_ITEMS);
+      if (!isAuthenticated || !activeUserId) {
+        setItems([]);
+        setIsLoading(false);
+        return;
       }
+      const loaded = getStoredWardrobeItems(activeUserId);
+      setItems(Array.isArray(loaded) ? loaded : []);
     } catch (err) {
-      console.warn("Falling back to mock wardrobe items:", err);
-      setItems(MOCK_WARDROBE_ITEMS);
+      console.warn("Error loading personal wardrobe items:", err);
+      setItems([]);
     } finally {
       setIsLoading(false);
     }
-  }, [activeUserId]);
+  }, [activeUserId, isAuthenticated]);
 
   useEffect(() => {
     refreshItems();
@@ -277,6 +288,13 @@ function ClosetPage() {
 
   // Actions
   const handleToggleFavorite = (itemId: string) => {
+    if (!isAuthenticated || !activeUserId) {
+      openSignUp(
+        undefined,
+        "Please create an account or sign in to save favorite garments in your wardrobe.",
+      );
+      return;
+    }
     try {
       const newFavState = toggleFavoriteWardrobeItem(activeUserId, itemId);
       setItems((prev) =>
@@ -289,10 +307,29 @@ function ClosetPage() {
     }
   };
 
+  const handleOpenAddModal = () => {
+    if (!isAuthenticated || !activeUserId) {
+      openSignUp(
+        undefined,
+        "Please create an account or sign in to add garments to your personal wardrobe.",
+      );
+      return;
+    }
+    setIsAddModalOpen(true);
+  };
+
   const handleSaveNewItem = (input: CreateWardrobeItemInput) => {
+    if (!isAuthenticated || !activeUserId) {
+      openSignUp(
+        undefined,
+        "Please create an account or sign in to save garments to your personal wardrobe.",
+      );
+      return;
+    }
     try {
       const created = saveWardrobeItem(activeUserId, input);
       setItems((prev) => [created, ...prev]);
+      toast.success("Garment added to your personal wardrobe!");
     } catch (err) {
       console.error("Save item error:", err);
       toast.error("Could not save item.");
@@ -300,10 +337,15 @@ function ClosetPage() {
   };
 
   const handleUpdateItem = (itemId: string, updates: UpdateWardrobeItemInput) => {
+    if (!isAuthenticated || !activeUserId) {
+      openSignUp(undefined, "Please sign in to update wardrobe garments.");
+      return;
+    }
     try {
       const updated = updateWardrobeItem(activeUserId, itemId, updates);
       if (updated) {
         setItems((prev) => prev.map((it) => (it.id === itemId ? updated : it)));
+        toast.success("Garment updated!");
       }
     } catch (err) {
       console.error("Update item error:", err);
@@ -312,9 +354,14 @@ function ClosetPage() {
   };
 
   const handleDeleteItem = (itemId: string) => {
+    if (!isAuthenticated || !activeUserId) {
+      openSignUp(undefined, "Please sign in to remove garments.");
+      return;
+    }
     try {
       deleteWardrobeItem(activeUserId, itemId);
       setItems((prev) => prev.filter((it) => it.id !== itemId));
+      toast.info("Garment removed from wardrobe.");
     } catch (err) {
       console.error("Delete item error:", err);
       setItems((prev) => prev.filter((it) => it.id !== itemId));
@@ -330,8 +377,16 @@ function ClosetPage() {
   };
 
   const handleSeedDefaults = () => {
+    if (!isAuthenticated || !activeUserId) {
+      openSignUp(
+        undefined,
+        "Please create an account or sign in to import sample garments to your wardrobe.",
+      );
+      return;
+    }
     const seeded = seedSampleWardrobe(activeUserId);
     setItems(seeded);
+    toast.success("Starter sample collection imported to your private wardrobe!");
   };
 
   const favoriteCount = items.filter((i) => i.is_favorite).length;
@@ -412,7 +467,7 @@ function ClosetPage() {
             </Button>
             <Button
               id="add-new-item-header-btn"
-              onClick={() => setIsAddModalOpen(true)}
+              onClick={handleOpenAddModal}
               size="default"
               className="gap-2 font-medium shadow-sm cursor-pointer bg-primary text-primary-foreground hover:bg-primary/90"
             >
@@ -423,216 +478,302 @@ function ClosetPage() {
         </div>
 
         {/* ========================================================================= */}
-        {/* 2. Category & Occasion Navigation Filter Bar */}
+        {/* UNAUTHENTICATED GATE: Prompt Log In or Sign Up */}
         {/* ========================================================================= */}
-        <section className="space-y-4 rounded-xl border border-border bg-card p-4 sm:p-5 shadow-xs">
-          {/* Search, Season, Favorites Bar */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div className="relative flex-1 max-w-md">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-              <Input
-                type="text"
-                placeholder="Search by name, fabric, color, or style..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9 h-9 text-xs sm:text-sm bg-background"
-              />
-              {searchQuery && (
-                <button
-                  type="button"
-                  onClick={() => setSearchQuery("")}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-muted-foreground hover:text-foreground cursor-pointer"
-                >
-                  Clear
-                </button>
-              )}
+        {!isAuthenticated ? (
+          <div className="rounded-xl border border-primary/20 bg-card p-8 sm:p-12 text-center space-y-6 shadow-sm">
+            <div className="mx-auto flex size-16 items-center justify-center rounded-full bg-primary/10 text-primary">
+              <Shirt className="size-8" />
             </div>
-
-            <div className="flex items-center gap-2 flex-wrap">
-              {/* Season Selector */}
-              <select
-                value={selectedSeason}
-                onChange={(e) => setSelectedSeason(e.target.value)}
-                className="h-9 rounded-md border border-border bg-background px-3 text-xs font-medium text-foreground cursor-pointer focus:outline-hidden focus:ring-2 focus:ring-ring"
-                aria-label="Filter by season"
-              >
-                {FASHION_SEASONS.map((s) => (
-                  <option key={s} value={s}>
-                    {s === "All Season" ? "All Seasons" : `${s} Season`}
-                  </option>
-                ))}
-              </select>
-
-              {/* Favorites Toggle */}
-              <Button
-                type="button"
-                variant={showFavoritesOnly ? "default" : "outline"}
-                size="sm"
-                onClick={() => setShowFavoritesOnly(!showFavoritesOnly)}
-                className={`h-9 gap-1.5 text-xs font-medium cursor-pointer transition-all ${
-                  showFavoritesOnly
-                    ? "bg-rose-600 hover:bg-rose-700 text-white"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                <Heart
-                  className={`size-3.5 ${showFavoritesOnly ? "fill-white text-white" : "text-rose-500"}`}
-                />
-                <span>Favorites ({favoriteCount})</span>
-              </Button>
-
-              {/* Reset Filters */}
-              {(selectedCategoryTab !== "All" ||
-                selectedOccasionTag !== null ||
-                selectedSeason !== "All Season" ||
-                showFavoritesOnly ||
-                searchQuery.trim().length > 0) && (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleResetFilters}
-                  className="h-9 gap-1 text-xs text-muted-foreground hover:text-foreground cursor-pointer"
-                >
-                  <RotateCcw className="size-3" />
-                  <span>Reset</span>
-                </Button>
-              )}
-            </div>
-          </div>
-
-          {/* Category Tabs: Scrollable or Tabbed Filters */}
-          <div className="space-y-2 border-t border-border/60 pt-3">
-            <div className="flex items-center justify-between">
-              <span className="eyebrow text-[11px] text-muted-foreground">Category Tabs</span>
-              <span className="text-[11px] text-muted-foreground">
-                Showing <strong className="text-foreground">{filteredItems.length}</strong> of{" "}
-                {items.length} items
-              </span>
-            </div>
-            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
-              {CATEGORY_TABS.map((tab) => {
-                const isSelected = selectedCategoryTab === tab;
-                return (
-                  <button
-                    key={tab}
-                    type="button"
-                    onClick={() => setSelectedCategoryTab(tab)}
-                    className={`shrink-0 rounded-lg px-3.5 py-1.5 text-xs font-medium transition-all cursor-pointer ${
-                      isSelected
-                        ? "bg-primary text-primary-foreground shadow-xs font-semibold"
-                        : "bg-secondary/60 text-secondary-foreground hover:bg-secondary hover:text-foreground"
-                    }`}
-                  >
-                    {tab}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Occasion Filters: Multi-Select / Tag Bar */}
-          <div className="space-y-2 border-t border-border/60 pt-3">
-            <div className="flex items-center justify-between">
-              <span className="eyebrow text-[11px] text-muted-foreground">Occasion Filters</span>
-            </div>
-            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
-              <button
-                type="button"
-                onClick={() => setSelectedOccasionTag(null)}
-                className={`shrink-0 rounded-full px-3 py-1 text-xs transition-all cursor-pointer ${
-                  selectedOccasionTag === null
-                    ? "bg-primary/90 text-primary-foreground font-medium"
-                    : "border border-border/80 bg-background text-muted-foreground hover:text-foreground hover:border-foreground/40"
-                }`}
-              >
-                All Occasions
-              </button>
-              {OCCASION_TAGS.map((tag) => {
-                const isSelected = selectedOccasionTag === tag;
-                return (
-                  <button
-                    key={tag}
-                    type="button"
-                    onClick={() => setSelectedOccasionTag(isSelected ? null : tag)}
-                    className={`shrink-0 rounded-full px-3 py-1 text-xs transition-all cursor-pointer flex items-center gap-1.5 ${
-                      isSelected
-                        ? "bg-primary text-primary-foreground font-medium shadow-xs"
-                        : "border border-border/80 bg-background text-muted-foreground hover:text-foreground hover:border-foreground/40"
-                    }`}
-                  >
-                    {tag === "Wedding" && <Sparkles className="size-3 text-amber-500" />}
-                    <span>{tag}</span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        </section>
-
-        {/* ========================================================================= */}
-        {/* 3. Wardrobe Grid View (Resilient with Loading & Fallbacks) */}
-        {/* ========================================================================= */}
-        {isLoading ? (
-          <div className="flex flex-col items-center justify-center py-24 space-y-4">
-            <Loader2 className="size-8 animate-spin text-primary" />
-            <p className="text-sm text-muted-foreground">Loading your digital wardrobe...</p>
-          </div>
-        ) : filteredItems.length > 0 ? (
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-5">
-            {filteredItems.map((item) => (
-              <WardrobeItemCard
-                key={item.id}
-                item={item}
-                onToggleFavorite={handleToggleFavorite}
-                onEdit={setEditingItem}
-                onDelete={handleDeleteItem}
-              />
-            ))}
-          </div>
-        ) : (
-          <div className="rounded-xl border border-dashed border-border bg-card/40 p-12 text-center space-y-4">
-            <div className="mx-auto flex size-14 items-center justify-center rounded-full bg-secondary text-muted-foreground">
-              <Shirt className="size-7 opacity-60" />
-            </div>
-            <div className="space-y-1">
-              <h3 className="text-lg font-display font-medium text-foreground">
-                No garments found in this view
-              </h3>
-              <p className="text-xs text-muted-foreground max-w-sm mx-auto">
-                Try clearing your filters, or click "Add New Item" to add your favorite clothes,
-                shoes, or jewelry.
+            <div className="max-w-md mx-auto space-y-2">
+              <span className="eyebrow text-primary">Private Member Storage</span>
+              <h2 className="text-2xl sm:text-3xl font-display font-medium text-foreground">
+                Your Private Digital Wardrobe
+              </h2>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                Atelier Ora keeps each user&apos;s wardrobe strictly private and personalized. Sign
+                in or create an account to upload your own clothes, organize ethnic &amp; Western
+                attire, and test virtual fitting.
               </p>
             </div>
-            <div className="flex items-center justify-center gap-3 pt-2">
+            <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
               <Button
-                onClick={handleResetFilters}
-                variant="outline"
-                size="sm"
-                className="gap-1.5 cursor-pointer text-xs"
+                onClick={() =>
+                  openSignUp(
+                    undefined,
+                    "Create an account to start your personal digital wardrobe.",
+                  )
+                }
+                size="default"
+                className="gap-2 font-medium cursor-pointer"
               >
-                <RotateCcw className="size-3.5" />
-                <span>Reset Filters</span>
+                <User className="size-4" />
+                <span>Create Free Account</span>
+              </Button>
+              <Button
+                onClick={() =>
+                  openLogin(undefined, "Sign in to access your personal digital wardrobe.")
+                }
+                variant="outline"
+                size="default"
+                className="gap-2 font-medium cursor-pointer"
+              >
+                <span>Log In</span>
+              </Button>
+            </div>
+          </div>
+        ) : items.length === 0 ? (
+          <div className="rounded-xl border border-dashed border-border bg-card/60 p-10 sm:p-14 text-center space-y-5 shadow-xs">
+            <div className="mx-auto flex size-16 items-center justify-center rounded-full bg-secondary text-muted-foreground">
+              <Shirt className="size-8 opacity-70" />
+            </div>
+            <div className="space-y-2 max-w-md mx-auto">
+              <h3 className="text-xl font-display font-medium text-foreground">
+                Your Personal Wardrobe is Empty
+              </h3>
+              <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
+                You don&apos;t have any clothes saved in your closet yet. Add your personal garments
+                using photos or camera, or import our starter designer sample collection to test the
+                fitting room right away.
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+              <Button
+                onClick={handleOpenAddModal}
+                size="default"
+                className="gap-2 font-medium cursor-pointer bg-primary text-primary-foreground hover:bg-primary/90"
+              >
+                <Plus className="size-4" />
+                <span>Add Your First Garment</span>
               </Button>
               <Button
                 onClick={handleSeedDefaults}
                 variant="outline"
-                size="sm"
-                className="gap-1.5 cursor-pointer text-xs"
+                size="default"
+                className="gap-2 font-medium cursor-pointer"
               >
-                <Sparkles className="size-3.5 text-amber-500" />
-                <span>Restore Sample Outfits</span>
-              </Button>
-              <Button
-                onClick={() => setIsAddModalOpen(true)}
-                size="sm"
-                className="gap-1.5 cursor-pointer text-xs"
-              >
-                <Plus className="size-3.5" />
-                <span>Add Item</span>
+                <Sparkles className="size-4 text-amber-500" />
+                <span>Import Starter Sample Collection</span>
               </Button>
             </div>
           </div>
+        ) : (
+          <>
+            {/* ========================================================================= */}
+            {/* 2. Category & Occasion Navigation Filter Bar */}
+            {/* ========================================================================= */}
+            <section className="space-y-4 rounded-xl border border-border bg-card p-4 sm:p-5 shadow-xs">
+              {/* Search, Season, Favorites Bar */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="relative flex-1 max-w-md">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+                  <Input
+                    type="text"
+                    placeholder="Search by name, fabric, color, or style..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-9 h-9 text-xs sm:text-sm bg-background"
+                  />
+                  {searchQuery && (
+                    <button
+                      type="button"
+                      onClick={() => setSearchQuery("")}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-muted-foreground hover:text-foreground cursor-pointer"
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-2 flex-wrap">
+                  {/* Season Selector */}
+                  <select
+                    value={selectedSeason}
+                    onChange={(e) => setSelectedSeason(e.target.value)}
+                    className="h-9 rounded-md border border-border bg-background px-3 text-xs font-medium text-foreground cursor-pointer focus:outline-hidden focus:ring-2 focus:ring-ring"
+                    aria-label="Filter by season"
+                  >
+                    {FASHION_SEASONS.map((s) => (
+                      <option key={s} value={s}>
+                        {s === "All Season" ? "All Seasons" : `${s} Season`}
+                      </option>
+                    ))}
+                  </select>
+
+                  {/* Favorites Toggle */}
+                  <Button
+                    type="button"
+                    variant={showFavoritesOnly ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setShowFavoritesOnly(!showFavoritesOnly)}
+                    className={`h-9 gap-1.5 text-xs font-medium cursor-pointer transition-all ${
+                      showFavoritesOnly
+                        ? "bg-rose-600 hover:bg-rose-700 text-white"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    <Heart
+                      className={`size-3.5 ${showFavoritesOnly ? "fill-white text-white" : "text-rose-500"}`}
+                    />
+                    <span>Favorites ({favoriteCount})</span>
+                  </Button>
+
+                  {/* Reset Filters */}
+                  {(selectedCategoryTab !== "All" ||
+                    selectedOccasionTag !== null ||
+                    selectedSeason !== "All Season" ||
+                    showFavoritesOnly ||
+                    searchQuery.trim().length > 0) && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleResetFilters}
+                      className="h-9 gap-1 text-xs text-muted-foreground hover:text-foreground cursor-pointer"
+                    >
+                      <RotateCcw className="size-3" />
+                      <span>Reset</span>
+                    </Button>
+                  )}
+                </div>
+              </div>
+
+              {/* Category Tabs: Scrollable or Tabbed Filters */}
+              <div className="space-y-2 border-t border-border/60 pt-3">
+                <div className="flex items-center justify-between">
+                  <span className="eyebrow text-[11px] text-muted-foreground">Category Tabs</span>
+                  <span className="text-[11px] text-muted-foreground">
+                    Showing <strong className="text-foreground">{filteredItems.length}</strong> of{" "}
+                    {items.length} items
+                  </span>
+                </div>
+                <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+                  {CATEGORY_TABS.map((tab) => {
+                    const isSelected = selectedCategoryTab === tab;
+                    return (
+                      <button
+                        key={tab}
+                        type="button"
+                        onClick={() => setSelectedCategoryTab(tab)}
+                        className={`shrink-0 rounded-lg px-3.5 py-1.5 text-xs font-medium transition-all cursor-pointer ${
+                          isSelected
+                            ? "bg-primary text-primary-foreground shadow-xs font-semibold"
+                            : "bg-secondary/60 text-secondary-foreground hover:bg-secondary hover:text-foreground"
+                        }`}
+                      >
+                        {tab}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Occasion Filters: Multi-Select / Tag Bar */}
+              <div className="space-y-2 border-t border-border/60 pt-3">
+                <div className="flex items-center justify-between">
+                  <span className="eyebrow text-[11px] text-muted-foreground">
+                    Occasion Filters
+                  </span>
+                </div>
+                <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedOccasionTag(null)}
+                    className={`shrink-0 rounded-full px-3 py-1 text-xs transition-all cursor-pointer ${
+                      selectedOccasionTag === null
+                        ? "bg-primary/90 text-primary-foreground font-medium"
+                        : "border border-border/80 bg-background text-muted-foreground hover:text-foreground hover:border-foreground/40"
+                    }`}
+                  >
+                    All Occasions
+                  </button>
+                  {OCCASION_TAGS.map((tag) => {
+                    const isSelected = selectedOccasionTag === tag;
+                    return (
+                      <button
+                        key={tag}
+                        type="button"
+                        onClick={() => setSelectedOccasionTag(isSelected ? null : tag)}
+                        className={`shrink-0 rounded-full px-3 py-1 text-xs transition-all cursor-pointer flex items-center gap-1.5 ${
+                          isSelected
+                            ? "bg-primary text-primary-foreground font-medium shadow-xs"
+                            : "border border-border/80 bg-background text-muted-foreground hover:text-foreground hover:border-foreground/40"
+                        }`}
+                      >
+                        {tag === "Wedding" && <Sparkles className="size-3 text-amber-500" />}
+                        <span>{tag}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </section>
+
+            {/* ========================================================================= */}
+            {/* 3. Wardrobe Grid View (Resilient with Loading & Fallbacks) */}
+            {/* ========================================================================= */}
+            {isLoading ? (
+              <div className="flex flex-col items-center justify-center py-24 space-y-4">
+                <Loader2 className="size-8 animate-spin text-primary" />
+                <p className="text-sm text-muted-foreground">Loading your digital wardrobe...</p>
+              </div>
+            ) : filteredItems.length > 0 ? (
+              <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-5">
+                {filteredItems.map((item) => (
+                  <WardrobeItemCard
+                    key={item.id}
+                    item={item}
+                    onToggleFavorite={handleToggleFavorite}
+                    onEdit={setEditingItem}
+                    onDelete={handleDeleteItem}
+                  />
+                ))}
+              </div>
+            ) : (
+              <div className="rounded-xl border border-dashed border-border bg-card/40 p-12 text-center space-y-4">
+                <div className="mx-auto flex size-14 items-center justify-center rounded-full bg-secondary text-muted-foreground">
+                  <Shirt className="size-7 opacity-60" />
+                </div>
+                <div className="space-y-1">
+                  <h3 className="text-lg font-display font-medium text-foreground">
+                    No garments found in this view
+                  </h3>
+                  <p className="text-xs text-muted-foreground max-w-sm mx-auto">
+                    Try clearing your filters, or click "Add New Item" to add your favorite clothes,
+                    shoes, or jewelry.
+                  </p>
+                </div>
+                <div className="flex items-center justify-center gap-3 pt-2">
+                  <Button
+                    onClick={handleResetFilters}
+                    variant="outline"
+                    size="sm"
+                    className="gap-1.5 cursor-pointer text-xs"
+                  >
+                    <RotateCcw className="size-3.5" />
+                    <span>Reset Filters</span>
+                  </Button>
+                  <Button
+                    onClick={handleSeedDefaults}
+                    variant="outline"
+                    size="sm"
+                    className="gap-1.5 cursor-pointer text-xs"
+                  >
+                    <Sparkles className="size-3.5 text-amber-500" />
+                    <span>Restore Sample Outfits</span>
+                  </Button>
+                  <Button
+                    onClick={handleOpenAddModal}
+                    size="sm"
+                    className="gap-1.5 cursor-pointer text-xs"
+                  >
+                    <Plus className="size-3.5" />
+                    <span>Add Item</span>
+                  </Button>
+                </div>
+              </div>
+            )}
+          </>
         )}
 
         {/* Direct Link to Fitting Studio Banner */}

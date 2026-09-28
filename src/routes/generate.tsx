@@ -40,6 +40,8 @@ import {
   ExternalLink,
   ChevronRight,
   Info,
+  LogIn,
+  UserPlus,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
@@ -145,12 +147,22 @@ function GenerateRouteWrapper() {
 }
 
 function GeneratePage() {
-  const { user } = useAuth();
-  const activeUserId = user?.id || "guest_user";
+  const { user, isAuthenticated, openLogin, openSignUp } = useAuth();
+  const activeUserId = user?.id || "";
 
   const [wardrobe, setWardrobe] = useState<WardrobeItemWithDetails[]>([]);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [occasions, setOccasions] = useState<OccasionEntity[]>([]);
+
+  // Prompt log in / sign up on mount if unauthenticated
+  useEffect(() => {
+    if (!isAuthenticated) {
+      openSignUp(
+        undefined,
+        "Sign in or create an account to use the AI Stylist and generate personalized outfit recommendations.",
+      );
+    }
+  }, [isAuthenticated, openSignUp]);
 
   // Form Controls
   const [selectedOccasion, setSelectedOccasion] = useState<string>("Wedding / Festive / Fancy");
@@ -170,6 +182,11 @@ function GeneratePage() {
   // Load wardrobe, occasions, and personalized user profile
   useEffect(() => {
     try {
+      if (!isAuthenticated || !activeUserId) {
+        setWardrobe([]);
+        setOccasions(getOccasions());
+        return;
+      }
       const items = getStoredWardrobeItems(activeUserId);
       setWardrobe(items);
       const occ = getOccasions();
@@ -190,7 +207,7 @@ function GeneratePage() {
     } catch (err) {
       console.error("Failed to load wardrobe for styling:", err);
     }
-  }, [activeUserId]);
+  }, [activeUserId, isAuthenticated]);
 
   const heroItem = useMemo(() => {
     if (heroItemId === "none") return null;
@@ -200,6 +217,13 @@ function GeneratePage() {
   // Handle Curate Outfit Submission
   const handleCurateOutfit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!isAuthenticated) {
+      openSignUp(
+        undefined,
+        "Please create an account or sign in to generate personalized AI outfit recommendations.",
+      );
+      return;
+    }
     setIsCurating(true);
     setRecommendations(null);
     setInfoMessage(null);
@@ -336,6 +360,43 @@ function GeneratePage() {
             makeup inspiration, and proportional advice for any occasion.
           </p>
         </div>
+
+        {/* Unauthenticated Gate Banner */}
+        {!isAuthenticated && (
+          <div className="surface p-4 sm:p-5 border-amber-500/30 bg-amber-50/50 dark:bg-amber-950/20 rounded-xl flex flex-col sm:flex-row items-center justify-between gap-4 shadow-xs">
+            <div className="space-y-1 text-center sm:text-left">
+              <p className="text-xs font-semibold text-amber-900 dark:text-amber-200 flex items-center justify-center sm:justify-start gap-1.5">
+                <Sparkles className="size-4 text-amber-600" />
+                <span>Account Required for AI Outfit Styling</span>
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Sign in or create an account to curate looks from your wardrobe and personalize
+                recommendations.
+              </p>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <Button
+                size="sm"
+                onClick={() =>
+                  openSignUp(undefined, "Create an account to start generating AI outfits.")
+                }
+                className="gap-1.5 text-xs font-medium cursor-pointer"
+              >
+                <UserPlus className="size-3.5" />
+                <span>Sign Up</span>
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => openLogin(undefined, "Sign in to access the AI Stylist.")}
+                className="gap-1.5 text-xs font-medium cursor-pointer"
+              >
+                <LogIn className="size-3.5" />
+                <span>Log In</span>
+              </Button>
+            </div>
+          </div>
+        )}
 
         {/* Phase 4: Personalized Profile Indicator Banner */}
         {profile && (

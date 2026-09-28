@@ -432,7 +432,22 @@ export function getStoredWardrobeItems(
   filters?: WardrobeFilterOptions,
 ): WardrobeItemWithDetails[] {
   try {
-    const key = WARDROBE_STORAGE_PREFIX + (userId || "default_user");
+    if (!userId || userId === "guest_user") {
+      // Unauthenticated or empty user has no private items unless explicitly saved
+      const guestKey = WARDROBE_STORAGE_PREFIX + "guest_user";
+      const rawGuest = safeGetLocalStorage(guestKey);
+      if (rawGuest) {
+        try {
+          const parsed = JSON.parse(rawGuest);
+          if (Array.isArray(parsed)) return parsed;
+        } catch {
+          // ignore
+        }
+      }
+      return inMemoryWardrobeStore[guestKey] ?? [];
+    }
+
+    const key = WARDROBE_STORAGE_PREFIX + userId;
     let items: WardrobeItemWithDetails[] | null = null;
 
     // 1. Try reading from localStorage (an empty array is a valid, emptied wardrobe)
@@ -453,11 +468,10 @@ export function getStoredWardrobeItems(
       items = inMemoryWardrobeStore[key] ?? null;
     }
 
-    // 3. First visit only: seed with sample items
+    // 3. For new users, initialize with an empty array so their closet is uniquely their own
     if (!items) {
-      items = cloneMockWardrobeItems();
+      items = [];
       inMemoryWardrobeStore[key] = items;
-      safeSetLocalStorage(key, JSON.stringify(items));
     }
 
     // 4. Apply optional filters safely
@@ -495,8 +509,8 @@ export function getStoredWardrobeItems(
 
     return items;
   } catch (err) {
-    console.warn("Recovered from error in getStoredWardrobeItems, returning mock data:", err);
-    return cloneMockWardrobeItems();
+    console.warn("Recovered from error in getStoredWardrobeItems:", err);
+    return [];
   }
 }
 

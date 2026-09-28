@@ -28,7 +28,7 @@ import { HeightCalibrationCard } from "@/components/HeightCalibrationCard";
 import { lowConfidenceLabels, MeasurementsCard } from "@/components/MeasurementsCard";
 import { PhotoUploader } from "@/components/PhotoUploader";
 import { PoseOverlay } from "@/components/PoseOverlay";
-import { AiTryOnPanel } from "@/components/AiTryOnPanel";
+import { TryOnCanvas } from "@/components/TryOnCanvas";
 import { ColorStudioPanel } from "@/components/colors/ColorStudioPanel";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
@@ -45,6 +45,7 @@ import {
 } from "@/lib/pose-types";
 import type { ProductPreview } from "@/lib/product.functions";
 import { resolveMeasurements, type ManualMeasurements } from "@/lib/body-measurements";
+import type { GarmentAnchor } from "@/lib/garment-anchor";
 import {
   extractColorPaletteFromImage,
   FALLBACK_MOOD_BOARD_PALETTE,
@@ -102,6 +103,12 @@ function Studio() {
   const [manual, setManual] = useState<ManualMeasurements>({});
   const [manualEnabled, setManualEnabled] = useState(false);
 
+  // Shop model's shoulders/hips in the fetched photo, used only to position that photo
+  const [garmentAnchor, setGarmentAnchor] = useState<{
+    source: string;
+    anchor: GarmentAnchor | null;
+  } | null>(null);
+
   const resolved = useMemo(
     () => resolveMeasurements(measurements?.calibrated, manualEnabled ? manual : {}),
     [manual, manualEnabled, measurements?.calibrated],
@@ -121,9 +128,20 @@ function Studio() {
   const [customGarmentDataUrl, setCustomGarmentDataUrl] = useState<string | null>(null);
   const [showColorStudio, setShowColorStudio] = useState<boolean>(true);
 
+  // Prompt log in / sign up on mount if unauthenticated
+  useEffect(() => {
+    if (!isAuthenticated) {
+      openSignUp(
+        undefined,
+        "Sign in or create an account to use the Virtual Fitting Room and try on clothes.",
+      );
+    }
+  }, [isAuthenticated, openSignUp]);
+
   // Phase 4: Automatically load saved base photo and measurement proportions from user profile
   useEffect(() => {
-    const activeUserId = user?.id || "guest_user";
+    if (!isAuthenticated || !user?.id) return;
+    const activeUserId = user.id;
     const userProf = getUserProfile(activeUserId);
     setProfile(userProf);
 
@@ -176,9 +194,16 @@ function Studio() {
 
   const handleSaveMeasurementsToProfile = async () => {
     if (!measurements) return;
+    if (!isAuthenticated || !user?.id) {
+      openSignUp(
+        undefined,
+        "Please create an account or sign in to save your measurements to your profile.",
+      );
+      return;
+    }
     setIsSyncingProfile(true);
     try {
-      const activeUserId = user?.id || "guest_user";
+      const activeUserId = user.id;
       const round = (value: { cm: number } | null) => (value ? Math.round(value.cm) : null);
       const height = round(resolved.height);
       await apiUpdateUserProfile(activeUserId, {
@@ -305,6 +330,13 @@ function Studio() {
 
   const handleProductSelect = (newProduct: ProductPreview | null) => {
     setProduct(newProduct);
+    setGarmentAnchor(null);
+    const source = newProduct?.imageDataUrl;
+    if (source) {
+      void import("@/lib/garment-anchor")
+        .then(({ findGarmentAnchor }) => findGarmentAnchor(source))
+        .then((anchor) => setGarmentAnchor({ source, anchor }));
+    }
     if (newProduct?.imageDataUrl) {
       void extractColorPaletteFromImage(newProduct.imageDataUrl).then((palette) => {
         if (palette && palette.length > 0) {
@@ -327,6 +359,13 @@ function Studio() {
   // Step 2 opens on the height prompt; analysis starts once height is confirmed
   const handleStartAnalysis = () => {
     if (!photo) return;
+    if (!isAuthenticated) {
+      openSignUp(
+        undefined,
+        "Please create an account or sign in to analyze proportions and try on garments.",
+      );
+      return;
+    }
     setStatus("idle");
     setCurrentStep(2);
   };
@@ -338,6 +377,13 @@ function Studio() {
   };
 
   const handleProceedToFittingRoom = () => {
+    if (!isAuthenticated) {
+      openSignUp(
+        undefined,
+        "Please create an account or sign in to enter the fitting room and layer garments.",
+      );
+      return;
+    }
     setCurrentStep(3);
   };
 
@@ -352,6 +398,7 @@ function Studio() {
     setSkeletonLines([]);
     setPoseError(null);
     setProduct(null);
+    setGarmentAnchor(null);
     setAnalysisPhoto(null);
     setBackgroundRemoved(false);
   };
@@ -483,6 +530,51 @@ function Studio() {
                 return null;
               })()}
             </div>
+
+            {/* Step 1 Auth Gate Notice */}
+            {!isAuthenticated && (
+              <div className="surface p-4 sm:p-5 border-primary/20 bg-primary/5 rounded-xl space-y-3">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <ShieldCheck className="size-4 text-primary" />
+                      <span className="eyebrow text-primary">Private Fitting Room</span>
+                    </div>
+                    <h3 className="text-base font-display font-medium">
+                      Sign in or create an account to unlock all fitting room features
+                    </h3>
+                    <p className="text-xs text-muted-foreground">
+                      Body landmarks and proportion analysis require an account to save measurements
+                      and fit garments.
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <Button
+                      size="sm"
+                      onClick={() =>
+                        openSignUp(
+                          undefined,
+                          "Create an account to start using the Virtual Fitting Studio.",
+                        )
+                      }
+                      className="gap-1.5 text-xs font-medium cursor-pointer"
+                    >
+                      <UserPlus className="size-3.5" />
+                      <span>Sign Up</span>
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => openLogin(undefined, "Sign in to access your fitting studio.")}
+                      className="gap-1.5 text-xs font-medium cursor-pointer"
+                    >
+                      <LogIn className="size-3.5" />
+                      <span>Log In</span>
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
 
             <PhotoUploader
               photoUrl={photo}
@@ -996,18 +1088,21 @@ function Studio() {
                 )}
               </div>
 
-              {/* Real AI try-on (Leffa): the garment is a reference, not pasted onto the photo */}
               {photo && (product || customGarmentDataUrl) ? (
-                <AiTryOnPanel
-                  personPhoto={photo}
-                  garment={
-                    product ?? {
-                      title: "Custom colorway garment",
-                      siteName: "Color Studio",
-                      sourceUrl: "",
-                      imageDataUrl: customGarmentDataUrl ?? "",
-                    }
+                <TryOnCanvas
+                  photoDataUrl={analysisPhoto ?? photo}
+                  garmentDataUrl={product?.imageDataUrl || customGarmentDataUrl || ""}
+                  garmentAnchor={
+                    garmentAnchor && garmentAnchor.source === product?.imageDataUrl
+                      ? garmentAnchor.anchor
+                      : null
                   }
+                  garmentTitle={product?.title || "Custom Colorway Garment"}
+                  guide={guide}
+                  customGarmentTheme={garmentTheme}
+                  customGarmentDataUrl={customGarmentDataUrl}
+                  onOpenColorStudio={() => setShowColorStudio(true)}
+                  fitScale={resolved.fitScale}
                 />
               ) : null}
             </section>

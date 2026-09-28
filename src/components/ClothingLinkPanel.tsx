@@ -58,7 +58,6 @@ export function ClothingLinkPanel({
       siteName: item.category?.name || "My Closet",
       sourceUrl: "",
       imageDataUrl: item.image_url,
-      closetParentType: item.category?.parent_type ?? null,
     });
     setShowClosetPicker(false);
   };
