@@ -281,7 +281,6 @@ function ClosetPage() {
       setItems((prev) =>
         prev.map((it) => (it.id === itemId ? { ...it, is_favorite: newFavState } : it)),
       );
-      toast.success(newFavState ? "Added to favorites ❤️" : "Removed from favorites");
     } catch {
       setItems((prev) =>
         prev.map((it) => (it.id === itemId ? { ...it, is_favorite: !it.is_favorite } : it)),
@@ -293,7 +292,6 @@ function ClosetPage() {
     try {
       const created = saveWardrobeItem(activeUserId, input);
       setItems((prev) => [created, ...prev]);
-      toast.success(`"${created.title}" added to your wardrobe!`);
     } catch (err) {
       console.error("Save item error:", err);
       toast.error("Could not save item.");
@@ -305,7 +303,6 @@ function ClosetPage() {
       const updated = updateWardrobeItem(activeUserId, itemId, updates);
       if (updated) {
         setItems((prev) => prev.map((it) => (it.id === itemId ? updated : it)));
-        toast.success("Wardrobe item updated!");
       }
     } catch (err) {
       console.error("Update item error:", err);
@@ -317,7 +314,6 @@ function ClosetPage() {
     try {
       deleteWardrobeItem(activeUserId, itemId);
       setItems((prev) => prev.filter((it) => it.id !== itemId));
-      toast.success("Item removed from wardrobe");
     } catch (err) {
       console.error("Delete item error:", err);
       setItems((prev) => prev.filter((it) => it.id !== itemId));
@@ -335,7 +331,6 @@ function ClosetPage() {
   const handleSeedDefaults = () => {
     const seeded = seedSampleWardrobe(activeUserId);
     setItems(seeded);
-    toast.success("Sample wardrobe restored with Western & traditional ethnic pieces!");
   };
 
   const favoriteCount = items.filter((i) => i.is_favorite).length;

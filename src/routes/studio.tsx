@@ -205,7 +205,6 @@ function Studio() {
             }
           : {}),
       });
-      toast.success("Calibrated measurements synced to your Profile!");
     } catch {
       toast.error("Failed to sync measurements to profile.");
     } finally {
@@ -305,7 +304,6 @@ function Studio() {
             stitching: palette[2]?.hex || curr.stitching,
           }));
         }
-        toast.success("Automatically extracted dynamic color wheel palette from photo!");
       }
     });
   };
@@ -333,7 +331,6 @@ function Studio() {
               stitching: palette[2]?.hex || curr.stitching,
             }));
           }
-          toast.success(`Extracted dynamic color palette from ${newProduct.title}!`);
         }
       });
     }
@@ -1034,7 +1031,6 @@ function Studio() {
                           imageDataUrl: customGarmentDataUrl,
                         });
                       }
-                      toast.success("Applied tailored colorway to Fitting Room!");
                     }}
                   />
                 )}

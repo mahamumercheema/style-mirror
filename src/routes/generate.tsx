@@ -246,14 +246,12 @@ function GeneratePage() {
         if (data.message) {
           setInfoMessage(data.message);
         }
-        toast.success("Bespoke styling recommendations curated!");
       } else {
         // Fallback to local styling director
         const fallback = generateFallbackOutfitRecommendations(wardrobe, payload, profile);
         setRecommendations(fallback.recommendations);
         setActiveOptionTab(0);
         setInfoMessage(fallback.message || "Curated using your digitized closet inventory.");
-        toast.success("Bespoke styling recommendations curated!");
       }
     } catch (err) {
       clearTimeout(t1);
@@ -263,7 +261,6 @@ function GeneratePage() {
       setRecommendations(fallback.recommendations);
       setActiveOptionTab(0);
       setInfoMessage("Curated live using your digitized closet inventory.");
-      toast.success("Styling formulas curated from your wardrobe!");
     } finally {
       setIsCurating(false);
       setCurationStage("");

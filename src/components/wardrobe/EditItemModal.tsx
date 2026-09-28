@@ -76,7 +76,6 @@ export function EditItemModal({
       };
 
       await onUpdate(item.id, updates);
-      toast.success("Wardrobe item details updated!");
       onClose();
     } catch (err) {
       toast.error((err as Error).message || "Failed to update item");

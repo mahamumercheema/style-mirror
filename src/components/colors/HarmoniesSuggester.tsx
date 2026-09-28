@@ -39,7 +39,6 @@ export function HarmoniesSuggester({
       buttons: harmony.presetApplication.buttons,
       stitching: harmony.presetApplication.stitching,
     });
-    toast.success(`Applied ${harmony.title} palette to garment!`);
   };
 
   const harmonyTabs: Array<{ id: HarmonyType; label: string; badge: string }> = [

@@ -129,9 +129,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
     setUser(guestUser);
     localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(guestUser));
-    toast.success("Welcome, Guest Stylist!", {
-      description: "Full fitting room and styling features unlocked.",
-    });
     closeModal();
   };
 
@@ -151,10 +148,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         localStorage.setItem(TOKEN_STORAGE_KEY, result.token);
       }
       localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(result.user));
-
-      toast.success(`Welcome back, ${result.user.email}!`, {
-        description: "You are now logged in. Measurements and fitting room are unlocked.",
-      });
 
       closeModal();
       return { success: true };
@@ -194,11 +187,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       // Secure toast notification: NEVER discloses OTP code
-      toast.success("Verification code sent to your email", {
-        description: result.devOtpCode
-          ? `Preview mode: Code ${result.devOtpCode} generated.`
-          : `Please check your inbox at ${email.trim().toLowerCase()} and enter the 6-digit code.`,
-      });
 
       return { success: true };
     } finally {
@@ -234,10 +222,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(result.user));
 
-      toast.success("Account Verified & Activated!", {
-        description: `Welcome to Virtual Try Room, ${result.user.email}. Your fitting room is unlocked.`,
-      });
-
       setPendingEmail("");
       closeModal();
       return { success: true };
@@ -269,11 +253,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       // Secure toast notification: NEVER discloses OTP code
-      toast.success("Verification code sent to your email", {
-        description: result.devOtpCode
-          ? `Preview mode: Code ${result.devOtpCode} generated.`
-          : `A new 6-digit verification code has been dispatched to ${pendingEmail}.`,
-      });
     } finally {
       setIsSubmitting(false);
     }

@@ -57,6 +57,7 @@
   --color-sidebar-ring: var(--sidebar-ring);
   --font-display: "Instrument Serif", ui-serif, Georgia, serif;
   --font-sans: "Work Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-wordmark: "Bodoni Moda", "Didot", "Bodoni 72", ui-serif, serif;
   --tracking-editorial: 0.18em;
   --shadow-soft: 0 1px 2px oklch(0.25 0.02 60 / 0.04), 0 12px 32px -12px oklch(0.25 0.02 60 / 0.16);
   --shadow-lift: 0 2px 4px oklch(0.25 0.02 60 / 0.05), 0 28px 60px -20px oklch(0.25 0.02 60 / 0.24);
@@ -278,6 +279,22 @@
   font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.16em;
+  &:focus-visible {
+    outline: none;
+  }
+}
+
+/* Larger version of nav-link for the hero's primary actions */
+@utility hero-link {
+  @apply link-underline glow;
+  white-space: nowrap;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  @media (width >= 48rem) {
+    font-size: 0.875rem;
+  }
   &:focus-visible {
     outline: none;
   }

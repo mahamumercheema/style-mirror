@@ -5,7 +5,6 @@ import {
   Camera,
   CheckCircle2,
   ImageUp,
-  Info,
   Loader2,
   RefreshCw,
   Trash2,
@@ -285,15 +284,6 @@ export function PhotoUploader({
             </li>
           ))}
         </ul>
-
-        <div className="mt-6 rounded-md bg-secondary/50 p-3.5 text-xs text-muted-foreground">
-          <p className="font-medium text-foreground flex items-center gap-1.5 mb-1">
-            <Info className="size-3.5 text-accent-foreground/70" />
-            Local browser privacy
-          </p>
-          Pose estimation and measurement calculations run entirely locally on your device using
-          MoveNet (TensorFlow.js).
-        </div>
       </aside>
     </div>
   );

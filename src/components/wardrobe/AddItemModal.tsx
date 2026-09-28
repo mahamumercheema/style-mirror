@@ -105,7 +105,6 @@ export function AddItemModal({
     reader.onload = (e) => {
       if (typeof e.target?.result === "string") {
         setImageUrl(e.target.result);
-        toast.success("Image uploaded successfully");
       }
     };
     reader.readAsDataURL(file);
@@ -161,7 +160,6 @@ export function AddItemModal({
       };
 
       await onSave(input);
-      toast.success("New wardrobe item added to your closet!");
       onClose();
     } catch (err) {
       toast.error((err as Error).message || "Failed to save item");
@@ -342,7 +340,6 @@ export function AddItemModal({
                       setCategoryId(preset.catId);
                       setPrimaryColor(preset.color);
                       setFabricType(preset.fabric);
-                      toast.success(`Selected ${preset.name}`);
                     }}
                     className={`group relative rounded-lg border overflow-hidden p-1 text-left transition-all cursor-pointer ${
                       imageUrl === preset.url

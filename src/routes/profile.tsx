@@ -232,7 +232,6 @@ function ProfilePage() {
     reader.onload = (e) => {
       if (typeof e.target?.result === "string") {
         setPhotoUrl(e.target.result);
-        toast.success("Full-body try-on photo uploaded!");
       }
     };
     reader.readAsDataURL(file);
@@ -297,10 +296,6 @@ function ProfilePage() {
           waist: Math.round((approxHip || 38) * 0.74),
         }));
       }
-
-      toast.success(
-        `Pose detected! Classified as ${detected.bodyType} shape with ${(detected.confidence * 100).toFixed(0)}% confidence.`,
-      );
     } catch (err) {
       console.warn("Pose detection fallback:", err);
       toast.info("Using proportional body template for your silhouette.");
@@ -388,7 +383,6 @@ function ProfilePage() {
 
       const updated = await apiUpdateUserProfile(activeUserId, payload);
       setProfile(updated);
-      toast.success("Profile, Try-On photo & measurements saved successfully!");
     } catch (err) {
       console.error("Save profile error:", err);
       toast.error("Failed to save profile changes.");

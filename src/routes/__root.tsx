@@ -80,13 +80,13 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Virtual Try Room" },
+      { title: "Atelier Ora" },
       {
         name: "description",
         content:
           "A private, browser-based fitting room for trying clothes on your own photo with real-time pose and body measurement estimation.",
       },
-      { property: "og:title", content: "Virtual Try Room" },
+      { property: "og:title", content: "Atelier Ora" },
       {
         property: "og:description",
         content:

@@ -53,7 +53,6 @@ export function MoodBoardPaletteExtractor({
       if (palette[0]) {
         onSelectBaseColor(palette[0].hex);
       }
-      toast.success(`Extracted dynamic palette from ${label}!`);
     } catch {
       toast.error("Failed to extract colors from image.");
     } finally {
@@ -101,8 +100,6 @@ export function MoodBoardPaletteExtractor({
       buttons: darkCandidate,
       stitching: stitchCandidate,
     });
-
-    toast.success("Applied mood board palette to Main Body, Trims, Buttons & Stitching!");
   };
 
   return (
