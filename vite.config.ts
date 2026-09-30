@@ -50,10 +50,10 @@ export default defineConfig({
                 const fetchRequest = new Request(reqUrl, {
                   method: req.method ?? "GET",
                   headers,
-                    body:
-                      req.method !== "GET" && req.method !== "HEAD" && bodyBuffer.length > 0
-                        ? new Uint8Array(bodyBuffer)
-                        : null,
+                  body:
+                    req.method !== "GET" && req.method !== "HEAD" && bodyBuffer.length > 0
+                      ? new Uint8Array(bodyBuffer)
+                      : null,
                 });
 
                 const apiResponse = await handleApiRouter(fetchRequest);
