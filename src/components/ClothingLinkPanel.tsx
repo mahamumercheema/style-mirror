@@ -58,7 +58,6 @@ export function ClothingLinkPanel({
       siteName: item.category?.name || "My Closet",
       sourceUrl: "",
       imageDataUrl: item.image_url,
-      closetParentType: item.category?.parent_type ?? null,
     });
     setShowClosetPicker(false);
   };
@@ -77,7 +76,7 @@ export function ClothingLinkPanel({
           onClick={() => setShowClosetPicker(!showClosetPicker)}
           className="gap-1.5 text-xs self-start sm:self-auto cursor-pointer"
         >
-          <Shirt className="size-3.5 text-gold-ink" />
+          <Shirt className="size-3.5 text-primary" />
           <span>{showClosetPicker ? "Hide Closet Picker" : "Pick from My Closet"}</span>
         </Button>
       </div>
@@ -89,10 +88,10 @@ export function ClothingLinkPanel({
 
       {/* Closet Quick Picker Bar */}
       {showClosetPicker && (
-        <div className="mt-4 rounded-md border border-border bg-secondary/30 p-4 space-y-3">
+        <div className="mt-4 rounded-xl border border-border bg-secondary/30 p-4 space-y-3">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-foreground flex items-center gap-1.5">
-              <Sparkles className="size-3.5 text-gold-ink" />
+              <Sparkles className="size-3.5 text-amber-500" />
               <span>Items from your Closet ({wardrobeItems.length})</span>
             </span>
             <Button asChild variant="link" size="sm" className="h-auto p-0 text-xs">
@@ -107,7 +106,7 @@ export function ClothingLinkPanel({
                   key={item.id}
                   type="button"
                   onClick={() => handleSelectWardrobeItem(item)}
-                  className="group flex flex-col rounded-lg border border-border bg-card p-2 text-left hover:border-primary transition-all cursor-pointer"
+                  className="group flex flex-col rounded-lg border border-border bg-card p-2 text-left hover:border-primary hover:shadow-xs transition-all cursor-pointer"
                 >
                   <img
                     src={item.thumbnail_url || item.image_url}
@@ -164,13 +163,11 @@ export function ClothingLinkPanel({
             onChange={(event) => handleLocalFile(event.target.files?.[0])}
           />
         </label>
-        <span className="text-muted-foreground" aria-hidden="true">
-          ·
-        </span>
+        <span className="text-border">·</span>
         <button
           type="button"
           onClick={() => setShowClosetPicker(true)}
-          className="text-gold-ink hover:underline cursor-pointer flex items-center gap-1"
+          className="text-primary hover:underline cursor-pointer flex items-center gap-1"
         >
           <Shirt className="size-3" />
           <span>Select from closet</span>
@@ -182,7 +179,7 @@ export function ClothingLinkPanel({
       {!preview && !loading && wardrobeItems.length > 0 && (
         <div className="mt-5 rounded-lg border border-border/70 bg-secondary/20 p-3.5 space-y-2">
           <p className="text-xs font-semibold text-foreground flex items-center gap-1.5">
-            <Sparkles className="size-3.5 text-gold-ink" />
+            <Sparkles className="size-3.5 text-amber-500" />
             <span>Try on a sample garment immediately:</span>
           </p>
           <div className="flex flex-wrap gap-2">
@@ -193,7 +190,7 @@ export function ClothingLinkPanel({
                 variant="outline"
                 size="sm"
                 onClick={() => handleSelectWardrobeItem(item)}
-                className="text-xs gap-1.5 h-8 bg-background cursor-pointer hover:border-primary"
+                className="text-xs gap-1.5 h-8 bg-background cursor-pointer hover:border-primary shadow-2xs"
               >
                 <img
                   src={item.thumbnail_url || item.image_url}
@@ -216,7 +213,7 @@ export function ClothingLinkPanel({
           </div>
         </div>
       ) : preview ? (
-        <div className="mt-6 flex items-center gap-4 rounded-md border border-border p-4 bg-card">
+        <div className="mt-6 flex items-center gap-4 rounded-md border border-border p-4 bg-card shadow-xs">
           <img
             src={preview.imageDataUrl}
             alt={preview.title}

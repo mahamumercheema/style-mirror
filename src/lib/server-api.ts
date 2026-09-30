@@ -304,11 +304,15 @@ export async function handleApiRouter(request: Request): Promise<Response | null
         vibePreference?: string;
         heroItemId?: string;
         userId?: string;
+        items?: WardrobeItemWithDetails[];
       };
 
       const targetUserId = body.userId || activeUserId;
       const userProfile = getUserProfile(targetUserId);
-      const items = getStoredWardrobeItems(targetUserId);
+      const items =
+        Array.isArray(body.items) && body.items.length > 0
+          ? body.items
+          : getStoredWardrobeItems(targetUserId);
 
       // Resolve occasion name if id is given
       let resolvedOccasion = body.occasionName;
@@ -338,11 +342,10 @@ export async function handleApiRouter(request: Request): Promise<Response | null
     } catch (err) {
       console.warn("POST /api/recommend-outfit exception, serving fallback:", err);
       // Resilient fallback
-      const fallbackResult = generateFallbackOutfitRecommendations(
-        getStoredWardrobeItems(activeUserId),
-        {},
-        null,
-      );
+      const fallbackItems =
+        (request as unknown as { _savedItems?: WardrobeItemWithDetails[] })._savedItems ||
+        getStoredWardrobeItems(activeUserId);
+      const fallbackResult = generateFallbackOutfitRecommendations(fallbackItems, {}, null);
       return new Response(JSON.stringify(fallbackResult), {
         status: 200,
         headers: { "Content-Type": "application/json" },

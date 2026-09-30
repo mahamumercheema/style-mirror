@@ -31,47 +31,69 @@ export function generateFallbackOutfitRecommendations(
   const season = payload.season || "All Season";
   const vibe = payload.vibePreference || "Royal Regal Glam";
 
+  const validIds = new Set(items.map((i) => i.id));
+  const occLower = occasion.toLowerCase();
+
+  // Helper to sort occasion matches to the top
+  const sortByOccasion = (arr: WardrobeItemWithDetails[]) => {
+    return [...arr].sort((a, b) => {
+      const aMatch = a.occasions?.some((o) => occLower.includes(o.name.toLowerCase())) ? 1 : 0;
+      const bMatch = b.occasions?.some((o) => occLower.includes(o.name.toLowerCase())) ? 1 : 0;
+      return bMatch - aMatch;
+    });
+  };
+
   // Categorize items
-  const tops = items.filter(
-    (i) =>
-      i.category?.parent_type === "Tops" ||
-      i.category?.name?.includes("Shirt") ||
-      i.category?.name?.includes("Kurti"),
+  const tops = sortByOccasion(
+    items.filter(
+      (i) =>
+        i.category?.parent_type === "Tops" ||
+        i.category?.name?.includes("Shirt") ||
+        i.category?.name?.includes("Kurti"),
+    ),
   );
-  const bottoms = items.filter(
-    (i) =>
-      i.category?.parent_type === "Bottoms" ||
-      i.category?.name?.includes("Pants") ||
-      i.category?.name?.includes("Jeans") ||
-      i.category?.name?.includes("Shalwar"),
+  const bottoms = sortByOccasion(
+    items.filter(
+      (i) =>
+        i.category?.parent_type === "Bottoms" ||
+        i.category?.name?.includes("Pants") ||
+        i.category?.name?.includes("Jeans") ||
+        i.category?.name?.includes("Shalwar"),
+    ),
   );
-  const fullBody = items.filter(
-    (i) =>
-      i.category?.parent_type === "Full-Body / Ethnic" ||
-      i.category?.parent_type === "Full Body / Ethnic Set" ||
-      i.category?.name?.includes("Shalwar Kameez") ||
-      i.category?.name?.includes("Gharara") ||
-      i.category?.name?.includes("Dress") ||
-      i.category?.name?.includes("Saree") ||
-      i.category?.name?.includes("Frock") ||
-      i.category?.name?.includes("Anarkali"),
+  const fullBody = sortByOccasion(
+    items.filter(
+      (i) =>
+        i.category?.parent_type === "Full-Body / Ethnic" ||
+        i.category?.parent_type === "Full Body / Ethnic Set" ||
+        i.category?.name?.includes("Shalwar Kameez") ||
+        i.category?.name?.includes("Gharara") ||
+        i.category?.name?.includes("Dress") ||
+        i.category?.name?.includes("Saree") ||
+        i.category?.name?.includes("Frock") ||
+        i.category?.name?.includes("Anarkali"),
+    ),
   );
-  const footwear = items.filter(
-    (i) =>
-      i.category?.parent_type === "Footwear" ||
-      i.category?.name?.includes("Heels") ||
-      i.category?.name?.includes("Khussa") ||
-      i.category?.name?.includes("Flats") ||
-      i.category?.name?.includes("Shoes"),
+  const footwear = sortByOccasion(
+    items.filter(
+      (i) =>
+        i.category?.parent_type === "Footwear" ||
+        i.category?.name?.includes("Heels") ||
+        i.category?.name?.includes("Khussa") ||
+        i.category?.name?.includes("Flats") ||
+        i.category?.name?.includes("Shoes"),
+    ),
   );
-  const accessories = items.filter(
-    (i) =>
-      i.category?.parent_type === "Jewelry & Accessories" ||
-      i.category?.parent_type === "Accessories" ||
-      i.category?.name?.includes("Jhumkas") ||
-      i.category?.name?.includes("Necklace") ||
-      i.category?.name?.includes("Earrings") ||
-      i.category?.name?.includes("Handbag"),
+  const accessories = sortByOccasion(
+    items.filter(
+      (i) =>
+        i.category?.parent_type === "Jewelry & Accessories" ||
+        i.category?.parent_type === "Accessories" ||
+        i.category?.name?.includes("Jhumkas") ||
+        i.category?.name?.includes("Necklace") ||
+        i.category?.name?.includes("Earrings") ||
+        i.category?.name?.includes("Handbag"),
+    ),
   );
 
   const recommendations: OutfitRecommendationItem[] = [];
@@ -87,24 +109,22 @@ export function generateFallbackOutfitRecommendations(
       heroItem.category?.name?.includes("Dress") ||
       heroItem.category?.name?.includes("Gharara");
 
-    const shoe = footwear[0] || {
-      id: "hero_shoe",
-      title: "Pointed Toe Stilettos or Handcrafted Khussas",
-    };
-    const acc = accessories[0] || {
-      id: "hero_acc",
-      title: "Gold-Plated Kundan Jhumkas or Sculptural Hoops",
-    };
+    const shoe = footwear[0];
+    const acc = accessories[0];
+
+    const selectedIds = [heroItem.id, shoe?.id, acc?.id].filter((id): id is string =>
+      Boolean(id && validIds.has(id)),
+    );
 
     recommendations.push({
       option_name: `Option 1: Hero Curation — "${heroItem.title}"`,
       style_reasoning: `Curated exclusively around your ${heroItem.title} in ${heroItem.primary_color || "refined tone"}, balanced for ${time.toLowerCase()} lighting at a ${occasion.toLowerCase()} with an unapologetic ${vibe.toLowerCase()} aesthetic.`,
-      selected_item_ids: [heroItem.id, shoe.id, acc.id].filter(Boolean) as string[],
+      selected_item_ids: selectedIds,
       outfit_breakdown: {
         top_or_full_body: heroItem.title || "Hero Ensemble Piece",
         bottom: isHeroFullBody ? null : bottoms[0]?.title || "Tailored Neutral Trousers",
-        footwear: shoe.title || "Refined Occasion Footwear",
-        jewelry_and_accessories: [acc.title || "Statement Accents"].filter(Boolean) as string[],
+        footwear: shoe?.title || "Refined Occasion Footwear",
+        jewelry_and_accessories: [acc?.title || "Statement Accents"].filter(Boolean) as string[],
       },
       styling_instructions: `Layer the ${heroItem.title} with deliberate posture. Ensure sleeve cuffs and hemlines are crisp. Pair with minimalist hardware so the centerpiece fabric commands attention without competing visual noise.`,
       hair_style_recommendation:
@@ -118,21 +138,25 @@ export function generateFallbackOutfitRecommendations(
     });
   } else if (fullBody[0]) {
     const mainGarment = fullBody[0];
-    const shoe = footwear.find(
-      (f) => f.title?.toLowerCase().includes("heel") || f.title?.toLowerCase().includes("khussa"),
-    ) ||
-      footwear[0] || { id: "opt1_shoe", title: "Embroidered Velvet Khussas" };
-    const acc = accessories[0] || { id: "opt1_acc", title: "Kundan Pearl Chandelier Jhumkas" };
+    const shoe =
+      footwear.find(
+        (f) => f.title?.toLowerCase().includes("heel") || f.title?.toLowerCase().includes("khussa"),
+      ) || footwear[0];
+    const acc = accessories[0];
+
+    const selectedIds = [mainGarment.id, shoe?.id, acc?.id].filter((id): id is string =>
+      Boolean(id && validIds.has(id)),
+    );
 
     recommendations.push({
       option_name: `Option 1: Regal Statement Ensemble`,
       style_reasoning: `The rich silhouette and texture of the ${mainGarment.title} provides a complete canvas for ${occasion}, perfectly attuned to ${season.toLowerCase()} temperature and ${time.toLowerCase()} lighting.`,
-      selected_item_ids: [mainGarment.id, shoe.id, acc.id].filter(Boolean) as string[],
+      selected_item_ids: selectedIds,
       outfit_breakdown: {
         top_or_full_body: mainGarment.title || "Full Body Ensemble",
         bottom: null,
-        footwear: shoe.title || "Classic Heels or Embroidered Khussas",
-        jewelry_and_accessories: [acc.title || "Traditional Gold Accented Jhumkas"].filter(
+        footwear: shoe?.title || "Classic Heels or Embroidered Khussas",
+        jewelry_and_accessories: [acc?.title || "Traditional Gold Accented Jhumkas"].filter(
           Boolean,
         ) as string[],
       },
@@ -144,21 +168,24 @@ export function generateFallbackOutfitRecommendations(
     });
   } else {
     // Top + Bottom fallback
-    const top = tops[0] || items[0] || { id: "opt1_top", title: "Structured Silk Blouse" };
-    const bottom = bottoms[0] ||
-      items[1] || { id: "opt1_bot", title: "High-Waisted Tailored Pants" };
-    const shoe = footwear[0] || { id: "opt1_shoe", title: "Pointed Stiletto Pumps" };
-    const acc = accessories[0] || { id: "opt1_acc", title: "Minimalist Pendant & Huggie Earrings" };
+    const top = tops[0] || items[0];
+    const bottom = bottoms[0] || items.find((i) => i.id !== top?.id) || items[1];
+    const shoe = footwear[0];
+    const acc = accessories[0];
+
+    const selectedIds = [top?.id, bottom?.id, shoe?.id, acc?.id].filter((id): id is string =>
+      Boolean(id && validIds.has(id)),
+    );
 
     recommendations.push({
       option_name: `Option 1: Monochrome Sophistication`,
-      style_reasoning: `Combining ${top.title || "your top"} with ${bottom.title || "your bottom"} creates an elongated vertical line that flatters your proportions for ${occasion}.`,
-      selected_item_ids: [top.id, bottom.id, shoe.id, acc.id].filter(Boolean) as string[],
+      style_reasoning: `Combining ${top?.title || "your top"} with ${bottom?.title || "your bottom"} creates an elongated vertical line that flatters your proportions for ${occasion}.`,
+      selected_item_ids: selectedIds,
       outfit_breakdown: {
-        top_or_full_body: top.title || "Structured Silk Blouse",
-        bottom: bottom.title || "High-Waisted Tailored Pants",
-        footwear: shoe.title || "Pointed Stiletto Pumps",
-        jewelry_and_accessories: [acc.title || "Minimalist Pendant & Huggie Earrings"],
+        top_or_full_body: top?.title || "Structured Silk Blouse",
+        bottom: bottom?.title || "High-Waisted Tailored Pants",
+        footwear: shoe?.title || "Pointed Stiletto Pumps",
+        jewelry_and_accessories: [acc?.title || "Minimalist Pendant & Huggie Earrings"],
       },
       styling_instructions: `French-tuck the top slightly into the waistband to create a defined waist silhouette and leg-lengthening proportion.`,
       hair_style_recommendation: "Polished low ponytail with hair-wrapped elastic band.",
@@ -170,26 +197,24 @@ export function generateFallbackOutfitRecommendations(
   // =========================================================================
   // Option 2: Contemporary Contrast / Fusion Look
   // =========================================================================
-  const altTop = tops[1] ??
-    tops[0] ??
-    items[0] ?? { id: "opt2_top", title: "Tailored Crisp Shirt / Kurti" };
-  const altBottom = bottoms[1] ??
-    bottoms[0] ??
-    items[1] ?? { id: "opt2_bot", title: "Straight-Leg Denim or Trousers" };
-  const altShoe = footwear[1] ??
-    footwear[0] ?? { id: "opt2_shoe", title: "Sleek Ankle Strap Heels" };
-  const altAcc = accessories[1] ??
-    accessories[0] ?? { id: "opt2_acc", title: "Sculptural Metal Cuff & Structured Bag" };
+  const altTop = tops[1] ?? tops[0] ?? items[0];
+  const altBottom = bottoms[1] ?? bottoms[0] ?? items.find((i) => i.id !== altTop?.id) ?? items[1];
+  const altShoe = footwear[1] ?? footwear[0];
+  const altAcc = accessories[1] ?? accessories[0];
+
+  const selectedIdsOpt2 = [altTop?.id, altBottom?.id, altShoe?.id, altAcc?.id].filter(
+    (id): id is string => Boolean(id && validIds.has(id)),
+  );
 
   recommendations.push({
     option_name: `Option 2: Modern Fusion Silhouette`,
-    style_reasoning: `A sharp balance between structure and effortless comfort. Pairing ${altTop.title || "a crisp top"} with ${altBottom.title || "tailored bottoms"} delivers a striking ${vibe.toLowerCase()} look that transitions seamlessly into ${time.toLowerCase()} festivities.`,
-    selected_item_ids: [altTop.id, altBottom.id, altShoe.id, altAcc.id].filter(Boolean) as string[],
+    style_reasoning: `A sharp balance between structure and effortless comfort for ${occasion}. Pairing ${altTop?.title || "a crisp piece"} with ${altBottom?.title || "tailored bottoms"} delivers a striking ${vibe.toLowerCase()} look that transitions seamlessly into ${time.toLowerCase()} festivities.`,
+    selected_item_ids: selectedIdsOpt2,
     outfit_breakdown: {
-      top_or_full_body: altTop.title || "Tailored Crisp Shirt / Kurti",
-      bottom: altBottom.title || "Straight-Leg Denim or Trousers",
-      footwear: altShoe.title || "Sleek Ankle Strap Heels",
-      jewelry_and_accessories: [altAcc.title || "Sculptural Metal Cuff & Structured Bag"],
+      top_or_full_body: altTop?.title || "Tailored Crisp Shirt / Kurti",
+      bottom: altBottom?.title || "Straight-Leg Denim or Trousers",
+      footwear: altShoe?.title || "Sleek Ankle Strap Heels",
+      jewelry_and_accessories: [altAcc?.title || "Sculptural Metal Cuff & Structured Bag"],
     },
     styling_instructions: `Push sleeves to three-quarters length to show delicate wrist accessories. Ground the ensemble with pointed footwear to elongate the stance.`,
     hair_style_recommendation:

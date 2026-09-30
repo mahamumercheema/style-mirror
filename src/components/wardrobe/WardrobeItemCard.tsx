@@ -32,22 +32,22 @@ export function WardrobeItemCard({
   const getParentTypeBadgeStyle = (type: string) => {
     switch (type) {
       case "Tops":
-        return "bg-secondary text-muted-foreground border-border";
+        return "bg-sky-500/10 text-sky-700 dark:text-sky-300 border-sky-500/20";
       case "Bottoms":
-        return "bg-secondary text-muted-foreground border-border";
+        return "bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border-indigo-500/20";
       case "Full Body / Ethnic Set":
-        return "border border-gold/40 text-gold-ink border-gold/40";
+        return "bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/20";
       case "Footwear":
-        return "bg-secondary text-muted-foreground border-border";
+        return "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20";
       case "Accessories":
-        return "bg-secondary text-muted-foreground border-border";
+        return "bg-purple-500/10 text-purple-700 dark:text-purple-300 border-purple-500/20";
       default:
         return "bg-secondary text-secondary-foreground border-border";
     }
   };
 
   return (
-    <div className="group relative flex flex-col overflow-hidden rounded-md border border-border bg-card text-card-foreground transition-all duration-200 hover:border-border/80">
+    <div className="group relative flex flex-col overflow-hidden rounded-xl border border-border bg-card text-card-foreground shadow-xs transition-all duration-200 hover:shadow-md hover:border-border/80">
       {/* Top Image Container */}
       <div className="relative aspect-3/4 w-full overflow-hidden bg-muted/60">
         {!imageError ? (
@@ -73,9 +73,9 @@ export function WardrobeItemCard({
             e.stopPropagation();
             onToggleFavorite(item.id);
           }}
-          className={`absolute right-2.5 top-2.5 z-10 flex size-8 items-center justify-center rounded-full backdrop-blur-md transition-all cursor-pointer  ${
+          className={`absolute right-2.5 top-2.5 z-10 flex size-8 items-center justify-center rounded-full backdrop-blur-md transition-all cursor-pointer shadow-xs ${
             item.is_favorite
-              ? "border border-gold bg-gold/10 text-gold-ink hover:bg-gold/20 scale-105"
+              ? "bg-rose-500 text-white hover:bg-rose-600 scale-105"
               : "bg-black/40 text-white/80 hover:bg-black/60 hover:text-white"
           }`}
         >
@@ -103,7 +103,7 @@ export function WardrobeItemCard({
           <Button
             asChild
             size="sm"
-            className="w-full h-8 text-xs font-medium border border-gold bg-black/60 text-gold-ink hover:bg-black/70 backdrop-blur-xs cursor-pointer gap-1.5"
+            className="w-full h-8 text-xs font-medium shadow-md bg-primary/95 hover:bg-primary backdrop-blur-xs cursor-pointer gap-1.5"
           >
             <Link to="/studio">
               <Shirt className="size-3.5" />
@@ -135,7 +135,7 @@ export function WardrobeItemCard({
                   <MoreVertical className="size-3.5" />
                 </button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-36 text-xs">
+              <DropdownMenuContent align="end" className="w-36 text-xs shadow-md">
                 <DropdownMenuItem
                   onClick={() => onEdit(item)}
                   className="gap-2 cursor-pointer text-xs"
@@ -159,7 +159,7 @@ export function WardrobeItemCard({
             {item.primary_color && (
               <span className="inline-flex items-center gap-1">
                 <span className="size-2 rounded-full border border-border/80 bg-foreground/20" />
-                <span className="font-medium text-muted-foreground">{item.primary_color}</span>
+                <span className="font-medium text-foreground/80">{item.primary_color}</span>
               </span>
             )}
             {item.fabric_type && (
@@ -187,7 +187,7 @@ export function WardrobeItemCard({
                 key={occ.id}
                 className="inline-flex items-center gap-1 rounded-full bg-secondary/80 px-2 py-0.5 text-[10px] text-secondary-foreground font-medium"
               >
-                {occ.name?.includes("Wedding") && <Sparkles className="size-2.5 text-gold-ink" />}
+                {occ.name?.includes("Wedding") && <Sparkles className="size-2.5 text-amber-500" />}
                 <span className="truncate max-w-[100px]">{occ.name}</span>
               </span>
             ))}

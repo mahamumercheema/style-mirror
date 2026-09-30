@@ -28,7 +28,7 @@ import { HeightCalibrationCard } from "@/components/HeightCalibrationCard";
 import { lowConfidenceLabels, MeasurementsCard } from "@/components/MeasurementsCard";
 import { PhotoUploader } from "@/components/PhotoUploader";
 import { PoseOverlay } from "@/components/PoseOverlay";
-import { AiTryOnPanel } from "@/components/AiTryOnPanel";
+import { TryOnCanvas } from "@/components/TryOnCanvas";
 import { ColorStudioPanel } from "@/components/colors/ColorStudioPanel";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
@@ -45,6 +45,7 @@ import {
 } from "@/lib/pose-types";
 import type { ProductPreview } from "@/lib/product.functions";
 import { resolveMeasurements, type ManualMeasurements } from "@/lib/body-measurements";
+import type { GarmentAnchor } from "@/lib/garment-anchor";
 import {
   extractColorPaletteFromImage,
   FALLBACK_MOOD_BOARD_PALETTE,
@@ -101,6 +102,12 @@ function Studio() {
   const [backgroundRemoved, setBackgroundRemoved] = useState(false);
   const [manual, setManual] = useState<ManualMeasurements>({});
   const [manualEnabled, setManualEnabled] = useState(false);
+
+  // Shop model's shoulders/hips in the fetched photo, used only to position that photo
+  const [garmentAnchor, setGarmentAnchor] = useState<{
+    source: string;
+    anchor: GarmentAnchor | null;
+  } | null>(null);
 
   const resolved = useMemo(
     () => resolveMeasurements(measurements?.calibrated, manualEnabled ? manual : {}),
@@ -172,6 +179,7 @@ function Studio() {
       };
       img.src = basePhoto;
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
 
   const handleSaveMeasurementsToProfile = async () => {
@@ -305,6 +313,13 @@ function Studio() {
 
   const handleProductSelect = (newProduct: ProductPreview | null) => {
     setProduct(newProduct);
+    setGarmentAnchor(null);
+    const source = newProduct?.imageDataUrl;
+    if (source) {
+      void import("@/lib/garment-anchor")
+        .then(({ findGarmentAnchor }) => findGarmentAnchor(source))
+        .then((anchor) => setGarmentAnchor({ source, anchor }));
+    }
     if (newProduct?.imageDataUrl) {
       void extractColorPaletteFromImage(newProduct.imageDataUrl).then((palette) => {
         if (palette && palette.length > 0) {
@@ -352,6 +367,7 @@ function Studio() {
     setSkeletonLines([]);
     setPoseError(null);
     setProduct(null);
+    setGarmentAnchor(null);
     setAnalysisPhoto(null);
     setBackgroundRemoved(false);
   };
@@ -363,53 +379,90 @@ function Studio() {
   };
 
   return (
-    <main className="mx-auto w-full max-w-6xl px-6 pt-2 pb-16">
-      {/* Step tracker: plain uppercase text; active step white with a thin gold underline */}
-      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-border">
-        <nav aria-label="Try-on steps" className="flex flex-wrap items-center gap-x-8 gap-y-2">
-          {(
-            [
-              { step: 1, label: "Upload Photo", enabled: true, go: () => setCurrentStep(1) },
-              {
-                step: 2,
-                label: "Pose & Proportions",
-                enabled: Boolean(photo),
-                go: () => photo && setCurrentStep(2),
-              },
-              {
-                step: 3,
-                label: "Garment & Fit",
-                enabled: status === "done",
-                go: () => status === "done" && handleProceedToFittingRoom(),
-              },
-            ] as const
-          ).map(({ step, label, enabled, go }) => (
-            <button
-              key={step}
-              type="button"
-              onClick={go}
-              disabled={!enabled}
-              aria-current={currentStep === step ? "step" : undefined}
-              className={cn(
-                "relative -mb-px border-b py-3 text-[11px] font-medium uppercase tracking-[0.2em] transition-colors",
-                currentStep === step
-                  ? "border-gold text-foreground"
-                  : enabled
-                    ? "glow border-transparent text-muted-foreground hover:text-foreground"
-                    : "cursor-not-allowed border-transparent text-muted-foreground/70",
-              )}
-            >
-              {String(step).padStart(2, "0")} {label}
-            </button>
-          ))}
-        </nav>
-        {photo ? (
-          <Button variant="ghost" size="sm" onClick={reset} className="gap-1.5">
-            <RefreshCw className="size-3.5" />
-            Start over
-          </Button>
-        ) : null}
-      </div>
+    <main className="mx-auto w-full max-w-6xl px-6 py-10 md:py-16">
+      {/* Navigation Header */}
+      <header className="flex flex-wrap items-center justify-between gap-4 border-b border-border/60 pb-6">
+        <AtelierOraLogo />
+
+        {/* Step Indicator Breadcrumbs */}
+        <div className="flex items-center gap-1.5 overflow-x-auto text-xs">
+          <button
+            type="button"
+            onClick={() => setCurrentStep(1)}
+            className={cn(
+              "flex items-center gap-1 rounded-full px-3 py-1 font-medium transition-colors",
+              currentStep === 1
+                ? "bg-primary text-primary-foreground"
+                : "text-muted-foreground hover:bg-muted",
+            )}
+          >
+            <span>01</span>
+            <span>Upload Photo</span>
+          </button>
+
+          <ChevronRight className="size-3 text-muted-foreground/40" />
+
+          <button
+            type="button"
+            onClick={() => photo && setCurrentStep(2)}
+            disabled={!photo}
+            className={cn(
+              "flex items-center gap-1 rounded-full px-3 py-1 font-medium transition-colors",
+              currentStep === 2
+                ? "bg-primary text-primary-foreground"
+                : photo
+                  ? "text-muted-foreground hover:bg-muted"
+                  : "text-muted-foreground/40 cursor-not-allowed",
+            )}
+          >
+            <span>02</span>
+            <span>Pose & Proportions</span>
+          </button>
+
+          <ChevronRight className="size-3 text-muted-foreground/40" />
+
+          <button
+            type="button"
+            onClick={() => status === "done" && handleProceedToFittingRoom()}
+            disabled={status !== "done"}
+            className={cn(
+              "flex items-center gap-1 rounded-full px-3 py-1 font-medium transition-colors",
+              currentStep === 3
+                ? "bg-primary text-primary-foreground"
+                : status === "done"
+                  ? "text-muted-foreground hover:bg-muted"
+                  : "text-muted-foreground/40 cursor-not-allowed",
+            )}
+          >
+            <span>03</span>
+            <span>Garment & Fit</span>
+          </button>
+        </div>
+
+        <div className="flex items-center gap-4 sm:gap-6">
+          <Link
+            to="/generate"
+            className="nav-link hidden sm:flex items-center gap-1.5 text-foreground/75"
+          >
+            <span>AI Stylist</span>
+          </Link>
+          <Link
+            to="/closet"
+            className="nav-link hidden sm:flex items-center gap-1.5 text-foreground/75"
+          >
+            <Shirt className="size-3.5 text-foreground/60" />
+            <span>My Closet</span>
+          </Link>
+          {photo && (
+            <Button variant="ghost" size="sm" onClick={reset} className="gap-1.5 text-xs">
+              <RefreshCw className="size-3.5" />
+              Start over
+            </Button>
+          )}
+          <div className="h-4 w-px bg-border hidden sm:block" />
+          <HeaderAuthButtons />
+        </div>
+      </header>
 
       {/* Main Workflow Container */}
       <div className="mt-8 space-y-8">
@@ -438,7 +491,7 @@ function Studio() {
                       onClick={() => handlePhotoSelect(profile.user_photo_url!)}
                       className="gap-1.5 text-xs font-medium self-start sm:self-auto cursor-pointer"
                     >
-                      <Camera className="size-3.5 text-gold-ink" />
+                      <Camera className="size-3.5 text-primary" />
                       <span>Use Saved Profile Photo</span>
                     </Button>
                   );
@@ -457,9 +510,9 @@ function Studio() {
 
             {/* Dynamic Color Palette Extraction from Photo */}
             {photo && extractedPalette.length > 0 && (
-              <div className="surface p-4 rounded-md border border-primary/20 bg-primary/5 flex flex-wrap items-center justify-between gap-3 animate-in fade-in">
+              <div className="surface p-4 rounded-xl border border-primary/20 bg-primary/5 flex flex-wrap items-center justify-between gap-3 animate-in fade-in">
                 <div className="flex items-center gap-3">
-                  <div className="flex size-9 items-center justify-center rounded-lg bg-primary/10 text-gold-ink shrink-0">
+                  <div className="flex size-9 items-center justify-center rounded-lg bg-primary/10 text-primary shrink-0">
                     <Palette className="size-4" />
                   </div>
                   <div>
@@ -476,7 +529,7 @@ function Studio() {
                   {extractedPalette.slice(0, 6).map((col, idx) => (
                     <div
                       key={idx}
-                      className="size-6 rounded-md border border-black/10"
+                      className="size-6 rounded-md border border-black/10 shadow-2xs"
                       style={{ backgroundColor: col.hex }}
                       title={`${col.name} (${col.hex})`}
                     />
@@ -525,7 +578,7 @@ function Studio() {
             {!isAuthenticated ? (
               <div
                 id="step2-auth-gate-banner"
-                className="surface p-4 sm:p-5 border-accent/40 bg-accent/10 rounded-md space-y-3"
+                className="surface p-4 sm:p-5 border-accent/40 bg-accent/10 rounded-xl space-y-3 shadow-[var(--shadow-lift)]"
               >
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                   <div className="space-y-1">
@@ -579,7 +632,7 @@ function Studio() {
                           "Authentication Required: Sign up with 2-step verification to view measurements.",
                         )
                       }
-                      className="gap-1.5 flex-1 sm:flex-initial text-xs border border-gold bg-transparent text-gold-ink hover:bg-gold/10 cursor-pointer"
+                      className="gap-1.5 flex-1 sm:flex-initial text-xs bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer"
                     >
                       <UserPlus className="size-3.5" />
                       Sign Up (2-Step)
@@ -629,7 +682,7 @@ function Studio() {
                   <Button
                     onClick={handleUseManualPlacement}
                     size="default"
-                    className="gap-2 border border-gold bg-transparent text-gold-ink hover:bg-gold/10 cursor-pointer"
+                    className="gap-2 bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer shadow-sm"
                   >
                     <ArrowRight className="size-4" />
                     Skip to Fitting Room (Manual Garment Placement)
@@ -663,9 +716,9 @@ function Studio() {
                 {!isAuthenticated && (
                   <div
                     id="measurements-lock-overlay"
-                    className="absolute inset-0 z-20 flex flex-col items-center justify-center p-6 text-center bg-background/85 backdrop-blur-md rounded-md border border-border/80 my-auto"
+                    className="absolute inset-0 z-20 flex flex-col items-center justify-center p-6 text-center bg-background/85 backdrop-blur-md rounded-xl border border-border/80 shadow-xl my-auto"
                   >
-                    <div className="flex size-14 items-center justify-center rounded-full border border-gold/60 bg-transparent text-gold-ink mb-3 ring-4 ring-primary/15 animate-in zoom-in duration-300">
+                    <div className="flex size-14 items-center justify-center rounded-full bg-primary text-primary-foreground mb-3 shadow-lg ring-4 ring-primary/15 animate-in zoom-in duration-300">
                       <Lock className="size-6" />
                     </div>
                     <span className="eyebrow text-muted-foreground mb-1">Gate Enforced</span>
@@ -681,9 +734,9 @@ function Studio() {
                         variant="secondary"
                         size="default"
                         onClick={loginAsGuest}
-                        className="gap-2 cursor-pointer border border-primary/20"
+                        className="gap-2 cursor-pointer border border-primary/20 shadow-sm"
                       >
-                        <Sparkles className="size-4 text-gold-ink" />
+                        <Sparkles className="size-4 text-primary" />
                         Unlock Instantly as Guest
                       </Button>
                       <Button
@@ -695,7 +748,7 @@ function Studio() {
                             "Log in to view your body measurements and proceed with the fitting room.",
                           )
                         }
-                        className="gap-2 cursor-pointer"
+                        className="gap-2 cursor-pointer shadow-sm"
                       >
                         <LogIn className="size-4" />
                         Log In
@@ -765,7 +818,7 @@ function Studio() {
                         size="sm"
                         disabled={isSyncingProfile}
                         onClick={handleSaveMeasurementsToProfile}
-                        className="text-xs h-8 gap-1.5 cursor-pointer border-primary/30 text-gold-ink hover:bg-primary/10"
+                        className="text-xs h-8 gap-1.5 cursor-pointer border-primary/30 text-primary hover:bg-primary/10"
                       >
                         {isSyncingProfile ? (
                           <RefreshCw className="size-3 animate-spin" />
@@ -806,9 +859,9 @@ function Studio() {
           !isAuthenticated ? (
             <div
               id="step3-auth-gate-card"
-              className="surface p-8 text-center space-y-4 max-w-md mx-auto my-12 border-accent/40 bg-accent/5 rounded-md"
+              className="surface p-8 text-center space-y-4 max-w-md mx-auto my-12 border-accent/40 bg-accent/5 rounded-xl shadow-[var(--shadow-lift)]"
             >
-              <div className="flex size-14 items-center justify-center rounded-full border border-gold/60 bg-transparent text-gold-ink mx-auto">
+              <div className="flex size-14 items-center justify-center rounded-full bg-primary text-primary-foreground mx-auto shadow-md">
                 <Lock className="size-6" />
               </div>
               <h2 className="text-2xl font-display">Fitting Room Locked</h2>
@@ -861,7 +914,7 @@ function Studio() {
 
               {/* Phase 4: Base Model Status Banner */}
               {profile?.bodyPhotoUrl && (
-                <div className="rounded-md border border-primary/20 bg-primary/5 p-3 flex flex-wrap items-center justify-between gap-3 text-xs">
+                <div className="rounded-xl border border-primary/20 bg-primary/5 p-3 flex flex-wrap items-center justify-between gap-3 text-xs">
                   <div className="flex items-center gap-2">
                     <div>
                       <span className="font-medium text-foreground">
@@ -898,9 +951,9 @@ function Studio() {
 
               {/* Dynamic Color Wheel, Harmonies & Garment Atelier Studio */}
               <div className="space-y-4">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-md border border-primary/20 bg-primary/5 p-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl border border-primary/20 bg-primary/5 p-4 shadow-xs">
                   <div className="flex items-center gap-3">
-                    <div className="flex size-10 items-center justify-center rounded-md border border-gold/60 bg-transparent text-gold-ink">
+                    <div className="flex size-10 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-xs">
                       <Palette className="size-5" />
                     </div>
                     <div>
@@ -908,7 +961,7 @@ function Studio() {
                         <h3 className="font-display text-base font-semibold">
                           Bespoke Garment Palette & Color Studio
                         </h3>
-                        <span className="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full bg-primary/10 text-gold-ink">
+                        <span className="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full bg-primary/10 text-primary">
                           Dynamic Wheel
                         </span>
                       </div>
@@ -925,7 +978,7 @@ function Studio() {
                       variant="outline"
                       size="sm"
                       onClick={() => setShowColorStudio(!showColorStudio)}
-                      className="text-xs gap-1.5 cursor-pointer border-primary/30 text-gold-ink hover:bg-primary/10"
+                      className="text-xs gap-1.5 cursor-pointer border-primary/30 text-primary hover:bg-primary/10"
                     >
                       <Palette className="size-3.5" />
                       <span>{showColorStudio ? "Hide Atelier Studio" : "Open Color Studio"}</span>
@@ -959,18 +1012,21 @@ function Studio() {
                 )}
               </div>
 
-              {/* Real AI try-on (Leffa): the garment is a reference, not pasted onto the photo */}
               {photo && (product || customGarmentDataUrl) ? (
-                <AiTryOnPanel
-                  personPhoto={photo}
-                  garment={
-                    product ?? {
-                      title: "Custom colorway garment",
-                      siteName: "Color Studio",
-                      sourceUrl: "",
-                      imageDataUrl: customGarmentDataUrl ?? "",
-                    }
+                <TryOnCanvas
+                  photoDataUrl={analysisPhoto ?? photo}
+                  garmentDataUrl={product?.imageDataUrl || customGarmentDataUrl || ""}
+                  garmentAnchor={
+                    garmentAnchor && garmentAnchor.source === product?.imageDataUrl
+                      ? garmentAnchor.anchor
+                      : null
                   }
+                  garmentTitle={product?.title || "Custom Colorway Garment"}
+                  guide={guide}
+                  customGarmentTheme={garmentTheme}
+                  customGarmentDataUrl={customGarmentDataUrl}
+                  onOpenColorStudio={() => setShowColorStudio(true)}
+                  fitScale={resolved.fitScale}
                 />
               ) : null}
             </section>

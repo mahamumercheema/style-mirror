@@ -55,12 +55,12 @@ export function ColorStudioPanel({
   );
 
   return (
-    <div className="surface p-6 space-y-6 border-primary/20">
+    <div className="surface p-6 space-y-6 border-primary/20 shadow-md">
       {/* Studio Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border/80 pb-5">
         <div>
-          <div className="flex items-center gap-1.5 text-xs font-semibold text-gold-ink">
-            <Palette className="size-4 text-gold-ink" />
+          <div className="flex items-center gap-1.5 text-xs font-semibold text-primary">
+            <Palette className="size-4 text-amber-500" />
             <span>Interactive Color Wheel & Harmony Studio</span>
           </div>
           <h2 className="mt-1 font-display text-2xl md:text-3xl">
@@ -77,7 +77,7 @@ export function ColorStudioPanel({
           <Button
             type="button"
             onClick={onApplyAndClose}
-            className="gap-2 shrink-0 cursor-pointer border border-gold bg-transparent text-gold-ink hover:bg-gold/10"
+            className="gap-2 shrink-0 cursor-pointer bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm"
           >
             <CheckCircle2 className="size-4" />
             <span>Apply to Fitting Room</span>
@@ -93,7 +93,7 @@ export function ColorStudioPanel({
           className={cn(
             "flex items-center gap-1.5 rounded-lg px-3.5 py-2 font-medium transition-all cursor-pointer",
             activeTab === "customizer"
-              ? "border border-gold bg-gold/10 text-gold-ink "
+              ? "bg-primary text-primary-foreground shadow-2xs"
               : "bg-secondary/40 text-muted-foreground hover:bg-secondary hover:text-foreground",
           )}
         >
@@ -107,11 +107,11 @@ export function ColorStudioPanel({
           className={cn(
             "flex items-center gap-1.5 rounded-lg px-3.5 py-2 font-medium transition-all cursor-pointer",
             activeTab === "harmonies"
-              ? "border border-gold bg-gold/10 text-gold-ink "
+              ? "bg-primary text-primary-foreground shadow-2xs"
               : "bg-secondary/40 text-muted-foreground hover:bg-secondary hover:text-foreground",
           )}
         >
-          <Sparkles className="size-3.5 text-gold-ink" />
+          <Sparkles className="size-3.5 text-amber-500" />
           <span>Color Wheel & Harmonies (Complementary / Triadic / Analogous)</span>
         </button>
 
@@ -121,7 +121,7 @@ export function ColorStudioPanel({
           className={cn(
             "flex items-center gap-1.5 rounded-lg px-3.5 py-2 font-medium transition-all cursor-pointer",
             activeTab === "moodboard"
-              ? "border border-gold bg-gold/10 text-gold-ink "
+              ? "bg-primary text-primary-foreground shadow-2xs"
               : "bg-secondary/40 text-muted-foreground hover:bg-secondary hover:text-foreground",
           )}
         >
@@ -141,16 +141,16 @@ export function ColorStudioPanel({
           />
 
           {/* Quick Harmonies Strip below customizer */}
-          <div className="surface p-4 rounded-md border border-border/80 bg-secondary/15 space-y-3">
+          <div className="surface p-4 rounded-xl border border-border/80 bg-secondary/15 space-y-3">
             <div className="flex items-center justify-between">
               <span className="text-xs font-semibold text-foreground flex items-center gap-1.5">
-                <Sparkles className="size-3.5 text-gold-ink" />
+                <Sparkles className="size-3.5 text-amber-500" />
                 <span>Quick Harmony Presets for Base ({baseColorHex}):</span>
               </span>
               <button
                 type="button"
                 onClick={() => setActiveTab("harmonies")}
-                className="text-xs text-gold-ink hover:underline cursor-pointer"
+                className="text-xs text-primary hover:underline cursor-pointer"
               >
                 Open Full Color Wheel →
               </button>
@@ -171,7 +171,7 @@ export function ColorStudioPanel({
         <div className="space-y-6">
           <div className="grid gap-8 lg:grid-cols-[320px_1fr] items-start">
             {/* Color Wheel Controller */}
-            <div className="surface p-5 flex flex-col items-center rounded-md border border-border/80 bg-card">
+            <div className="surface p-5 flex flex-col items-center rounded-xl border border-border/80 bg-card">
               <div className="w-full flex items-center justify-between mb-4 pb-2 border-b border-border/60">
                 <span className="text-xs font-semibold text-foreground">
                   Interactive 360° Wheel
@@ -209,7 +209,7 @@ export function ColorStudioPanel({
                 onUpdateGarmentTheme={(partial) => onThemeChange({ ...theme, ...partial })}
               />
 
-              <div className="rounded-md border border-border/70 bg-card p-4 space-y-3">
+              <div className="rounded-xl border border-border/70 bg-card p-4 space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-semibold text-foreground">
                     Direct Channel Assignment Summary:
@@ -217,7 +217,7 @@ export function ColorStudioPanel({
                   <button
                     type="button"
                     onClick={() => setActiveTab("customizer")}
-                    className="text-xs text-gold-ink hover:underline cursor-pointer"
+                    className="text-xs text-primary hover:underline cursor-pointer"
                   >
                     View Garment Blueprint →
                   </button>
@@ -230,7 +230,7 @@ export function ColorStudioPanel({
                     />
                     <div className="min-w-0">
                       <p className="text-[11px] font-medium truncate">Main Body</p>
-                      <p className="text-[9px] font-mono text-foreground uppercase">
+                      <p className="text-[9px] font-mono text-muted-foreground uppercase">
                         {theme.mainBody}
                       </p>
                     </div>
@@ -243,7 +243,7 @@ export function ColorStudioPanel({
                     />
                     <div className="min-w-0">
                       <p className="text-[11px] font-medium truncate">Trims</p>
-                      <p className="text-[9px] font-mono text-foreground uppercase">
+                      <p className="text-[9px] font-mono text-muted-foreground uppercase">
                         {theme.trims}
                       </p>
                     </div>
@@ -256,7 +256,7 @@ export function ColorStudioPanel({
                     />
                     <div className="min-w-0">
                       <p className="text-[11px] font-medium truncate">Buttons</p>
-                      <p className="text-[9px] font-mono text-foreground uppercase">
+                      <p className="text-[9px] font-mono text-muted-foreground uppercase">
                         {theme.buttons}
                       </p>
                     </div>
@@ -269,7 +269,7 @@ export function ColorStudioPanel({
                     />
                     <div className="min-w-0">
                       <p className="text-[11px] font-medium truncate">Stitching</p>
-                      <p className="text-[9px] font-mono text-foreground uppercase">
+                      <p className="text-[9px] font-mono text-muted-foreground uppercase">
                         {theme.stitching}
                       </p>
                     </div>

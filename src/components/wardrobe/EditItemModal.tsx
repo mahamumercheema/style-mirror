@@ -93,7 +93,7 @@ export function EditItemModal({
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="relative w-full max-w-lg border border-border bg-card text-card-foreground p-6 rounded-md my-auto transition-all max-h-[90vh] overflow-y-auto">
+      <div className="relative w-full max-w-lg border border-border bg-card text-card-foreground p-6 rounded-2xl shadow-2xl my-auto transition-all max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between pb-4 border-b border-border">
           <div className="flex items-center gap-2">
             <span className="flex size-7 items-center justify-center rounded-full bg-secondary text-secondary-foreground">
@@ -247,7 +247,7 @@ export function EditItemModal({
                     onClick={() => toggleOccasion(occ.id)}
                     className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs transition-all cursor-pointer ${
                       isSelected
-                        ? "border border-gold bg-gold/10 text-gold-ink font-medium "
+                        ? "bg-primary text-primary-foreground font-medium shadow-xs"
                         : "border border-border/80 bg-background text-muted-foreground hover:text-foreground"
                     }`}
                   >
@@ -263,7 +263,7 @@ export function EditItemModal({
           <div className="flex items-center justify-between rounded-lg border border-border bg-secondary/30 p-3">
             <div className="flex items-center gap-2">
               <Heart
-                className={`size-4 ${isFavorite ? "fill-gold text-gold-ink" : "text-muted-foreground"}`}
+                className={`size-4 ${isFavorite ? "fill-rose-500 text-rose-500" : "text-muted-foreground"}`}
               />
               <span className="text-xs font-medium text-foreground">Favorite Piece</span>
             </div>
@@ -272,7 +272,7 @@ export function EditItemModal({
               id="edit-favorite-toggle"
               checked={isFavorite}
               onChange={(e) => setIsFavorite(e.target.checked)}
-              className="size-4 rounded-sm border-border text-gold-ink cursor-pointer"
+              className="size-4 rounded-sm border-border text-primary cursor-pointer"
             />
           </div>
 
@@ -292,7 +292,7 @@ export function EditItemModal({
               type="submit"
               size="sm"
               disabled={isSubmitting}
-              className="text-xs font-medium cursor-pointer gap-1.5"
+              className="text-xs font-medium cursor-pointer shadow-xs gap-1.5"
             >
               {isSubmitting ? (
                 <>

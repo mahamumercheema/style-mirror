@@ -64,7 +64,7 @@ export function CategoryOccasionFilterBar({
     searchQuery.trim().length > 0;
 
   return (
-    <div className="space-y-4 rounded-md border border-border bg-card p-4 sm:p-5">
+    <div className="space-y-4 rounded-xl border border-border bg-card p-4 sm:p-5 shadow-xs">
       {/* Search & Top Action Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="relative flex-1 max-w-md">
@@ -110,12 +110,12 @@ export function CategoryOccasionFilterBar({
             onClick={onToggleFavoritesOnly}
             className={`h-9 gap-1.5 text-xs font-medium cursor-pointer transition-all ${
               showFavoritesOnly
-                ? "border border-gold bg-transparent text-gold-ink hover:bg-gold/10"
+                ? "bg-rose-600 hover:bg-rose-700 text-white"
                 : "text-muted-foreground hover:text-foreground"
             }`}
           >
             <Heart
-              className={`size-3.5 ${showFavoritesOnly ? "fill-white text-white" : "text-gold-ink"}`}
+              className={`size-3.5 ${showFavoritesOnly ? "fill-white text-white" : "text-rose-500"}`}
             />
             <span>Favorites</span>
           </Button>
@@ -158,7 +158,7 @@ export function CategoryOccasionFilterBar({
                 }}
                 className={`shrink-0 rounded-lg px-3.5 py-1.5 text-xs font-medium transition-all cursor-pointer ${
                   isSelected
-                    ? "border border-gold bg-gold/10 text-gold-ink  font-semibold"
+                    ? "bg-primary text-primary-foreground shadow-xs font-semibold"
                     : "bg-secondary/60 text-secondary-foreground hover:bg-secondary hover:text-foreground"
                 }`}
               >
@@ -176,7 +176,7 @@ export function CategoryOccasionFilterBar({
               onClick={() => onSelectCategoryId(null)}
               className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] transition-colors cursor-pointer ${
                 selectedCategoryId === null
-                  ? "border border-gold bg-gold/10 text-gold-ink font-medium"
+                  ? "bg-foreground text-background font-medium"
                   : "bg-muted text-muted-foreground hover:text-foreground"
               }`}
             >
@@ -191,7 +191,7 @@ export function CategoryOccasionFilterBar({
                   onClick={() => onSelectCategoryId(isSelected ? null : cat.id)}
                   className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] transition-colors cursor-pointer ${
                     isSelected
-                      ? "border border-gold bg-gold/10 text-gold-ink font-medium"
+                      ? "bg-foreground text-background font-medium"
                       : "bg-muted text-muted-foreground hover:text-foreground"
                   }`}
                 >
@@ -214,7 +214,7 @@ export function CategoryOccasionFilterBar({
             onClick={() => onSelectOccasionId(null)}
             className={`shrink-0 rounded-full px-3 py-1 text-xs transition-all cursor-pointer ${
               selectedOccasionId === null
-                ? "border border-gold bg-gold/10 text-gold-ink font-medium"
+                ? "bg-primary/90 text-primary-foreground font-medium"
                 : "border border-border/80 bg-background text-muted-foreground hover:text-foreground hover:border-foreground/40"
             }`}
           >
@@ -229,11 +229,11 @@ export function CategoryOccasionFilterBar({
                 onClick={() => onSelectOccasionId(isSelected ? null : occ.id)}
                 className={`shrink-0 rounded-full px-3 py-1 text-xs transition-all cursor-pointer flex items-center gap-1.5 ${
                   isSelected
-                    ? "border border-gold bg-gold/10 text-gold-ink font-medium "
+                    ? "bg-primary text-primary-foreground font-medium shadow-xs"
                     : "border border-border/80 bg-background text-muted-foreground hover:text-foreground hover:border-foreground/40"
                 }`}
               >
-                {occ.name?.includes("Wedding") && <Sparkles className="size-3 text-gold-ink" />}
+                {occ.name?.includes("Wedding") && <Sparkles className="size-3 text-amber-500" />}
                 <span>{occ.name}</span>
               </button>
             );

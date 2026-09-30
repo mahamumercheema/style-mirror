@@ -1,6 +1,11 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { toast } from "sonner";
 import { apiRegisterIntent, apiVerifyCode, apiResendCode, apiLogin } from "@/lib/auth.functions";
+import {
+  transferGuestWardrobeToAccount,
+  getGuestSessionWardrobe,
+  isGuestUser,
+} from "@/lib/wardrobe-service";
 
 export interface User {
   id: string;
@@ -16,6 +21,8 @@ export type AuthModalView = "login" | "signup";
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
+  isGuest: boolean;
+  hasGuestSessionItems: boolean;
   isModalOpen: boolean;
   modalView: AuthModalView;
   signUpStep: 1 | 2;
@@ -26,6 +33,7 @@ interface AuthContextType {
   devOtpCode: string | null;
   openLogin: (initialEmail?: string, reason?: string) => void;
   openSignUp: (initialEmail?: string, reason?: string) => void;
+  promptSaveGuestWardrobe: (reason?: string) => void;
   closeModal: () => void;
   setModalView: (view: AuthModalView) => void;
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
@@ -149,6 +157,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(result.user));
 
+      // Transfer temporary guest items into newly authenticated account
+      try {
+        const transferred = transferGuestWardrobeToAccount(result.user.id);
+        if (transferred.length > 0) {
+          toast.success("Guest Wardrobe Saved!", {
+            description: `${transferred.length} temporary clothing item${transferred.length > 1 ? "s" : ""} transferred to your account!`,
+          });
+        }
+      } catch (err) {
+        console.warn("Failed to transfer guest wardrobe on login:", err);
+      }
+
       closeModal();
       return { success: true };
     } finally {
@@ -222,6 +242,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(result.user));
 
+      // Transfer temporary guest items into newly registered account
+      try {
+        const transferred = transferGuestWardrobeToAccount(result.user.id);
+        if (transferred.length > 0) {
+          toast.success("Guest Wardrobe Saved!", {
+            description: `${transferred.length} temporary clothing item${transferred.length > 1 ? "s" : ""} transferred to your account!`,
+          });
+        }
+      } catch (err) {
+        console.warn("Failed to transfer guest wardrobe on signup:", err);
+      }
+
       setPendingEmail("");
       closeModal();
       return { success: true };
@@ -273,11 +305,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
   };
 
+  const isGuest = isGuestUser(user?.id);
+  const hasGuestSessionItems = isGuest && getGuestSessionWardrobe().length > 0;
+
+  const promptSaveGuestWardrobe = (reason?: string) => {
+    openSignUp(
+      undefined,
+      reason || "Create an account to permanently save your wardrobe and style history.",
+    );
+  };
+
   return (
     <AuthContext.Provider
       value={{
         user,
-        isAuthenticated: !!user,
+        isAuthenticated: !!user && user.id !== "guest_user",
+        isGuest,
+        hasGuestSessionItems,
         isModalOpen,
         modalView,
         signUpStep,
@@ -288,6 +332,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         devOtpCode,
         openLogin,
         openSignUp,
+        promptSaveGuestWardrobe,
         closeModal,
         setModalView,
         login,

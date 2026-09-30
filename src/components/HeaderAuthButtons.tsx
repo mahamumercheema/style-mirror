@@ -11,17 +11,10 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { LogIn, LogOut, ShieldCheck, UserPlus, User, Shirt, Sparkles } from "lucide-react";
 
-export function HeaderAuthButtons({
-  onDark: _onDark = false,
-  showAccountMenu = true,
-}: {
-  onDark?: boolean;
-  /** false: always show Log In / Sign Up, never the signed-in account pill */
-  showAccountMenu?: boolean;
-}) {
+export function HeaderAuthButtons({ onDark = false }: { onDark?: boolean }) {
   const { user, isAuthenticated, openLogin, openSignUp, logout } = useAuth();
 
-  if (showAccountMenu && isAuthenticated && user) {
+  if (isAuthenticated && user) {
     const initials = user.email.substring(0, 2).toUpperCase();
 
     return (
@@ -34,7 +27,7 @@ export function HeaderAuthButtons({
               size="sm"
               className="gap-2 h-9 px-3 rounded-full border-border bg-card hover:bg-muted font-normal text-xs"
             >
-              <span className="flex size-5 items-center justify-center rounded-full border border-gold/60 text-[10px] font-semibold text-gold-ink">
+              <span className="flex size-5 items-center justify-center rounded-full bg-primary text-[10px] font-semibold text-primary-foreground">
                 {initials}
               </span>
               <span className="max-w-[130px] truncate text-foreground font-medium sm:inline">
@@ -42,7 +35,7 @@ export function HeaderAuthButtons({
               </span>
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56 p-1.5">
+          <DropdownMenuContent align="end" className="w-56 p-1.5 shadow-[var(--shadow-lift)]">
             <DropdownMenuLabel className="font-normal">
               <div className="flex flex-col space-y-1">
                 <p className="text-xs font-semibold leading-none text-foreground">{user.name}</p>
@@ -54,13 +47,13 @@ export function HeaderAuthButtons({
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild className="cursor-pointer gap-2 text-xs">
               <Link to="/closet">
-                <Shirt className="size-3.5 text-gold-ink" />
+                <Shirt className="size-3.5 text-primary" />
                 <span>My Closet</span>
               </Link>
             </DropdownMenuItem>
             <DropdownMenuItem asChild className="cursor-pointer gap-2 text-xs">
               <Link to="/studio">
-                <Sparkles className="size-3.5 text-gold-ink" />
+                <Sparkles className="size-3.5 text-amber-500" />
                 <span>Fitting Studio</span>
               </Link>
             </DropdownMenuItem>
@@ -97,7 +90,11 @@ export function HeaderAuthButtons({
           e.stopPropagation();
           openLogin();
         }}
-        className="h-8 gap-1.5 px-3"
+        className={
+          onDark
+            ? "gap-1.5 text-xs font-medium h-8 px-3 text-cream/80 hover:bg-cream/10 hover:text-cream cursor-pointer transition-colors active:scale-95"
+            : "gap-1.5 text-xs font-medium h-8 px-3 text-muted-foreground hover:text-foreground cursor-pointer transition-colors active:scale-95"
+        }
         aria-label="Log in to your account"
       >
         <LogIn className="size-3.5" />
@@ -114,7 +111,11 @@ export function HeaderAuthButtons({
           e.stopPropagation();
           openSignUp();
         }}
-        className="h-8 gap-1.5 px-3.5"
+        className={
+          onDark
+            ? "gap-1.5 text-xs font-medium h-8 px-3.5 bg-cream text-foreground hover:bg-cream/90 shadow-sm cursor-pointer transition-all active:scale-95"
+            : "gap-1.5 text-xs font-medium h-8 px-3.5 bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm cursor-pointer transition-all active:scale-95"
+        }
         aria-label="Sign up with 2-step verification"
       >
         <UserPlus className="size-3.5" />

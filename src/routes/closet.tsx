@@ -13,6 +13,10 @@ import {
   MOCK_WARDROBE_ITEMS,
   PARENT_CATEGORY_GROUPS,
   FASHION_SEASONS,
+  isGuestUser,
+  getGuestSessionWardrobe,
+  clearGuestSessionWardrobe,
+  seedGuestSessionWithDemoGarments,
 } from "@/lib/wardrobe-service";
 import type {
   WardrobeItemWithDetails,
@@ -99,8 +103,8 @@ class ClosetErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBound
   override render() {
     if (this.state.hasError) {
       return (
-        <main className="mx-auto w-full max-w-6xl px-6 py-12">
-          <div className="rounded-md border border-destructive/30 bg-destructive/5 p-8 text-center space-y-4">
+        <main className="mx-auto w-full max-w-6xl px-4 sm:px-6 py-12">
+          <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-8 text-center space-y-4">
             <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-destructive/10 text-destructive">
               <AlertCircle className="size-6" />
             </div>
@@ -147,11 +151,12 @@ const CATEGORY_TABS = [
 const OCCASION_TAGS = ["Office", "Casual", "Dinner", "Wedding"];
 
 function ClosetPage() {
-  const { user } = useAuth();
+  const { user, promptSaveGuestWardrobe } = useAuth();
   const activeUserId = user?.id || "guest_user";
+  const isGuest = isGuestUser(activeUserId);
 
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [items, setItems] = useState<WardrobeItemWithDetails[]>(MOCK_WARDROBE_ITEMS);
+  const [items, setItems] = useState<WardrobeItemWithDetails[]>([]);
 
   // Filters State
   const [selectedCategoryTab, setSelectedCategoryTab] = useState<string>("All");
@@ -184,15 +189,20 @@ function ClosetPage() {
   // Safe load of items
   const refreshItems = useCallback(() => {
     try {
-      const loaded = getStoredWardrobeItems(activeUserId);
-      if (Array.isArray(loaded) && loaded.length > 0) {
-        setItems(loaded);
+      if (isGuestUser(activeUserId)) {
+        const guestItems = getGuestSessionWardrobe();
+        setItems(guestItems);
       } else {
-        setItems(MOCK_WARDROBE_ITEMS);
+        const loaded = getStoredWardrobeItems(activeUserId);
+        if (Array.isArray(loaded) && loaded.length > 0) {
+          setItems(loaded);
+        } else {
+          setItems(MOCK_WARDROBE_ITEMS);
+        }
       }
     } catch (err) {
-      console.warn("Falling back to mock wardrobe items:", err);
-      setItems(MOCK_WARDROBE_ITEMS);
+      console.warn("Falling back to wardrobe items:", err);
+      setItems([]);
     } finally {
       setIsLoading(false);
     }
@@ -201,6 +211,26 @@ function ClosetPage() {
   useEffect(() => {
     refreshItems();
   }, [refreshItems]);
+
+  const handleClearGuestSession = () => {
+    if (
+      typeof window !== "undefined" &&
+      !window.confirm(
+        "Reset Guest Session?\n\nThis will clear all temporary clothing photos stored in your browser session. This action cannot be undone.",
+      )
+    ) {
+      return;
+    }
+    clearGuestSessionWardrobe();
+    setItems([]);
+    toast.info("Guest session cleared.");
+  };
+
+  const handleSeedGuestDemo = () => {
+    const demoItems = seedGuestSessionWithDemoGarments();
+    setItems(demoItems);
+    toast.success("Loaded 4 sample garments into your guest session!");
+  };
 
   // Safe filtering of items
   const filteredItems = useMemo(() => {
@@ -338,14 +368,53 @@ function ClosetPage() {
 
   return (
     <main className="min-h-screen bg-background pb-20">
-      <div className="mx-auto w-full max-w-6xl px-6 pt-8 sm:pt-10 space-y-8">
+      {/* Top Navigation */}
+      <header className="border-b border-border bg-card/60 backdrop-blur-md sticky top-0 z-20">
+        <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-4 sm:px-6 py-4">
+          <div className="flex items-center gap-3">
+            <AtelierOraLogo />
+            <span className="text-border">/</span>
+            <span className="text-xs sm:text-sm font-medium text-foreground flex items-center gap-1.5">
+              <Shirt className="size-4 text-primary" />
+              <span>My Wardrobe</span>
+            </span>
+          </div>
+
+          <div className="flex items-center gap-4 sm:gap-6">
+            <Link
+              to="/generate"
+              className="nav-link inline-flex items-center gap-1.5 text-foreground/75"
+            >
+              <span>AI Stylist</span>
+            </Link>
+            <Link
+              to="/studio"
+              className="nav-link inline-flex items-center gap-1.5 text-foreground/75"
+            >
+              <Sparkles className="size-3.5 text-gold" />
+              <span>Fitting Studio</span>
+            </Link>
+            <Link
+              to="/profile"
+              className="nav-link inline-flex items-center gap-1.5 text-foreground/75"
+            >
+              <User className="size-3.5" />
+              <span className="hidden sm:inline">Fit Settings</span>
+            </Link>
+            <div className="h-4 w-px bg-border hidden sm:block" />
+            <HeaderAuthButtons />
+          </div>
+        </div>
+      </header>
+
+      <div className="mx-auto w-full max-w-6xl px-4 sm:px-6 pt-8 sm:pt-10 space-y-8">
         {/* ========================================================================= */}
         {/* 1. Top Header: Page Title "My Wardrobe" & "Add New Item" Button */}
         {/* ========================================================================= */}
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-border/60 pb-6">
           <div>
             <div className="flex items-center gap-2">
-              <p className="eyebrow text-gold-ink">Smart Outfit Engine</p>
+              <p className="eyebrow text-primary">Smart Outfit Engine</p>
               <Badge variant="outline" className="text-[10px] bg-secondary/80 font-mono">
                 Phase 2 Engine
               </Badge>
@@ -364,10 +433,10 @@ function ClosetPage() {
               asChild
               variant="outline"
               size="default"
-              className="gap-2 font-medium border-gold/40 border border-gold/40 hover:bg-gold/10 text-gold-ink cursor-pointer"
+              className="gap-2 font-medium border-amber-300 bg-amber-50/50 hover:bg-amber-100/60 text-amber-900 cursor-pointer"
             >
               <Link to="/generate">
-                <Sparkles className="size-4 text-gold-ink" />
+                <Sparkles className="size-4 text-amber-600" />
                 <span>AI Stylist</span>
               </Link>
             </Button>
@@ -375,7 +444,7 @@ function ClosetPage() {
               id="add-new-item-header-btn"
               onClick={() => setIsAddModalOpen(true)}
               size="default"
-              className="gap-2 font-medium cursor-pointer border border-gold bg-transparent text-gold-ink hover:bg-gold/10"
+              className="gap-2 font-medium shadow-sm cursor-pointer bg-primary text-primary-foreground hover:bg-primary/90"
             >
               <Plus className="size-4" />
               <span>Add New Item</span>
@@ -383,10 +452,86 @@ function ClosetPage() {
           </div>
         </div>
 
+        {/* Guest Mode Session Status Banner */}
+        {isGuest && (
+          <div className="rounded-xl border border-amber-300 bg-amber-50/70 p-4 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="flex size-10 items-center justify-center rounded-xl bg-amber-200/80 text-amber-900 shrink-0 border border-amber-300">
+                <Sparkles className="size-5 text-amber-800" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="font-semibold text-stone-900 text-sm">
+                    Guest Mode (Active Browser Session):
+                  </span>
+                  <Badge
+                    variant="outline"
+                    className="text-[10px] font-mono bg-white text-stone-800 border-amber-300"
+                  >
+                    {items.length} temporary photo{items.length === 1 ? "" : "s"}
+                  </Badge>
+                  <Badge
+                    variant="secondary"
+                    className="text-[10px] bg-white text-emerald-800 border border-emerald-200"
+                  >
+                    Auto-Background Isolated PNG
+                  </Badge>
+                  <Badge
+                    variant="outline"
+                    className="text-[10px] bg-amber-100 text-amber-900 border-amber-200"
+                  >
+                    Session Storage
+                  </Badge>
+                </div>
+                <p className="text-xs text-stone-600 mt-0.5">
+                  Your uploaded clothing cutouts are cached in this browser session. Browser closure
+                  or session reset clears this data.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0 flex-wrap">
+              {items.length > 0 && (
+                <Button
+                  id="closet-guest-save-wardrobe-btn"
+                  onClick={() => promptSaveGuestWardrobe()}
+                  size="sm"
+                  className="gap-1.5 bg-amber-600 hover:bg-amber-700 text-white text-xs cursor-pointer shadow-xs font-medium"
+                >
+                  <Sparkles className="size-3.5" />
+                  <span>Save My Wardrobe</span>
+                </Button>
+              )}
+              {items.length > 0 ? (
+                <Button
+                  onClick={handleClearGuestSession}
+                  size="sm"
+                  variant="outline"
+                  className="gap-1 text-stone-600 hover:text-destructive hover:bg-destructive/10 text-xs cursor-pointer"
+                  title="Clear all temporary clothing items"
+                >
+                  <RotateCcw className="size-3" />
+                  <span>Reset Session</span>
+                </Button>
+              ) : (
+                <Button
+                  onClick={handleSeedGuestDemo}
+                  size="sm"
+                  variant="outline"
+                  className="gap-1 text-amber-800 border-amber-300 bg-white hover:bg-amber-50 text-xs cursor-pointer"
+                >
+                  <Sparkles className="size-3" />
+                  <span>Load Sample Items</span>
+                </Button>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* ========================================================================= */}
         {/* 2. Category & Occasion Navigation Filter Bar */}
         {/* ========================================================================= */}
-        <section className="space-y-4 rounded-md border border-border bg-card p-4 sm:p-5">
+        <section className="space-y-4 rounded-xl border border-border bg-card p-4 sm:p-5 shadow-xs">
           {/* Search, Season, Favorites Bar */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="relative flex-1 max-w-md">
@@ -432,12 +577,12 @@ function ClosetPage() {
                 onClick={() => setShowFavoritesOnly(!showFavoritesOnly)}
                 className={`h-9 gap-1.5 text-xs font-medium cursor-pointer transition-all ${
                   showFavoritesOnly
-                    ? "border border-gold bg-transparent text-gold-ink hover:bg-gold/10"
+                    ? "bg-rose-600 hover:bg-rose-700 text-white"
                     : "text-muted-foreground hover:text-foreground"
                 }`}
               >
                 <Heart
-                  className={`size-3.5 ${showFavoritesOnly ? "fill-white text-white" : "text-gold-ink"}`}
+                  className={`size-3.5 ${showFavoritesOnly ? "fill-white text-white" : "text-rose-500"}`}
                 />
                 <span>Favorites ({favoriteCount})</span>
               </Button>
@@ -481,7 +626,7 @@ function ClosetPage() {
                     onClick={() => setSelectedCategoryTab(tab)}
                     className={`shrink-0 rounded-lg px-3.5 py-1.5 text-xs font-medium transition-all cursor-pointer ${
                       isSelected
-                        ? "border border-gold bg-gold/10 text-gold-ink  font-semibold"
+                        ? "bg-primary text-primary-foreground shadow-xs font-semibold"
                         : "bg-secondary/60 text-secondary-foreground hover:bg-secondary hover:text-foreground"
                     }`}
                   >
@@ -503,7 +648,7 @@ function ClosetPage() {
                 onClick={() => setSelectedOccasionTag(null)}
                 className={`shrink-0 rounded-full px-3 py-1 text-xs transition-all cursor-pointer ${
                   selectedOccasionTag === null
-                    ? "border border-gold bg-gold/10 text-gold-ink font-medium"
+                    ? "bg-primary/90 text-primary-foreground font-medium"
                     : "border border-border/80 bg-background text-muted-foreground hover:text-foreground hover:border-foreground/40"
                 }`}
               >
@@ -518,11 +663,11 @@ function ClosetPage() {
                     onClick={() => setSelectedOccasionTag(isSelected ? null : tag)}
                     className={`shrink-0 rounded-full px-3 py-1 text-xs transition-all cursor-pointer flex items-center gap-1.5 ${
                       isSelected
-                        ? "border border-gold bg-gold/10 text-gold-ink font-medium "
+                        ? "bg-primary text-primary-foreground font-medium shadow-xs"
                         : "border border-border/80 bg-background text-muted-foreground hover:text-foreground hover:border-foreground/40"
                     }`}
                   >
-                    {tag === "Wedding" && <Sparkles className="size-3 text-gold-ink" />}
+                    {tag === "Wedding" && <Sparkles className="size-3 text-amber-500" />}
                     <span>{tag}</span>
                   </button>
                 );
@@ -536,7 +681,7 @@ function ClosetPage() {
         {/* ========================================================================= */}
         {isLoading ? (
           <div className="flex flex-col items-center justify-center py-24 space-y-4">
-            <Loader2 className="size-8 animate-spin text-gold-ink" />
+            <Loader2 className="size-8 animate-spin text-primary" />
             <p className="text-sm text-muted-foreground">Loading your digital wardrobe...</p>
           </div>
         ) : filteredItems.length > 0 ? (
@@ -551,8 +696,43 @@ function ClosetPage() {
               />
             ))}
           </div>
+        ) : isGuest && items.length === 0 ? (
+          <div className="rounded-xl border border-dashed border-amber-300 bg-amber-50/40 p-12 text-center space-y-4">
+            <div className="mx-auto flex size-14 items-center justify-center rounded-full bg-amber-100 text-amber-800 border border-amber-300">
+              <Sparkles className="size-7 text-amber-700" />
+            </div>
+            <div className="space-y-1">
+              <h3 className="text-lg font-display font-medium text-stone-900">
+                Your Guest Wardrobe is Empty
+              </h3>
+              <p className="text-xs text-stone-600 max-w-md mx-auto">
+                Upload your clothing photos to automatically remove backgrounds and store isolated
+                cutouts in your temporary browser session. Or load sample items to explore right
+                away.
+              </p>
+            </div>
+            <div className="flex items-center justify-center gap-3 pt-2">
+              <Button
+                onClick={() => setIsAddModalOpen(true)}
+                size="sm"
+                className="gap-1.5 cursor-pointer text-xs bg-stone-900 text-white hover:bg-stone-800"
+              >
+                <Plus className="size-3.5" />
+                <span>Upload First Clothing Photo</span>
+              </Button>
+              <Button
+                onClick={handleSeedGuestDemo}
+                variant="outline"
+                size="sm"
+                className="gap-1.5 cursor-pointer text-xs border-amber-300 bg-white hover:bg-amber-50 text-amber-900"
+              >
+                <Sparkles className="size-3.5 text-amber-600" />
+                <span>Load Sample Clothes</span>
+              </Button>
+            </div>
+          </div>
         ) : (
-          <div className="rounded-md border border-dashed border-border bg-card/40 p-12 text-center space-y-4">
+          <div className="rounded-xl border border-dashed border-border bg-card/40 p-12 text-center space-y-4">
             <div className="mx-auto flex size-14 items-center justify-center rounded-full bg-secondary text-muted-foreground">
               <Shirt className="size-7 opacity-60" />
             </div>
@@ -581,7 +761,7 @@ function ClosetPage() {
                 size="sm"
                 className="gap-1.5 cursor-pointer text-xs"
               >
-                <Sparkles className="size-3.5 text-gold-ink" />
+                <Sparkles className="size-3.5 text-amber-500" />
                 <span>Restore Sample Outfits</span>
               </Button>
               <Button
@@ -597,10 +777,10 @@ function ClosetPage() {
         )}
 
         {/* Direct Link to Fitting Studio Banner */}
-        <section className="rounded-md border border-border bg-gradient-to-r from-card via-secondary/20 to-card p-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+        <section className="rounded-xl border border-border bg-gradient-to-r from-card via-secondary/20 to-card p-6 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-xs">
           <div className="space-y-1 text-center sm:text-left">
             <h3 className="text-lg font-display font-medium text-foreground flex items-center justify-center sm:justify-start gap-2">
-              <Sparkles className="size-4 text-gold-ink" />
+              <Sparkles className="size-4 text-amber-500" />
               <span>Ready for Virtual Fitting?</span>
             </h3>
             <p className="text-xs text-muted-foreground max-w-xl">

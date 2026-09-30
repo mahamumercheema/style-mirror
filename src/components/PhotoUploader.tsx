@@ -151,7 +151,7 @@ export function PhotoUploader({
             <img
               src={photoUrl}
               alt="Uploaded full-body preview"
-              className="max-h-[24rem] w-auto rounded object-contain"
+              className="max-h-[24rem] w-auto rounded object-contain shadow-sm"
             />
           </div>
 
@@ -166,8 +166,8 @@ export function PhotoUploader({
 
           {/* Validation still runs for every photo; only warnings are shown */}
           {validationNote && validationNote.type === "warning" ? (
-            <div className="flex items-start gap-2.5 rounded-md border border-gold/40 p-3 text-xs text-gold-ink">
-              <AlertCircle className="size-4 shrink-0 mt-0.5 text-gold-ink" />
+            <div className="flex items-start gap-2.5 rounded-md bg-amber-500/10 p-3 text-xs text-amber-900 dark:text-amber-200">
+              <AlertCircle className="size-4 shrink-0 mt-0.5 text-amber-600 dark:text-amber-400" />
               <p>{validationNote.message}</p>
             </div>
           ) : null}
@@ -208,8 +208,10 @@ export function PhotoUploader({
             handleFile(event.dataTransfer.files?.[0]);
           }}
           className={cn(
-            "flex min-h-[22rem] cursor-pointer flex-col items-center justify-center gap-5 rounded-md border border-dashed px-8 py-14 text-center transition-colors duration-300",
-            dragging ? "border-gold bg-gold/5" : "border-white/30 bg-card hover:border-gold",
+            "flex min-h-[22rem] cursor-pointer flex-col items-center justify-center gap-5 rounded-lg border border-dashed px-8 py-14 text-center transition-all",
+            dragging
+              ? "border-accent bg-accent/10 scale-[0.99]"
+              : "border-border bg-card hover:border-accent/60 hover:bg-card/80",
           )}
         >
           {busy ? (
@@ -263,7 +265,7 @@ export function PhotoUploader({
         <ul className="mt-4 space-y-3">
           {GUIDELINES.map((line, index) => (
             <li key={line} className="flex gap-3 text-sm text-muted-foreground">
-              <span className="font-display text-base text-gold-ink">
+              <span className="font-display text-base text-accent-foreground/70">
                 {String(index + 1).padStart(2, "0")}
               </span>
               <span>{line}</span>

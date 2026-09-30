@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { ArrowRight, Ruler, ScanLine, Shirt } from "lucide-react";
 
 import { HeaderAuthButtons } from "@/components/HeaderAuthButtons";
-import { MobileNav } from "@/components/MobileNav";
+import { useAuth } from "@/context/AuthContext";
 import heroCollage1 from "@/assets/hero-collage-1.jpg";
 import heroCollage2 from "@/assets/hero-collage-2.jpg";
 
@@ -108,6 +108,8 @@ function OraWordmark({ className }: { className?: string }) {
 }
 
 function Landing() {
+  const { isAuthenticated } = useAuth();
+
   // The header gets a dark blurred backdrop once the page is scrolled, so the nav stays
   // legible over the wordmark and photos.
   const [scrolled, setScrolled] = useState(false);
@@ -119,7 +121,7 @@ function Landing() {
   }, []);
 
   return (
-    <main className="theme-cream min-h-screen bg-background text-foreground">
+    <main className="min-h-screen">
       {/* Full-bleed hero: two-photo collage behind the nav and headline */}
       <div
         className="relative isolate overflow-clip bg-[#1c1b1a] text-cream"
@@ -158,18 +160,15 @@ function Landing() {
 
         {/* Transparent header that stays pinned over the photos while scrolling the hero.
             Zero height so it doesn't push the centred wordmark down. */}
-        <header className="theme-dark sticky top-0 z-50 h-0">
+        <header className="sticky top-0 z-50 h-0">
           <div
             className={`transition-[background-color,backdrop-filter] duration-300 ${
-              scrolled
-                ? "bg-black/40 backdrop-blur-[8px]"
-                : "bg-transparent max-md:bg-[linear-gradient(to_bottom,rgb(0_0_0/0.55),rgb(0_0_0/0))]"
+              scrolled ? "bg-black/40 backdrop-blur-[8px]" : "bg-transparent"
             }`}
           >
-            <nav className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-6 py-5 md:flex-wrap md:items-baseline md:py-7">
+            <nav className="mx-auto flex w-full max-w-6xl flex-wrap items-baseline justify-between gap-4 px-6 py-7">
               <AtelierOraLogo tone="light" />
-              {/* Desktop: inline links and auth buttons. Mobile: collapsed into MobileNav. */}
-              <div className="hidden md:flex md:flex-wrap md:items-center md:gap-x-8 md:gap-y-3">
+              <div className="flex flex-wrap items-center gap-x-5 gap-y-3 sm:gap-x-8">
                 <Link to="/closet" className="nav-link text-cream/85">
                   My Closet
                 </Link>
@@ -179,10 +178,15 @@ function Landing() {
                 <Link to="/studio" className="nav-link text-cream/85">
                   Fitting Studio
                 </Link>
-                <div className="hidden h-4 w-px bg-cream/30 sm:block" />
-                <HeaderAuthButtons onDark showAccountMenu={false} />
+                {/* The signed-in account pill is hidden on the landing page; the session itself
+                    is untouched and the pill (with Log out) still shows on the other pages. */}
+                {!isAuthenticated ? (
+                  <>
+                    <div className="hidden h-4 w-px bg-cream/30 sm:block" />
+                    <HeaderAuthButtons onDark />
+                  </>
+                ) : null}
               </div>
-              <MobileNav />
             </nav>
           </div>
         </header>
@@ -191,7 +195,7 @@ function Landing() {
             text block at the far left starting at 52% of the viewport (below the left model's
             face), with the action links centred directly beneath it so they can never overlap.
             Mobile: wordmark, text, links stacked and centred. */}
-        <div className="relative flex flex-col items-center gap-10 px-6 pt-32 pb-20 md:block md:min-h-[100svh] md:px-0 md:pt-[52svh] md:pb-[8svh]">
+        <div className="relative flex flex-col items-center gap-10 px-6 pt-28 pb-20 md:block md:min-h-[100svh] md:px-0 md:pt-[52svh] md:pb-[8svh]">
           <div className="pointer-events-none flex justify-center md:absolute md:inset-x-0 md:top-0 md:h-[100svh] md:min-h-[560px] md:items-center">
             <OraWordmark className="fade-rise h-[30vh] w-auto [animation-duration:800ms] md:h-[42vh]" />
           </div>
@@ -211,10 +215,23 @@ function Landing() {
               makeup inspiration.
             </p>
           </div>
+
+          <div className="flex flex-wrap items-center justify-center gap-x-8 gap-y-5 md:mt-12 md:gap-x-11">
+            <Link to="/studio" className="hero-link inline-flex items-center gap-2.5 text-cream">
+              Try it now
+              <ArrowRight className="size-3.5 md:size-4" />
+            </Link>
+            <Link to="/generate" className="hero-link text-gold">
+              AI Stylist
+            </Link>
+            <Link to="/closet" className="hero-link text-cream">
+              Manage Closet
+            </Link>
+          </div>
         </div>
       </div>
 
-      <section className="mx-auto w-full max-w-6xl px-6 pt-14 pb-16 md:pt-24">
+      <section className="mx-auto w-full max-w-6xl px-6 pt-14 pb-32 md:pt-24">
         <p className="eyebrow">How it works</p>
         <div className="mt-10 grid gap-12 md:grid-cols-3 md:gap-10">
           {STEPS.map((step, index) => (
@@ -229,29 +246,6 @@ function Landing() {
               <p className="mt-2.5 text-sm leading-relaxed text-muted-foreground">{step.copy}</p>
             </div>
           ))}
-        </div>
-
-        {/* Closing call to action for the steps above */}
-        <div className="mt-14 flex flex-col items-center justify-center gap-y-6 md:mt-16 md:flex-row md:gap-x-12">
-          <Link
-            to="/studio"
-            className="hero-link inline-flex items-center gap-2.5 border-b border-current/30 pb-1.5 text-foreground"
-          >
-            Try it now
-            <ArrowRight className="size-3.5 md:size-4" />
-          </Link>
-          <Link
-            to="/generate"
-            className="hero-link border-b border-current/30 pb-1.5 text-gold-ink"
-          >
-            AI Stylist
-          </Link>
-          <Link
-            to="/closet"
-            className="hero-link border-b border-current/30 pb-1.5 text-foreground"
-          >
-            Manage Closet
-          </Link>
         </div>
       </section>
     </main>

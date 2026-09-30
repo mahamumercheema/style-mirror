@@ -101,6 +101,8 @@ export interface WardrobeItemEntity {
   title: string | null;
   image_url: string; // Cloudinary / Supabase Storage CDN URL
   thumbnail_url: string | null;
+  bg_removed_url?: string | null | undefined;
+  is_uploaded?: boolean | undefined;
   primary_color: string | null;
   secondary_color: string | null;
   fabric_type: string | null;
@@ -129,6 +131,8 @@ export interface CreateWardrobeItemInput {
   category_id?: number | null | undefined;
   image_url: string;
   thumbnail_url?: string | undefined;
+  bg_removed_url?: string | undefined;
+  is_uploaded?: boolean | undefined;
   primary_color?: string | undefined;
   secondary_color?: string | undefined;
   fabric_type?: string | undefined;
@@ -142,6 +146,8 @@ export interface UpdateWardrobeItemInput {
   category_id?: number | null | undefined;
   image_url?: string | undefined;
   thumbnail_url?: string | undefined;
+  bg_removed_url?: string | undefined;
+  is_uploaded?: boolean | undefined;
   primary_color?: string | undefined;
   secondary_color?: string | undefined;
   fabric_type?: string | undefined;

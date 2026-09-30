@@ -53,8 +53,8 @@ export function HarmoniesSuggester({
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
         <div>
-          <div className="flex items-center gap-1.5 text-xs font-semibold text-gold-ink">
-            <Sparkles className="size-3.5 text-gold-ink" />
+          <div className="flex items-center gap-1.5 text-xs font-semibold text-primary">
+            <Sparkles className="size-3.5 text-amber-500" />
             <span>Harmonic Color Engine</span>
           </div>
           <h4 className="font-display text-lg">Dynamically Suggested Harmonies</h4>
@@ -70,7 +70,7 @@ export function HarmoniesSuggester({
           type="button"
           size="sm"
           onClick={() => handleApplyHarmony(activeHarmonyData)}
-          className="gap-1.5 text-xs cursor-pointer border border-gold bg-transparent text-gold-ink hover:bg-gold/10 self-start sm:self-auto"
+          className="gap-1.5 text-xs cursor-pointer bg-primary text-primary-foreground hover:bg-primary/90 shadow-2xs self-start sm:self-auto"
         >
           <Wand2 className="size-3.5" />
           <span>Apply Active Scheme to Garment</span>
@@ -91,7 +91,7 @@ export function HarmoniesSuggester({
               className={cn(
                 "group flex items-center gap-2 rounded-lg px-3 py-2 text-left font-medium transition-all shrink-0 cursor-pointer",
                 isSelected
-                  ? "border border-gold bg-gold/10 text-gold-ink "
+                  ? "bg-primary text-primary-foreground shadow-xs"
                   : "bg-secondary/40 text-muted-foreground hover:bg-secondary hover:text-foreground",
               )}
             >
@@ -99,7 +99,7 @@ export function HarmoniesSuggester({
                 {harm.colors.slice(0, 3).map((col, idx) => (
                   <div
                     key={idx}
-                    className="size-3.5 rounded-full border border-background"
+                    className="size-3.5 rounded-full border border-background shadow-2xs"
                     style={{ backgroundColor: col.hex }}
                   />
                 ))}
@@ -108,7 +108,9 @@ export function HarmoniesSuggester({
               <span
                 className={cn(
                   "text-[10px] px-1.5 py-0.5 rounded-full font-mono",
-                  isSelected ? "bg-gold/15 text-gold-ink" : "bg-secondary text-muted-foreground",
+                  isSelected
+                    ? "bg-primary-foreground/20 text-primary-foreground"
+                    : "bg-secondary text-muted-foreground",
                 )}
               >
                 {tab.badge}
@@ -119,7 +121,7 @@ export function HarmoniesSuggester({
       </div>
 
       {/* Active Selected Harmony Detail Panel */}
-      <div className="surface p-4 space-y-4 rounded-md border-border bg-card">
+      <div className="surface p-4 space-y-4 rounded-xl border-border bg-card">
         <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
           <div>
             <h5 className="font-display text-base font-semibold text-foreground">
@@ -135,7 +137,7 @@ export function HarmoniesSuggester({
             variant="outline"
             size="sm"
             onClick={() => handleApplyHarmony(activeHarmonyData)}
-            className="text-xs gap-1.5 cursor-pointer shrink-0 border-primary/30 text-gold-ink hover:bg-primary/10"
+            className="text-xs gap-1.5 cursor-pointer shrink-0 border-primary/30 text-primary hover:bg-primary/10"
           >
             <Check className="size-3.5" />
             <span>Apply to All Parts</span>
@@ -151,7 +153,7 @@ export function HarmoniesSuggester({
               <span className="text-[10px] text-muted-foreground">Base Hue</span>
             </div>
             <div
-              className="aspect-2/1 w-full rounded-md flex items-center justify-center text-white"
+              className="aspect-2/1 w-full rounded-md shadow-inner flex items-center justify-center text-white"
               style={{ backgroundColor: activeHarmonyData.presetApplication.mainBody }}
             >
               {garmentTheme.mainBody.toLowerCase() ===
@@ -182,12 +184,12 @@ export function HarmoniesSuggester({
           <div className="rounded-lg border border-border bg-secondary/30 p-2.5 space-y-2">
             <div className="flex items-center justify-between text-[11px]">
               <span className="font-medium text-foreground">Trims & Collar</span>
-              <span className="text-[10px] text-gold-ink font-mono">
+              <span className="text-[10px] text-amber-700 dark:text-amber-400 font-mono">
                 {activeHarmony === "complementary" ? "180°" : "Harmony"}
               </span>
             </div>
             <div
-              className="aspect-2/1 w-full rounded-md flex items-center justify-center text-white"
+              className="aspect-2/1 w-full rounded-md shadow-inner flex items-center justify-center text-white"
               style={{ backgroundColor: activeHarmonyData.presetApplication.trims }}
             >
               {garmentTheme.trims.toLowerCase() ===
@@ -220,10 +222,10 @@ export function HarmoniesSuggester({
           <div className="rounded-lg border border-border bg-secondary/30 p-2.5 space-y-2">
             <div className="flex items-center justify-between text-[11px]">
               <span className="font-medium text-foreground">Buttons & Hardware</span>
-              <span className="text-[10px] text-muted-foreground font-mono">Deep</span>
+              <span className="text-[10px] text-blue-700 dark:text-blue-400 font-mono">Deep</span>
             </div>
             <div
-              className="aspect-2/1 w-full rounded-md flex items-center justify-center text-white"
+              className="aspect-2/1 w-full rounded-md shadow-inner flex items-center justify-center text-white"
               style={{ backgroundColor: activeHarmonyData.presetApplication.buttons }}
             >
               {garmentTheme.buttons.toLowerCase() ===
@@ -256,10 +258,12 @@ export function HarmoniesSuggester({
           <div className="rounded-lg border border-border bg-secondary/30 p-2.5 space-y-2">
             <div className="flex items-center justify-between text-[11px]">
               <span className="font-medium text-foreground">Top-Stitching Thread</span>
-              <span className="text-[10px] text-muted-foreground font-mono">Seams</span>
+              <span className="text-[10px] text-purple-700 dark:text-purple-400 font-mono">
+                Seams
+              </span>
             </div>
             <div
-              className="aspect-2/1 w-full rounded-md flex items-center justify-center text-white"
+              className="aspect-2/1 w-full rounded-md shadow-inner flex items-center justify-center text-white"
               style={{ backgroundColor: activeHarmonyData.presetApplication.stitching }}
             >
               {garmentTheme.stitching.toLowerCase() ===

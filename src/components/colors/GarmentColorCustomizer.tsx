@@ -100,7 +100,7 @@ export function GarmentColorCustomizer({
       ctx.fill();
       ctx.stroke();
 
-      // Body subtle  & fold lines
+      // Body subtle shadow & fold lines
       ctx.strokeStyle = isColorDark(bodyCol) ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)";
       ctx.lineWidth = 2;
       ctx.beginPath();
@@ -541,7 +541,7 @@ export function GarmentColorCustomizer({
       {/* Top Header & Silhouette Picker */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border/70 pb-4">
         <div>
-          <div className="flex items-center gap-1.5 text-xs font-semibold text-gold-ink">
+          <div className="flex items-center gap-1.5 text-xs font-semibold text-primary">
             <Layers className="size-3.5" />
             <span>Garment Color Customizer</span>
           </div>
@@ -560,7 +560,7 @@ export function GarmentColorCustomizer({
               className={cn(
                 "px-2.5 py-1 text-xs rounded-md capitalize font-medium transition-all cursor-pointer",
                 silhouette === sil
-                  ? "border border-gold bg-gold/10 text-gold-ink "
+                  ? "bg-primary text-primary-foreground shadow-2xs"
                   : "text-muted-foreground hover:text-foreground",
               )}
             >
@@ -574,7 +574,7 @@ export function GarmentColorCustomizer({
       <div className="grid gap-6 md:grid-cols-[1fr_1.15fr] items-start">
         {/* Visual Garment Blueprint Canvas Render */}
         <div className="space-y-3">
-          <div className="checkerboard relative aspect-5/6 w-full overflow-hidden rounded-md border border-border/80 p-4 flex items-center justify-center">
+          <div className="checkerboard relative aspect-5/6 w-full overflow-hidden rounded-xl border border-border/80 p-4 shadow-inner flex items-center justify-center">
             {/* Visual SVG representation for instant responsive layout */}
             <svg
               className="size-full max-h-[360px] filter drop-shadow-md"
@@ -870,19 +870,19 @@ export function GarmentColorCustomizer({
                   type="button"
                   onClick={() => setActiveChannel(ch.id)}
                   className={cn(
-                    "flex flex-col rounded-md border p-3 text-left transition-all cursor-pointer relative overflow-hidden",
+                    "flex flex-col rounded-xl border p-3 text-left transition-all cursor-pointer relative overflow-hidden",
                     isSelected
-                      ? "border-primary bg-card ring-2 ring-primary/20 "
+                      ? "border-primary bg-card ring-2 ring-primary/20 shadow-xs"
                       : "border-border/80 bg-secondary/30 hover:border-border hover:bg-secondary/60",
                   )}
                 >
                   <div className="flex items-center justify-between">
                     <span className="flex items-center gap-1.5 font-semibold text-xs text-foreground">
-                      <Icon className="size-3.5 text-gold-ink" />
+                      <Icon className="size-3.5 text-primary" />
                       <span>{ch.label}</span>
                     </span>
                     <div
-                      className="size-5 rounded-md border border-black/10"
+                      className="size-5 rounded-md border border-black/10 shadow-2xs"
                       style={{ backgroundColor: ch.currentColor }}
                     />
                   </div>
@@ -890,7 +890,7 @@ export function GarmentColorCustomizer({
                   <span className="text-[10px] text-muted-foreground mt-1 truncate">
                     {colorName}
                   </span>
-                  <span className="text-[9px] font-mono text-foreground uppercase">
+                  <span className="text-[9px] font-mono text-muted-foreground/80 uppercase">
                     {ch.currentColor}
                   </span>
                 </button>
@@ -899,7 +899,7 @@ export function GarmentColorCustomizer({
           </div>
 
           {/* Active Channel Color Palette & Swatches */}
-          <div className="rounded-md border border-border bg-card p-4 space-y-3.5">
+          <div className="rounded-xl border border-border bg-card p-4 space-y-3.5 shadow-2xs">
             <div className="flex items-center justify-between">
               <div>
                 <span className="text-xs font-semibold text-foreground">
@@ -913,7 +913,7 @@ export function GarmentColorCustomizer({
               {/* Native Color Picker Trigger */}
               <label
                 htmlFor={`color-input-${activeChannel}`}
-                className="flex items-center gap-1 text-xs font-medium text-gold-ink hover:underline cursor-pointer border border-border px-2 py-1 rounded-md bg-secondary/40"
+                className="flex items-center gap-1 text-xs font-medium text-primary hover:underline cursor-pointer border border-border px-2 py-1 rounded-md bg-secondary/40"
               >
                 <Pipette className="size-3.5" />
                 <span>Custom</span>
@@ -941,7 +941,7 @@ export function GarmentColorCustomizer({
                       type="button"
                       onClick={() => handleColorUpdate(col.hex)}
                       className={cn(
-                        "group relative size-8 rounded-lg border border-black/10  transition-transform hover:scale-110 cursor-pointer flex items-center justify-center",
+                        "group relative size-8 rounded-lg border border-black/10 shadow-2xs transition-transform hover:scale-110 cursor-pointer flex items-center justify-center",
                         isCurrent && "ring-2 ring-primary ring-offset-2 scale-105",
                       )}
                       style={{ backgroundColor: col.hex }}
