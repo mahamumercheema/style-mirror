@@ -108,7 +108,7 @@ function OraWordmark({ className }: { className?: string }) {
 }
 
 function Landing() {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, requireAuth } = useAuth();
 
   // The header gets a dark blurred backdrop once the page is scrolled, so the nav stays
   // legible over the wordmark and photos.
@@ -119,6 +119,16 @@ function Landing() {
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
+
+  const handleGatedNavigation = (e: React.MouseEvent, targetRoute: string) => {
+    if (!isAuthenticated) {
+      e.preventDefault();
+      requireAuth(
+        targetRoute,
+        "Please log in or create an account to access the AI Stylist and digital closet.",
+      );
+    }
+  };
 
   return (
     <main className="min-h-screen">
@@ -169,13 +179,25 @@ function Landing() {
             <nav className="mx-auto flex w-full max-w-6xl flex-wrap items-baseline justify-between gap-4 px-6 py-7">
               <AtelierOraLogo tone="light" />
               <div className="flex flex-wrap items-center gap-x-5 gap-y-3 sm:gap-x-8">
-                <Link to="/closet" className="nav-link text-cream/85">
+                <Link
+                  to="/closet"
+                  onClick={(e) => handleGatedNavigation(e, "/closet")}
+                  className="nav-link text-cream/85 cursor-pointer"
+                >
                   My Closet
                 </Link>
-                <Link to="/generate" className="nav-link text-gold">
+                <Link
+                  to="/generate"
+                  onClick={(e) => handleGatedNavigation(e, "/generate")}
+                  className="nav-link text-gold cursor-pointer"
+                >
                   AI Stylist
                 </Link>
-                <Link to="/studio" className="nav-link text-cream/85">
+                <Link
+                  to="/studio"
+                  onClick={(e) => handleGatedNavigation(e, "/studio")}
+                  className="nav-link text-cream/85 cursor-pointer"
+                >
                   Fitting Studio
                 </Link>
                 {/* The signed-in account pill is hidden on the landing page; the session itself
@@ -217,14 +239,26 @@ function Landing() {
           </div>
 
           <div className="flex flex-wrap items-center justify-center gap-x-8 gap-y-5 md:mt-12 md:gap-x-11">
-            <Link to="/studio" className="hero-link inline-flex items-center gap-2.5 text-cream">
+            <Link
+              to="/studio"
+              onClick={(e) => handleGatedNavigation(e, "/studio")}
+              className="hero-link inline-flex items-center gap-2.5 text-cream cursor-pointer"
+            >
               Try it now
               <ArrowRight className="size-3.5 md:size-4" />
             </Link>
-            <Link to="/generate" className="hero-link text-gold">
+            <Link
+              to="/generate"
+              onClick={(e) => handleGatedNavigation(e, "/generate")}
+              className="hero-link text-gold cursor-pointer"
+            >
               AI Stylist
             </Link>
-            <Link to="/closet" className="hero-link text-cream">
+            <Link
+              to="/closet"
+              onClick={(e) => handleGatedNavigation(e, "/closet")}
+              className="hero-link text-cream cursor-pointer"
+            >
               Manage Closet
             </Link>
           </div>

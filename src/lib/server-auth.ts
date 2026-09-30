@@ -536,3 +536,163 @@ export async function handleLogin(body: {
     },
   };
 }
+
+/**
+ * Request Email 2FA OTP for quick sign-in
+ */
+export async function handleRequestEmailOtp(body: {
+  email?: string | undefined;
+}): Promise<AuthResult> {
+  const email = sanitizeEmail(body.email);
+  if (!email || !email.includes("@")) {
+    return {
+      status: 400,
+      body: { success: false, error: "Please provide a valid email address." },
+    };
+  }
+
+  const existingVerification = emailVerifications.get(email);
+  const now = Date.now();
+  if (existingVerification && now - existingVerification.last_sent_at < 60000) {
+    const waitSec = Math.ceil((60000 - (now - existingVerification.last_sent_at)) / 1000);
+    return {
+      status: 429,
+      body: {
+        success: false,
+        error: `Please wait ${waitSec} seconds before requesting another code.`,
+        retryAfter: waitSec,
+      },
+    };
+  }
+
+  const otpCode = crypto.randomInt(100000, 1000000).toString();
+  const codeHash = await bcrypt.hash(otpCode, 10);
+  const existingUser = users.get(email);
+
+  emailVerifications.set(email, {
+    email,
+    code_hash: codeHash,
+    pending_password_hash: existingUser ? existingUser.password_hash : "",
+    name: existingUser ? existingUser.name : email.split("@")[0],
+    expires_at: now + 10 * 60 * 1000,
+    attempts: 0,
+    created_at: now,
+    last_sent_at: now,
+  });
+
+  await sendOtpEmail(email, otpCode);
+  const hasSmtp = Boolean(getTransporter());
+
+  return {
+    status: 200,
+    body: {
+      success: true,
+      message: hasSmtp ? "2FA code sent to your email" : "2FA code ready (preview mode)",
+      email,
+      isSandbox: !hasSmtp,
+      devOtpCode: !hasSmtp ? otpCode : undefined,
+    },
+  };
+}
+
+/**
+ * Verify Email 2FA OTP and log in / create session
+ */
+export async function handleVerifyEmailOtp(body: {
+  email?: string | undefined;
+  code?: string | undefined;
+}): Promise<AuthResult> {
+  const email = sanitizeEmail(body.email);
+  const code = typeof body.code === "string" ? body.code.trim() : "";
+
+  if (!email || !code) {
+    return {
+      status: 400,
+      body: { success: false, error: "Email address and 6-digit 2FA code are required." },
+    };
+  }
+
+  const record = emailVerifications.get(email);
+  if (!record) {
+    return {
+      status: 404,
+      body: {
+        success: false,
+        error: "No pending 2FA code found for this email. Please request a new code.",
+      },
+    };
+  }
+
+  const now = Date.now();
+  if (now > record.expires_at) {
+    return {
+      status: 400,
+      body: {
+        success: false,
+        error: "2FA code has expired. Please request a new code.",
+        expired: true,
+      },
+    };
+  }
+
+  if (record.attempts >= 5) {
+    return {
+      status: 429,
+      body: {
+        success: false,
+        error: "Too many failed attempts. Please request a new verification code.",
+        locked: true,
+      },
+    };
+  }
+
+  const isMatch = await bcrypt.compare(code, record.code_hash);
+  if (!isMatch) {
+    record.attempts += 1;
+    const remaining = 5 - record.attempts;
+    return {
+      status: 400,
+      body: {
+        success: false,
+        error: `Invalid verification code. ${remaining} attempt${remaining === 1 ? "" : "s"} remaining.`,
+        remainingAttempts: remaining,
+      },
+    };
+  }
+
+  emailVerifications.delete(email);
+
+  let user = users.get(email);
+  if (!user) {
+    const userId = "usr_" + crypto.randomBytes(6).toString("hex");
+    user = {
+      id: userId,
+      email,
+      password_hash: "",
+      name: record.name || email.split("@")[0],
+      is_verified: true,
+      created_at: new Date().toISOString(),
+    };
+    users.set(email, user);
+  }
+
+  const token = "vtr_tok_" + crypto.randomBytes(24).toString("hex");
+
+  return {
+    status: 200,
+    body: {
+      success: true,
+      message: "Signed in successfully with Email 2FA.",
+      token,
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        is_verified: true,
+        emailVerified: true,
+        twoFactorVerified: true,
+        createdAt: user.created_at,
+      },
+    },
+  };
+}

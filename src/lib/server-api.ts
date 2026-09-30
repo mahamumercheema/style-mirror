@@ -3,6 +3,8 @@ import {
   handleVerifyCode,
   handleResendCode,
   handleLogin,
+  handleRequestEmailOtp,
+  handleVerifyEmailOtp,
   type AuthResult,
 } from "./server-auth";
 import {
@@ -57,6 +59,14 @@ export async function handleApiRouter(request: Request): Promise<Response | null
         break;
       case "/api/auth/login":
         result = await handleLogin(body);
+        break;
+      case "/api/auth/request-otp":
+      case "/api/auth/login-2fa":
+        result = await handleRequestEmailOtp(body);
+        break;
+      case "/api/auth/verify-otp":
+      case "/api/auth/verify-2fa":
+        result = await handleVerifyEmailOtp(body);
         break;
       default:
         return new Response(JSON.stringify({ error: "Auth endpoint not found" }), {
