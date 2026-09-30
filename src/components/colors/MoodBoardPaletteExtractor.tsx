@@ -107,8 +107,8 @@ export function MoodBoardPaletteExtractor({
       {/* Header & Upload Controls */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <div className="flex items-center gap-1.5 text-xs font-semibold text-primary">
-            <Sparkles className="size-3.5 text-amber-500" />
+          <div className="flex items-center gap-1.5 text-xs font-semibold text-gold-ink">
+            <Sparkles className="size-3.5 text-gold-ink" />
             <span>Automatic Color Extraction</span>
           </div>
           <h3 className="font-display text-xl">Mood Board & Photo Palette</h3>
@@ -133,7 +133,7 @@ export function MoodBoardPaletteExtractor({
             size="sm"
             onClick={() => fileInputRef.current?.click()}
             disabled={isExtracting}
-            className="text-xs gap-1.5 cursor-pointer shadow-2xs"
+            className="text-xs gap-1.5 cursor-pointer"
           >
             <Upload className="size-3.5" />
             <span>Upload Mood Board</span>
@@ -148,7 +148,7 @@ export function MoodBoardPaletteExtractor({
               disabled={isExtracting}
               className="text-xs gap-1.5 cursor-pointer"
             >
-              <ImageIcon className="size-3.5 text-primary" />
+              <ImageIcon className="size-3.5 text-gold-ink" />
               <span>From My Photo</span>
             </Button>
           )}
@@ -162,7 +162,7 @@ export function MoodBoardPaletteExtractor({
               disabled={isExtracting}
               className="text-xs gap-1.5 cursor-pointer"
             >
-              <Layers className="size-3.5 text-primary" />
+              <Layers className="size-3.5 text-gold-ink" />
               <span>From Garment</span>
             </Button>
           )}
@@ -181,7 +181,7 @@ export function MoodBoardPaletteExtractor({
               type="button"
               onClick={() => processImage(board.previewUrl, board.title)}
               className={cn(
-                "group relative flex flex-col overflow-hidden rounded-lg border border-border/80 p-2 text-left transition-all hover:border-primary hover:shadow-xs cursor-pointer bg-card",
+                "group relative flex flex-col overflow-hidden rounded-lg border border-border/80 p-2 text-left transition-all hover:border-primary  cursor-pointer bg-card",
                 currentMoodBoardImage === board.previewUrl &&
                   "border-primary ring-2 ring-primary/20",
               )}
@@ -209,7 +209,7 @@ export function MoodBoardPaletteExtractor({
       </div>
 
       {/* Extracted Swatches Display */}
-      <div className="rounded-xl border border-border/80 bg-secondary/20 p-4 space-y-3">
+      <div className="rounded-md border border-border/80 bg-secondary/20 p-4 space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             <span className="text-xs font-semibold text-foreground">
@@ -225,7 +225,7 @@ export function MoodBoardPaletteExtractor({
             variant="default"
             size="sm"
             onClick={handleAutoApplyMoodBoard}
-            className="text-xs h-7 gap-1.5 cursor-pointer bg-primary text-primary-foreground hover:bg-primary/90 shadow-2xs"
+            className="text-xs h-7 gap-1.5 cursor-pointer border border-gold bg-transparent text-gold-ink hover:bg-gold/10"
           >
             <Wand2 className="size-3" />
             <span>Auto-Harmonize Garment</span>
@@ -245,7 +245,7 @@ export function MoodBoardPaletteExtractor({
               <div
                 key={`${color.hex}-${idx}`}
                 className={cn(
-                  "group relative flex flex-col rounded-lg border border-border bg-card p-2 text-left transition-all hover:border-primary hover:shadow-xs",
+                  "group relative flex flex-col rounded-lg border border-border bg-card p-2 text-left transition-all hover:border-primary ",
                   isBase && "ring-2 ring-primary border-primary",
                 )}
               >
@@ -253,7 +253,7 @@ export function MoodBoardPaletteExtractor({
                 <button
                   type="button"
                   onClick={() => onSelectBaseColor(color.hex)}
-                  className="relative aspect-4/3 w-full rounded-md shadow-inner transition-transform group-hover:scale-98 cursor-pointer flex items-center justify-center"
+                  className="relative aspect-4/3 w-full rounded-md transition-transform group-hover:scale-98 cursor-pointer flex items-center justify-center"
                   style={{ backgroundColor: color.hex }}
                   title="Set as base fabric color"
                 >
@@ -275,22 +275,22 @@ export function MoodBoardPaletteExtractor({
                 {/* Active Assignments Badges */}
                 <div className="mt-1 flex flex-wrap gap-1 min-h-[14px]">
                   {isBody && (
-                    <span className="text-[9px] font-medium px-1 rounded bg-stone-200 text-stone-800 dark:bg-stone-800 dark:text-stone-200">
+                    <span className="text-[9px] font-medium px-1 rounded bg-secondary text-foreground">
                       Body
                     </span>
                   )}
                   {isTrims && (
-                    <span className="text-[9px] font-medium px-1 rounded bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-200">
+                    <span className="text-[9px] font-medium px-1 rounded border border-gold/40 text-gold-ink">
                       Trims
                     </span>
                   )}
                   {isButtons && (
-                    <span className="text-[9px] font-medium px-1 rounded bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-200">
+                    <span className="text-[9px] font-medium px-1 rounded bg-secondary text-muted-foreground">
                       Btns
                     </span>
                   )}
                   {isStitch && (
-                    <span className="text-[9px] font-medium px-1 rounded bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-200">
+                    <span className="text-[9px] font-medium px-1 rounded bg-secondary text-muted-foreground">
                       Stitch
                     </span>
                   )}
@@ -302,7 +302,7 @@ export function MoodBoardPaletteExtractor({
                     type="button"
                     onClick={() => onUpdateGarmentTheme({ mainBody: color.hex })}
                     title="Apply to Main Body"
-                    className="text-[9px] py-0.5 rounded text-center hover:bg-primary hover:text-primary-foreground font-medium text-muted-foreground transition-colors cursor-pointer"
+                    className="text-[9px] py-0.5 rounded text-center hover:bg-gold/10 hover:text-gold-ink font-medium text-muted-foreground transition-colors cursor-pointer"
                   >
                     Body
                   </button>
@@ -310,7 +310,7 @@ export function MoodBoardPaletteExtractor({
                     type="button"
                     onClick={() => onUpdateGarmentTheme({ trims: color.hex })}
                     title="Apply to Trims"
-                    className="text-[9px] py-0.5 rounded text-center hover:bg-primary hover:text-primary-foreground font-medium text-muted-foreground transition-colors cursor-pointer"
+                    className="text-[9px] py-0.5 rounded text-center hover:bg-gold/10 hover:text-gold-ink font-medium text-muted-foreground transition-colors cursor-pointer"
                   >
                     Trim
                   </button>
@@ -318,7 +318,7 @@ export function MoodBoardPaletteExtractor({
                     type="button"
                     onClick={() => onUpdateGarmentTheme({ buttons: color.hex })}
                     title="Apply to Buttons"
-                    className="text-[9px] py-0.5 rounded text-center hover:bg-primary hover:text-primary-foreground font-medium text-muted-foreground transition-colors cursor-pointer"
+                    className="text-[9px] py-0.5 rounded text-center hover:bg-gold/10 hover:text-gold-ink font-medium text-muted-foreground transition-colors cursor-pointer"
                   >
                     Btn
                   </button>
@@ -326,7 +326,7 @@ export function MoodBoardPaletteExtractor({
                     type="button"
                     onClick={() => onUpdateGarmentTheme({ stitching: color.hex })}
                     title="Apply to Stitching"
-                    className="text-[9px] py-0.5 rounded text-center hover:bg-primary hover:text-primary-foreground font-medium text-muted-foreground transition-colors cursor-pointer"
+                    className="text-[9px] py-0.5 rounded text-center hover:bg-gold/10 hover:text-gold-ink font-medium text-muted-foreground transition-colors cursor-pointer"
                   >
                     Stitch
                   </button>

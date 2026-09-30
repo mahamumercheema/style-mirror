@@ -4,6 +4,7 @@ import {
   Link,
   createRootRouteWithContext,
   useRouter,
+  useRouterState,
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
@@ -13,6 +14,8 @@ import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { AuthProvider } from "@/context/AuthContext";
 import { AuthModal } from "@/components/AuthModal";
+import { SiteFooter } from "@/components/SiteFooter";
+import { SiteHeader } from "@/components/SiteHeader";
 import { Toaster } from "@/components/ui/sonner";
 
 function NotFoundComponent() {
@@ -27,7 +30,7 @@ function NotFoundComponent() {
         <div className="mt-6">
           <Link
             to="/"
-            className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+            className="inline-flex items-center justify-center rounded-md border border-gold px-4 py-2 text-[11px] font-medium uppercase tracking-[0.2em] text-gold-ink transition-colors hover:bg-gold/10"
           >
             Go home
           </Link>
@@ -59,7 +62,7 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
               router.invalidate();
               reset();
             }}
-            className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+            className="inline-flex items-center justify-center rounded-md border border-gold px-4 py-2 text-[11px] font-medium uppercase tracking-[0.2em] text-gold-ink transition-colors hover:bg-gold/10"
           >
             Try again
           </button>
@@ -132,12 +135,23 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  const pathname = useRouterState({ select: (state) => state.location.pathname });
 
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-        <Outlet />
+        {/* Page area fills at least the screen height, so the footer sits at the bottom
+            edge on short pages instead of floating up under the content */}
+        <div className="flex min-h-svh flex-col">
+          {/* The landing page has its own hero header; every other page shares this one */}
+          {pathname !== "/" ? <SiteHeader /> : null}
+          {/* Keyed by path so each page fades in when navigated to */}
+          <div key={pathname} className="page-in flex-1">
+            <Outlet />
+          </div>
+          <SiteFooter />
+        </div>
         <AuthModal />
         <Toaster position="top-right" richColors />
       </AuthProvider>

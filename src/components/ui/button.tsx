@@ -4,24 +4,30 @@ import { cva, type VariantProps } from "class-variance-authority";
 
 import { cn } from "@/lib/utils";
 
+/*
+ * Atelier Ora buttons: uppercase, letter-spaced, 1px border, no fill.
+ * Hover/press add a soft gold glow; primary (default) actions are gold.
+ */
+const GLOW =
+  "hover:shadow-[0_0_14px_rgb(201_169_97/0.35)] hover:[text-shadow:0_0_8px_rgb(201_169_97/0.5)] active:shadow-[0_0_18px_rgb(201_169_97/0.5)]";
+
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 disabled:cursor-not-allowed [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md border bg-transparent text-[11px] font-medium uppercase tracking-[0.2em] cursor-pointer transition-[color,border-color,background-color,box-shadow,text-shadow] duration-250 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-40 disabled:cursor-not-allowed [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground shadow hover:bg-primary/90",
-        destructive: "bg-destructive text-destructive-foreground shadow-sm hover:bg-destructive/90",
-        outline:
-          "border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground",
-        secondary: "bg-secondary text-secondary-foreground shadow-sm hover:bg-secondary/80",
-        ghost: "hover:bg-accent hover:text-accent-foreground",
-        link: "text-primary underline-offset-4 hover:underline",
+        default: `border-gold text-foreground hover:bg-gold/10 ${GLOW}`,
+        destructive: `border-destructive/70 text-destructive hover:bg-destructive/10`,
+        outline: `border-foreground/60 text-foreground hover:border-gold hover:text-gold-ink ${GLOW}`,
+        secondary: `border-border text-foreground/85 hover:border-gold/60 hover:text-gold-ink ${GLOW}`,
+        ghost: `border-transparent text-muted-foreground hover:text-gold-ink hover:[text-shadow:0_0_8px_rgb(201_169_97/0.5)]`,
+        link: "border-transparent normal-case tracking-normal text-gold-ink underline-offset-4 hover:underline",
       },
       size: {
         default: "h-9 px-4 py-2",
-        sm: "h-8 rounded-md px-3 text-xs",
-        lg: "h-10 rounded-md px-8",
-        icon: "h-9 w-9",
+        sm: "h-8 px-3",
+        lg: "h-11 px-8",
+        icon: "h-9 w-9 tracking-normal",
       },
     },
     defaultVariants: {

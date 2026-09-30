@@ -150,7 +150,7 @@ export function AuthModal() {
       <div
         ref={modalRef}
         id="auth-modal-dialog"
-        className="relative w-full max-w-md border border-border bg-card text-card-foreground p-6 sm:p-8 shadow-[var(--shadow-lift)] rounded-xl my-auto transition-all"
+        className="relative w-full max-w-md border border-border bg-card text-card-foreground p-6 sm:p-8 rounded-md my-auto transition-all"
       >
         {/* Close Button */}
         <button
@@ -496,7 +496,7 @@ export function AuthModal() {
                 </span>
               </div>
               <div className="flex items-center gap-2 pt-1">
-                <span className="flex size-7 items-center justify-center rounded-full bg-primary text-primary-foreground">
+                <span className="flex size-7 items-center justify-center rounded-full border border-gold/60 bg-transparent text-gold-ink">
                   <ShieldCheck className="size-3.5" />
                 </span>
                 <span className="eyebrow">Email Verification</span>
@@ -522,7 +522,7 @@ export function AuthModal() {
             )}
 
             {devOtpCode && (
-              <div className="flex items-center justify-between rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-900 dark:text-amber-200 animate-in fade-in duration-200">
+              <div className="flex items-center justify-between rounded-lg border border-gold/40 border border-gold/40 p-3 text-xs text-gold-ink animate-in fade-in duration-200">
                 <div className="space-y-0.5">
                   <span className="font-semibold block">Preview Verification Code:</span>
                   <span>
@@ -608,7 +608,7 @@ export function AuthModal() {
                 id="verify-complete-signup-button"
                 type="submit"
                 disabled={isSubmitting || verificationCode.length !== 6}
-                className="w-full h-11 font-medium text-sm cursor-pointer shadow-sm mt-2"
+                className="w-full h-11 font-medium text-sm cursor-pointer mt-2"
               >
                 {isSubmitting ? (
                   <>

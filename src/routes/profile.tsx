@@ -396,52 +396,13 @@ function ProfilePage() {
 
   return (
     <main className="min-h-screen bg-background pb-20">
-      {/* Top Navigation */}
-      <nav className="border-b border-border/80 bg-card/60 backdrop-blur-md sticky top-0 z-30">
-        <div className="mx-auto flex w-full max-w-5xl items-center justify-between gap-4 px-4 sm:px-6 py-3.5">
-          <div className="flex items-center gap-6">
-            <AtelierOraLogo />
-            <div className="hidden md:flex items-center gap-6 ml-4">
-              <Link
-                to="/closet"
-                className="nav-link inline-flex items-center gap-1.5 text-foreground/75"
-              >
-                My Closet
-              </Link>
-              <Link
-                to="/generate"
-                className="nav-link inline-flex items-center gap-1.5 text-foreground/75"
-              >
-                <span>AI Stylist</span>
-              </Link>
-              <Link
-                to="/studio"
-                className="nav-link inline-flex items-center gap-1.5 text-foreground/75"
-              >
-                Try-On Studio
-              </Link>
-              <Link
-                to="/profile"
-                className="nav-link inline-flex items-center gap-1.5 text-foreground"
-              >
-                Profile Settings
-              </Link>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2.5">
-            <HeaderAuthButtons />
-          </div>
-        </div>
-      </nav>
-
       {/* Main Container */}
-      <div className="mx-auto w-full max-w-5xl px-4 sm:px-6 pt-8 space-y-8">
+      <div className="mx-auto w-full max-w-6xl px-6 pt-8 space-y-8">
         {/* Header Banner */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-border">
           <div className="space-y-1">
             <div className="flex items-center gap-2">
-              <span className="flex size-6 items-center justify-center rounded-full bg-primary/10 text-primary">
+              <span className="flex size-6 items-center justify-center rounded-full bg-primary/10 text-gold-ink">
                 <User className="size-3.5" />
               </span>
               <span className="eyebrow">Phase 4 • Silhouette & Measurements</span>
@@ -464,7 +425,7 @@ function ProfilePage() {
               className="gap-1.5 text-xs font-medium cursor-pointer"
             >
               <Link to="/studio">
-                <Shirt className="size-3.5 text-primary" />
+                <Shirt className="size-3.5 text-gold-ink" />
                 <span>Open Fitting Studio</span>
                 <ArrowRight className="size-3 text-muted-foreground" />
               </Link>
@@ -476,7 +437,7 @@ function ProfilePage() {
               className="gap-1.5 text-xs font-medium cursor-pointer"
             >
               <Link to="/generate">
-                <Sparkles className="size-3.5 text-amber-500" />
+                <Sparkles className="size-3.5 text-gold-ink" />
                 <span>AI Stylist</span>
               </Link>
             </Button>
@@ -488,9 +449,9 @@ function ProfilePage() {
           {/* Left Column: Account & Body Shape Cards */}
           <div className="space-y-5 lg:sticky lg:top-20">
             {/* Identity Card */}
-            <div className="rounded-xl border border-border bg-card p-5 shadow-xs space-y-4">
+            <div className="rounded-md border border-border bg-card p-5 space-y-4">
               <div className="flex items-center gap-3">
-                <div className="flex size-12 items-center justify-center rounded-full bg-primary text-primary-foreground font-semibold text-base shadow-xs">
+                <div className="flex size-12 items-center justify-center rounded-full border border-gold/60 bg-transparent text-gold-ink font-semibold text-base">
                   {(fullName || user?.email || "U").substring(0, 2).toUpperCase()}
                 </div>
                 <div className="overflow-hidden">
@@ -508,7 +469,7 @@ function ProfilePage() {
                   <span className="text-muted-foreground">Body Shape</span>
                   <Badge
                     variant="outline"
-                    className="font-semibold text-xs border-primary/30 text-primary"
+                    className="font-semibold text-xs border-primary/30 text-gold-ink"
                   >
                     {bodyType}
                   </Badge>
@@ -532,7 +493,7 @@ function ProfilePage() {
               </div>
 
               {!isAuthenticated && (
-                <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-700 dark:text-amber-300 space-y-2">
+                <div className="rounded-lg border border-gold/40 border border-gold/40 p-3 text-xs text-gold-ink space-y-2">
                   <p className="font-medium">Using Guest Mode</p>
                   <p className="text-[11px] text-muted-foreground">
                     Log in to automatically synchronize your base photo and tailored fitting room
@@ -555,20 +516,20 @@ function ProfilePage() {
               const activeShape = BODY_SHAPES.find((s) => s.id === bodyType) ?? BODY_SHAPES[0];
               if (!activeShape) return null;
               return (
-                <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 text-xs space-y-2.5">
+                <div className="rounded-md border border-primary/20 bg-primary/5 p-4 text-xs space-y-2.5">
                   <div className="flex items-center justify-between">
                     <span className="font-semibold text-foreground flex items-center gap-1.5">
-                      <Sparkles className="size-3.5 text-primary" />
+                      <Sparkles className="size-3.5 text-gold-ink" />
                       <span>{activeShape.title} Silhouette</span>
                     </span>
-                    <span className="text-[10px] text-primary/80 font-mono">Active Fit</span>
+                    <span className="text-[10px] text-gold-ink font-mono">Active Fit</span>
                   </div>
                   <p className="text-[11px] text-muted-foreground leading-relaxed">
                     {activeShape.description}
                   </p>
                   <div className="rounded-md bg-background/80 p-2.5 border border-border/60">
                     <p className="text-[11px] text-foreground font-medium flex items-center gap-1 mb-1">
-                      <Compass className="size-3 text-amber-500" />
+                      <Compass className="size-3 text-gold-ink" />
                       <span>Couture Stylist Note</span>
                     </p>
                     <p className="text-[11px] text-muted-foreground italic">
@@ -580,7 +541,7 @@ function ProfilePage() {
             })()}
 
             {/* Quick Measurement Preview Card */}
-            <div className="rounded-xl border border-border bg-card p-4 text-xs space-y-2">
+            <div className="rounded-md border border-border bg-card p-4 text-xs space-y-2">
               <div className="flex items-center justify-between">
                 <span className="font-medium text-foreground flex items-center gap-1.5">
                   <Ruler className="size-3.5 text-muted-foreground" />
@@ -619,11 +580,11 @@ function ProfilePage() {
           <div className="lg:col-span-2 space-y-6">
             <form onSubmit={handleSaveProfile} className="space-y-6">
               {/* SECTION 1: Base Photo Upload & Management */}
-              <div className="rounded-xl border border-border bg-card p-6 shadow-xs space-y-4">
+              <div className="rounded-md border border-border bg-card p-6 space-y-4">
                 <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border pb-3">
                   <div>
                     <h2 className="text-sm font-semibold text-foreground flex items-center gap-1.5">
-                      <Camera className="size-4 text-primary" />
+                      <Camera className="size-4 text-gold-ink" />
                       <span>Virtual Fitting Base Photo</span>
                     </h2>
                     <p className="text-xs text-muted-foreground mt-0.5">
@@ -642,9 +603,9 @@ function ProfilePage() {
                         className="text-xs h-7 px-2.5 gap-1.5 cursor-pointer"
                       >
                         {isDetectingPose ? (
-                          <RefreshCw className="size-3 animate-spin text-primary" />
+                          <RefreshCw className="size-3 animate-spin text-gold-ink" />
                         ) : (
-                          <Sparkles className="size-3 text-amber-500" />
+                          <Sparkles className="size-3 text-gold-ink" />
                         )}
                         <span>Scan Proportions</span>
                       </Button>
@@ -670,12 +631,12 @@ function ProfilePage() {
                   onDragOver={handleDrag}
                   onDrop={handleDrop}
                   onClick={() => fileInputRef.current?.click()}
-                  className={`relative flex min-h-[220px] cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed p-6 text-center transition-all ${
+                  className={`relative flex min-h-[220px] cursor-pointer flex-col items-center justify-center rounded-md border border-dashed p-6 text-center transition-all ${
                     dragActive
-                      ? "border-primary bg-primary/5"
+                      ? "border-gold bg-gold/5"
                       : photoUrl
                         ? "border-border bg-secondary/20"
-                        : "border-border hover:border-primary/50 hover:bg-muted/30"
+                        : "border-white/30 hover:border-gold"
                   }`}
                 >
                   <input
@@ -691,7 +652,7 @@ function ProfilePage() {
                       <img
                         src={photoUrl}
                         alt="User full body try-on preview"
-                        className="h-48 w-36 rounded-lg object-cover object-top border border-border shadow-sm shrink-0 bg-background"
+                        className="h-48 w-36 rounded-lg object-cover object-top border border-border shrink-0 bg-background"
                       />
                       <div className="text-left space-y-2">
                         <p className="text-xs text-foreground font-medium">
@@ -724,7 +685,7 @@ function ProfilePage() {
                               void handleAutoDetectFromPhoto();
                             }}
                           >
-                            <Sparkles className="size-3 text-amber-500" />
+                            <Sparkles className="size-3 text-gold-ink" />
                             <span>Auto-Detect Shape</span>
                           </Button>
                         </div>
@@ -748,11 +709,11 @@ function ProfilePage() {
               </div>
 
               {/* SECTION 2: Proportional Measurements Form */}
-              <div className="rounded-xl border border-border bg-card p-6 shadow-xs space-y-4">
+              <div className="rounded-md border border-border bg-card p-6 space-y-4">
                 <div className="flex items-center justify-between border-b border-border pb-3">
                   <div>
                     <h2 className="text-sm font-semibold text-foreground flex items-center gap-1.5">
-                      <Ruler className="size-4 text-primary" />
+                      <Ruler className="size-4 text-gold-ink" />
                       <span>Body Measurements & Sizing Proportions</span>
                     </h2>
                     <p className="text-xs text-muted-foreground mt-0.5">
@@ -768,7 +729,7 @@ function ProfilePage() {
                       className={cn(
                         "rounded-md px-2.5 py-1 font-medium transition-colors cursor-pointer",
                         measurementUnit === "in"
-                          ? "bg-background text-foreground shadow-xs"
+                          ? "bg-background text-foreground "
                           : "text-muted-foreground hover:text-foreground",
                       )}
                     >
@@ -780,7 +741,7 @@ function ProfilePage() {
                       className={cn(
                         "rounded-md px-2.5 py-1 font-medium transition-colors cursor-pointer",
                         measurementUnit === "cm"
-                          ? "bg-background text-foreground shadow-xs"
+                          ? "bg-background text-foreground "
                           : "text-muted-foreground hover:text-foreground",
                       )}
                     >
@@ -915,9 +876,9 @@ function ProfilePage() {
                 <div className="rounded-lg border border-border/80 bg-secondary/30 p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
                   <div className="space-y-0.5">
                     <span className="font-medium text-foreground flex items-center gap-1.5">
-                      <Sparkles className="size-3 text-primary" />
+                      <Sparkles className="size-3 text-gold-ink" />
                       <span>Proportional Ratio Analysis:</span>
-                      <strong className="text-primary font-semibold">
+                      <strong className="text-gold-ink font-semibold">
                         {calculatedSilhouette.suggestedShape}
                       </strong>
                     </span>
@@ -943,10 +904,10 @@ function ProfilePage() {
               </div>
 
               {/* SECTION 3: Body Shape Archetype Selection */}
-              <div className="rounded-xl border border-border bg-card p-6 shadow-xs space-y-4">
+              <div className="rounded-md border border-border bg-card p-6 space-y-4">
                 <div className="border-b border-border pb-3">
                   <h2 className="text-sm font-semibold text-foreground flex items-center gap-1.5">
-                    <Layers className="size-4 text-primary" />
+                    <Layers className="size-4 text-gold-ink" />
                     <span>Body Shape & Silhouette Type</span>
                   </h2>
                   <p className="text-xs text-muted-foreground mt-0.5">
@@ -963,16 +924,16 @@ function ProfilePage() {
                         key={shape.id}
                         onClick={() => setBodyType(shape.id)}
                         className={cn(
-                          "cursor-pointer rounded-xl border p-3.5 transition-all text-left space-y-1.5 relative",
+                          "cursor-pointer rounded-md border p-3.5 transition-all text-left space-y-1.5 relative",
                           isSelected
-                            ? "border-primary bg-primary/5 ring-1 ring-primary/40 shadow-xs"
+                            ? "border-primary bg-primary/5 ring-1 ring-primary/40 "
                             : "border-border hover:border-border/80 hover:bg-muted/40",
                         )}
                       >
                         <div className="flex items-center justify-between">
                           <h4 className="font-semibold text-xs text-foreground">{shape.title}</h4>
                           {isSelected && (
-                            <span className="flex size-4 items-center justify-center rounded-full bg-primary text-primary-foreground">
+                            <span className="flex size-4 items-center justify-center rounded-full border border-gold/60 bg-transparent text-gold-ink">
                               <Check className="size-2.5" />
                             </span>
                           )}
@@ -987,10 +948,10 @@ function ProfilePage() {
               </div>
 
               {/* SECTION 4: Preferred Aesthetic Vibe & Modesty Settings */}
-              <div className="rounded-xl border border-border bg-card p-6 shadow-xs space-y-5">
+              <div className="rounded-md border border-border bg-card p-6 space-y-5">
                 <div className="border-b border-border pb-3">
                   <h2 className="text-sm font-semibold text-foreground flex items-center gap-1.5">
-                    <Compass className="size-4 text-primary" />
+                    <Compass className="size-4 text-gold-ink" />
                     <span>Styling Aesthetics & Modesty Preferences</span>
                   </h2>
                   <p className="text-xs text-muted-foreground mt-0.5">
@@ -1020,7 +981,7 @@ function ProfilePage() {
                         >
                           <div className="flex items-center justify-between">
                             <span className="text-xs font-medium text-foreground">{opt.label}</span>
-                            {isSelected && <Check className="size-3 text-primary" />}
+                            {isSelected && <Check className="size-3 text-gold-ink" />}
                           </div>
                           <p className="text-[11px] text-muted-foreground leading-tight">
                             {opt.desc}
@@ -1054,7 +1015,7 @@ function ProfilePage() {
                       id="profile-default-occasion"
                       value={defaultOccasion}
                       onChange={(e) => setDefaultOccasion(e.target.value)}
-                      className="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-xs shadow-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                      className="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                     >
                       {OCCASION_OPTIONS.map((occ) => (
                         <option key={occ} value={occ}>
@@ -1081,7 +1042,7 @@ function ProfilePage() {
                           className={cn(
                             "rounded-full px-3 py-1 text-xs font-medium transition-all cursor-pointer border",
                             active
-                              ? "bg-primary text-primary-foreground border-primary"
+                              ? "border-gold bg-gold/10 text-gold-ink"
                               : "bg-secondary/60 text-muted-foreground border-border hover:border-foreground/30 hover:text-foreground",
                           )}
                         >
@@ -1113,16 +1074,16 @@ function ProfilePage() {
               </div>
 
               {/* Form Submission Action Bar */}
-              <div className="rounded-xl border border-border bg-card p-4 shadow-xs flex flex-wrap items-center justify-between gap-3">
+              <div className="rounded-md border border-border bg-card p-4 flex flex-wrap items-center justify-between gap-3">
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <Info className="size-3.5 text-primary" />
+                  <Info className="size-3.5 text-gold-ink" />
                   <span>Changes immediately sync to the Fitting Studio and AI Stylist.</span>
                 </div>
 
                 <Button
                   type="submit"
                   disabled={isSaving}
-                  className="gap-2 text-xs font-medium cursor-pointer shadow-xs h-9 px-5 ml-auto"
+                  className="gap-2 text-xs font-medium cursor-pointer h-9 px-5 ml-auto"
                 >
                   {isSaving ? (
                     <>

@@ -99,8 +99,8 @@ class ClosetErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBound
   override render() {
     if (this.state.hasError) {
       return (
-        <main className="mx-auto w-full max-w-6xl px-4 sm:px-6 py-12">
-          <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-8 text-center space-y-4">
+        <main className="mx-auto w-full max-w-6xl px-6 py-12">
+          <div className="rounded-md border border-destructive/30 bg-destructive/5 p-8 text-center space-y-4">
             <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-destructive/10 text-destructive">
               <AlertCircle className="size-6" />
             </div>
@@ -338,53 +338,14 @@ function ClosetPage() {
 
   return (
     <main className="min-h-screen bg-background pb-20">
-      {/* Top Navigation */}
-      <header className="border-b border-border bg-card/60 backdrop-blur-md sticky top-0 z-20">
-        <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-4 sm:px-6 py-4">
-          <div className="flex items-center gap-3">
-            <AtelierOraLogo />
-            <span className="text-border">/</span>
-            <span className="text-xs sm:text-sm font-medium text-foreground flex items-center gap-1.5">
-              <Shirt className="size-4 text-primary" />
-              <span>My Wardrobe</span>
-            </span>
-          </div>
-
-          <div className="flex items-center gap-4 sm:gap-6">
-            <Link
-              to="/generate"
-              className="nav-link inline-flex items-center gap-1.5 text-foreground/75"
-            >
-              <span>AI Stylist</span>
-            </Link>
-            <Link
-              to="/studio"
-              className="nav-link inline-flex items-center gap-1.5 text-foreground/75"
-            >
-              <Sparkles className="size-3.5 text-gold" />
-              <span>Fitting Studio</span>
-            </Link>
-            <Link
-              to="/profile"
-              className="nav-link inline-flex items-center gap-1.5 text-foreground/75"
-            >
-              <User className="size-3.5" />
-              <span className="hidden sm:inline">Fit Settings</span>
-            </Link>
-            <div className="h-4 w-px bg-border hidden sm:block" />
-            <HeaderAuthButtons />
-          </div>
-        </div>
-      </header>
-
-      <div className="mx-auto w-full max-w-6xl px-4 sm:px-6 pt-8 sm:pt-10 space-y-8">
+      <div className="mx-auto w-full max-w-6xl px-6 pt-8 sm:pt-10 space-y-8">
         {/* ========================================================================= */}
         {/* 1. Top Header: Page Title "My Wardrobe" & "Add New Item" Button */}
         {/* ========================================================================= */}
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-border/60 pb-6">
           <div>
             <div className="flex items-center gap-2">
-              <p className="eyebrow text-primary">Smart Outfit Engine</p>
+              <p className="eyebrow text-gold-ink">Smart Outfit Engine</p>
               <Badge variant="outline" className="text-[10px] bg-secondary/80 font-mono">
                 Phase 2 Engine
               </Badge>
@@ -403,10 +364,10 @@ function ClosetPage() {
               asChild
               variant="outline"
               size="default"
-              className="gap-2 font-medium border-amber-300 bg-amber-50/50 hover:bg-amber-100/60 text-amber-900 cursor-pointer"
+              className="gap-2 font-medium border-gold/40 border border-gold/40 hover:bg-gold/10 text-gold-ink cursor-pointer"
             >
               <Link to="/generate">
-                <Sparkles className="size-4 text-amber-600" />
+                <Sparkles className="size-4 text-gold-ink" />
                 <span>AI Stylist</span>
               </Link>
             </Button>
@@ -414,7 +375,7 @@ function ClosetPage() {
               id="add-new-item-header-btn"
               onClick={() => setIsAddModalOpen(true)}
               size="default"
-              className="gap-2 font-medium shadow-sm cursor-pointer bg-primary text-primary-foreground hover:bg-primary/90"
+              className="gap-2 font-medium cursor-pointer border border-gold bg-transparent text-gold-ink hover:bg-gold/10"
             >
               <Plus className="size-4" />
               <span>Add New Item</span>
@@ -425,7 +386,7 @@ function ClosetPage() {
         {/* ========================================================================= */}
         {/* 2. Category & Occasion Navigation Filter Bar */}
         {/* ========================================================================= */}
-        <section className="space-y-4 rounded-xl border border-border bg-card p-4 sm:p-5 shadow-xs">
+        <section className="space-y-4 rounded-md border border-border bg-card p-4 sm:p-5">
           {/* Search, Season, Favorites Bar */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="relative flex-1 max-w-md">
@@ -471,12 +432,12 @@ function ClosetPage() {
                 onClick={() => setShowFavoritesOnly(!showFavoritesOnly)}
                 className={`h-9 gap-1.5 text-xs font-medium cursor-pointer transition-all ${
                   showFavoritesOnly
-                    ? "bg-rose-600 hover:bg-rose-700 text-white"
+                    ? "border border-gold bg-transparent text-gold-ink hover:bg-gold/10"
                     : "text-muted-foreground hover:text-foreground"
                 }`}
               >
                 <Heart
-                  className={`size-3.5 ${showFavoritesOnly ? "fill-white text-white" : "text-rose-500"}`}
+                  className={`size-3.5 ${showFavoritesOnly ? "fill-white text-white" : "text-gold-ink"}`}
                 />
                 <span>Favorites ({favoriteCount})</span>
               </Button>
@@ -520,7 +481,7 @@ function ClosetPage() {
                     onClick={() => setSelectedCategoryTab(tab)}
                     className={`shrink-0 rounded-lg px-3.5 py-1.5 text-xs font-medium transition-all cursor-pointer ${
                       isSelected
-                        ? "bg-primary text-primary-foreground shadow-xs font-semibold"
+                        ? "border border-gold bg-gold/10 text-gold-ink  font-semibold"
                         : "bg-secondary/60 text-secondary-foreground hover:bg-secondary hover:text-foreground"
                     }`}
                   >
@@ -542,7 +503,7 @@ function ClosetPage() {
                 onClick={() => setSelectedOccasionTag(null)}
                 className={`shrink-0 rounded-full px-3 py-1 text-xs transition-all cursor-pointer ${
                   selectedOccasionTag === null
-                    ? "bg-primary/90 text-primary-foreground font-medium"
+                    ? "border border-gold bg-gold/10 text-gold-ink font-medium"
                     : "border border-border/80 bg-background text-muted-foreground hover:text-foreground hover:border-foreground/40"
                 }`}
               >
@@ -557,11 +518,11 @@ function ClosetPage() {
                     onClick={() => setSelectedOccasionTag(isSelected ? null : tag)}
                     className={`shrink-0 rounded-full px-3 py-1 text-xs transition-all cursor-pointer flex items-center gap-1.5 ${
                       isSelected
-                        ? "bg-primary text-primary-foreground font-medium shadow-xs"
+                        ? "border border-gold bg-gold/10 text-gold-ink font-medium "
                         : "border border-border/80 bg-background text-muted-foreground hover:text-foreground hover:border-foreground/40"
                     }`}
                   >
-                    {tag === "Wedding" && <Sparkles className="size-3 text-amber-500" />}
+                    {tag === "Wedding" && <Sparkles className="size-3 text-gold-ink" />}
                     <span>{tag}</span>
                   </button>
                 );
@@ -575,7 +536,7 @@ function ClosetPage() {
         {/* ========================================================================= */}
         {isLoading ? (
           <div className="flex flex-col items-center justify-center py-24 space-y-4">
-            <Loader2 className="size-8 animate-spin text-primary" />
+            <Loader2 className="size-8 animate-spin text-gold-ink" />
             <p className="text-sm text-muted-foreground">Loading your digital wardrobe...</p>
           </div>
         ) : filteredItems.length > 0 ? (
@@ -591,7 +552,7 @@ function ClosetPage() {
             ))}
           </div>
         ) : (
-          <div className="rounded-xl border border-dashed border-border bg-card/40 p-12 text-center space-y-4">
+          <div className="rounded-md border border-dashed border-border bg-card/40 p-12 text-center space-y-4">
             <div className="mx-auto flex size-14 items-center justify-center rounded-full bg-secondary text-muted-foreground">
               <Shirt className="size-7 opacity-60" />
             </div>
@@ -620,7 +581,7 @@ function ClosetPage() {
                 size="sm"
                 className="gap-1.5 cursor-pointer text-xs"
               >
-                <Sparkles className="size-3.5 text-amber-500" />
+                <Sparkles className="size-3.5 text-gold-ink" />
                 <span>Restore Sample Outfits</span>
               </Button>
               <Button
@@ -636,10 +597,10 @@ function ClosetPage() {
         )}
 
         {/* Direct Link to Fitting Studio Banner */}
-        <section className="rounded-xl border border-border bg-gradient-to-r from-card via-secondary/20 to-card p-6 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-xs">
+        <section className="rounded-md border border-border bg-gradient-to-r from-card via-secondary/20 to-card p-6 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="space-y-1 text-center sm:text-left">
             <h3 className="text-lg font-display font-medium text-foreground flex items-center justify-center sm:justify-start gap-2">
-              <Sparkles className="size-4 text-amber-500" />
+              <Sparkles className="size-4 text-gold-ink" />
               <span>Ready for Virtual Fitting?</span>
             </h3>
             <p className="text-xs text-muted-foreground max-w-xl">

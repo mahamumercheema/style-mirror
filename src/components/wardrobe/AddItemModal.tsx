@@ -177,11 +177,11 @@ export function AddItemModal({
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="relative w-full max-w-xl border border-border bg-card text-card-foreground p-6 rounded-2xl shadow-2xl my-auto transition-all max-h-[90vh] overflow-y-auto">
+      <div className="relative w-full max-w-xl border border-border bg-card text-card-foreground p-6 rounded-md my-auto transition-all max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between pb-4 border-b border-border">
           <div className="flex items-center gap-2">
-            <span className="flex size-7 items-center justify-center rounded-full bg-primary text-primary-foreground">
+            <span className="flex size-7 items-center justify-center rounded-full border border-gold/60 bg-transparent text-gold-ink">
               <UploadCloud className="size-4" />
             </span>
             <div>
@@ -251,12 +251,12 @@ export function AddItemModal({
                 onDragOver={handleDrag}
                 onDrop={handleDrop}
                 onClick={() => fileInputRef.current?.click()}
-                className={`relative flex min-h-[140px] cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed p-4 text-center transition-colors ${
+                className={`relative flex min-h-[140px] cursor-pointer flex-col items-center justify-center rounded-md border border-dashed p-4 text-center transition-colors ${
                   dragActive
-                    ? "border-primary bg-primary/5"
+                    ? "border-gold bg-gold/5"
                     : imageUrl
                       ? "border-border bg-secondary/20"
-                      : "border-border hover:border-primary/50 hover:bg-muted/40"
+                      : "border-white/30 hover:border-gold"
                 }`}
               >
                 <input
@@ -272,7 +272,7 @@ export function AddItemModal({
                     <img
                       src={imageUrl}
                       alt="Uploaded preview"
-                      className="size-24 rounded-lg object-cover border border-border shadow-xs shrink-0"
+                      className="size-24 rounded-lg object-cover border border-border shrink-0"
                     />
                     <div className="text-left text-xs">
                       <p className="font-medium text-foreground">Photo ready for wardrobe</p>
@@ -485,7 +485,7 @@ export function AddItemModal({
                     onClick={() => toggleOccasion(occ.id)}
                     className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs transition-all cursor-pointer ${
                       isSelected
-                        ? "bg-primary text-primary-foreground font-medium shadow-xs"
+                        ? "border border-gold bg-gold/10 text-gold-ink font-medium "
                         : "border border-border/80 bg-background text-muted-foreground hover:text-foreground hover:border-foreground/30"
                     }`}
                   >
@@ -501,7 +501,7 @@ export function AddItemModal({
           <div className="flex items-center justify-between rounded-lg border border-border bg-secondary/30 p-3">
             <div className="flex items-center gap-2">
               <Heart
-                className={`size-4 ${isFavorite ? "fill-rose-500 text-rose-500" : "text-muted-foreground"}`}
+                className={`size-4 ${isFavorite ? "fill-gold text-gold-ink" : "text-muted-foreground"}`}
               />
               <div>
                 <p className="text-xs font-medium text-foreground">Mark as Favorite Item</p>
@@ -515,7 +515,7 @@ export function AddItemModal({
               id="modal-favorite-toggle"
               checked={isFavorite}
               onChange={(e) => setIsFavorite(e.target.checked)}
-              className="size-4 rounded-sm border-border text-primary cursor-pointer"
+              className="size-4 rounded-sm border-border text-gold-ink cursor-pointer"
             />
           </div>
 
@@ -535,7 +535,7 @@ export function AddItemModal({
               type="submit"
               size="sm"
               disabled={isSubmitting || !imageUrl}
-              className="text-xs font-medium cursor-pointer shadow-xs gap-1.5"
+              className="text-xs font-medium cursor-pointer gap-1.5"
             >
               {isSubmitting ? (
                 <>

@@ -120,7 +120,7 @@ class GenerateErrorBoundary extends React.Component<
   override render() {
     if (this.state.hasError) {
       return (
-        <main className="mx-auto w-full max-w-5xl px-4 py-16 text-center space-y-4">
+        <main className="mx-auto w-full max-w-6xl px-6 py-16 text-center space-y-4">
           <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-destructive/10 text-destructive">
             <AlertCircle className="size-6" />
           </div>
@@ -281,56 +281,23 @@ function GeneratePage() {
   }, [currentOption, wardrobe]);
 
   return (
-    <main className="min-h-screen bg-[#faf8f6] text-[#1c1917] pb-24 selection:bg-amber-100">
-      {/* Top Navigation */}
-      <header className="border-b border-border/70 bg-card/70 backdrop-blur-md sticky top-0 z-20">
-        <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-4 sm:px-6 py-4">
-          <div className="flex items-center gap-3">
-            <AtelierOraLogo />
-            <span className="text-border">/</span>
-            <span className="text-xs sm:text-sm font-medium text-foreground flex items-center gap-1.5">
-              <Sparkles className="size-4 text-amber-600" />
-              <span>AI Stylist</span>
-            </span>
-          </div>
-
-          <div className="flex items-center gap-4 sm:gap-6">
-            <Link
-              to="/closet"
-              className="nav-link inline-flex items-center gap-1.5 text-foreground/75"
-            >
-              <Shirt className="size-3.5 text-foreground/60" />
-              <span>My Closet</span>
-            </Link>
-            <Link
-              to="/studio"
-              className="nav-link inline-flex items-center gap-1.5 text-foreground/75"
-            >
-              <Sparkles className="size-3.5 text-gold" />
-              <span className="hidden sm:inline">Fitting Studio</span>
-            </Link>
-            <div className="h-4 w-px bg-border hidden sm:block" />
-            <HeaderAuthButtons />
-          </div>
-        </div>
-      </header>
-
-      <div className="mx-auto w-full max-w-6xl px-4 sm:px-6 pt-8 sm:pt-10 space-y-10">
+    <main className="min-h-screen bg-background text-foreground pb-24 selection:bg-gold/30">
+      <div className="mx-auto w-full max-w-6xl px-6 pt-8 sm:pt-10 space-y-10">
         {/* Page Header */}
-        <div className="space-y-2 border-b border-stone-200/80 pb-6">
+        <div className="space-y-2 border-b border-border pb-6">
           <div className="flex items-center gap-2">
-            <p className="eyebrow text-amber-700 tracking-wider">Haute Couture AI Director</p>
+            <p className="eyebrow text-gold-ink tracking-wider">Haute Couture AI Director</p>
             <Badge
               variant="outline"
-              className="text-[10px] bg-amber-50/70 border-amber-200 text-amber-800 font-mono"
+              className="text-[10px] border border-gold/40 border-gold/40 text-gold-ink font-mono"
             >
               Gemini Powered
             </Badge>
           </div>
-          <h1 className="text-3xl sm:text-4xl md:text-5xl font-display font-semibold tracking-tight text-stone-900">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-display font-semibold tracking-tight text-foreground">
             AI Stylist & Outfit Generator
           </h1>
-          <p className="text-sm text-stone-600 max-w-3xl leading-relaxed">
+          <p className="text-sm text-muted-foreground max-w-3xl leading-relaxed">
             Let our AI fashion director harmonize Western separates and South Asian ethnic attire
             from your wardrobe. Receive complete ensemble formulas with personalized hair styling,
             makeup inspiration, and proportional advice for any occasion.
@@ -339,35 +306,35 @@ function GeneratePage() {
 
         {/* Phase 4: Personalized Profile Indicator Banner */}
         {profile && (
-          <div className="rounded-xl border border-amber-200/90 bg-gradient-to-r from-amber-50/80 via-stone-50 to-orange-50/60 p-4 flex flex-wrap items-center justify-between gap-3 text-xs shadow-xs">
+          <div className="rounded-md border border-gold/40 bg-gradient-to-r from-amber-50/80 via-stone-50 to-orange-50/60 p-4 flex flex-wrap items-center justify-between gap-3 text-xs">
             <div className="flex items-center gap-3">
-              <div className="flex size-9 items-center justify-center rounded-full bg-amber-100 text-amber-800 shrink-0">
-                <Sparkles className="size-4 text-amber-700" />
+              <div className="flex size-9 items-center justify-center rounded-full border border-gold/40 text-gold-ink shrink-0">
+                <Sparkles className="size-4 text-gold-ink" />
               </div>
               <div>
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="font-semibold text-stone-900 text-sm">
+                  <span className="font-semibold text-foreground text-sm">
                     Personalized for {profile.full_name || "You"}
                   </span>
                   <Badge
                     variant="outline"
-                    className="text-[10px] bg-white border-amber-300 text-amber-900 font-medium"
+                    className="text-[10px] bg-card border-gold/40 text-gold-ink font-medium"
                   >
                     {profile.bodyType || "Hourglass"} Silhouette
                   </Badge>
                   <Badge
                     variant="outline"
-                    className="text-[10px] bg-white border-stone-300 text-stone-700"
+                    className="text-[10px] bg-card border-border text-foreground"
                   >
                     {modestyFilter}
                   </Badge>
                   {profile.height && (
-                    <span className="text-[11px] text-stone-500 font-mono">
+                    <span className="text-[11px] text-muted-foreground font-mono">
                       Height: {profile.height}
                     </span>
                   )}
                 </div>
-                <p className="text-[11px] text-stone-500 mt-0.5">
+                <p className="text-[11px] text-muted-foreground mt-0.5">
                   Proportions, body landmarks, and modest draping preferences automatically
                   incorporated into styling suggestions.
                 </p>
@@ -378,7 +345,7 @@ function GeneratePage() {
               asChild
               variant="outline"
               size="sm"
-              className="h-8 text-xs font-medium cursor-pointer border-amber-300/80 hover:bg-amber-100/60"
+              className="h-8 text-xs font-medium cursor-pointer border-gold/40 hover:bg-gold/10"
             >
               <Link to="/profile">Profile & Measurements</Link>
             </Button>
@@ -390,13 +357,13 @@ function GeneratePage() {
         {/* ========================================================================= */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           <div className="lg:col-span-5 space-y-6">
-            <div className="rounded-2xl border border-stone-200/80 bg-white p-6 shadow-xs space-y-6">
-              <div className="border-b border-stone-100 pb-4">
-                <h2 className="text-lg font-display font-medium text-stone-900 flex items-center gap-2">
-                  <Compass className="size-5 text-amber-600" />
+            <div className="rounded-md border border-border bg-card p-6 space-y-6">
+              <div className="border-b border-border pb-4">
+                <h2 className="text-lg font-display font-medium text-foreground flex items-center gap-2">
+                  <Compass className="size-5 text-gold-ink" />
                   <span>Curate Your Occasion</span>
                 </h2>
-                <p className="text-xs text-stone-500 mt-0.5">
+                <p className="text-xs text-muted-foreground mt-0.5">
                   Set event formality, atmosphere, and optional centerpiece garment.
                 </p>
               </div>
@@ -404,14 +371,16 @@ function GeneratePage() {
               <form onSubmit={handleCurateOutfit} className="space-y-5">
                 {/* 1. Occasion Selector */}
                 <div className="space-y-2">
-                  <label className="text-xs font-semibold text-stone-700 uppercase tracking-wider flex items-center justify-between">
+                  <label className="text-xs font-semibold text-foreground uppercase tracking-wider flex items-center justify-between">
                     <span>Target Occasion</span>
-                    <span className="text-[10px] text-stone-400 font-normal">Event type</span>
+                    <span className="text-[10px] text-muted-foreground font-normal">
+                      Event type
+                    </span>
                   </label>
                   <select
                     value={selectedOccasion}
                     onChange={(e) => setSelectedOccasion(e.target.value)}
-                    className="w-full h-10 rounded-lg border border-stone-300 bg-stone-50/50 px-3 text-xs sm:text-sm font-medium text-stone-800 focus:outline-hidden focus:ring-2 focus:ring-amber-500/40"
+                    className="w-full h-10 rounded-lg border border-border bg-card px-3 text-xs sm:text-sm font-medium text-foreground focus:outline-hidden focus:ring-2 focus:ring-gold/50"
                   >
                     <option value="Wedding / Festive / Fancy">
                       Wedding / Festive / Fancy (Barat, Walima, Mehendi)
@@ -426,7 +395,7 @@ function GeneratePage() {
 
                 {/* 2. Time of Day (Day / Evening / Night) */}
                 <div className="space-y-2">
-                  <label className="text-xs font-semibold text-stone-700 uppercase tracking-wider">
+                  <label className="text-xs font-semibold text-foreground uppercase tracking-wider">
                     Time of Day & Lighting
                   </label>
                   <div className="grid grid-cols-3 gap-2">
@@ -440,12 +409,12 @@ function GeneratePage() {
                           onClick={() => setSelectedTimeOfDay(t.id)}
                           className={`flex flex-col items-center justify-center p-2.5 rounded-lg border text-center transition-all cursor-pointer ${
                             isSelected
-                              ? "border-amber-600 bg-amber-50/70 text-amber-900 font-medium shadow-xs"
-                              : "border-stone-200 bg-stone-50 hover:bg-stone-100 text-stone-600"
+                              ? "border-gold/40 border border-gold/40 text-gold-ink font-medium "
+                              : "border-border bg-card hover:bg-secondary text-muted-foreground"
                           }`}
                         >
                           <Icon
-                            className={`size-4 mb-1 ${isSelected ? "text-amber-600" : "text-stone-400"}`}
+                            className={`size-4 mb-1 ${isSelected ? "text-gold-ink" : "text-muted-foreground"}`}
                           />
                           <span className="text-xs">{t.label}</span>
                         </button>
@@ -456,13 +425,13 @@ function GeneratePage() {
 
                 {/* 3. Weather Season */}
                 <div className="space-y-2">
-                  <label className="text-xs font-semibold text-stone-700 uppercase tracking-wider">
+                  <label className="text-xs font-semibold text-foreground uppercase tracking-wider">
                     Season & Climate
                   </label>
                   <select
                     value={selectedSeason}
                     onChange={(e) => setSelectedSeason(e.target.value)}
-                    className="w-full h-10 rounded-lg border border-stone-300 bg-stone-50/50 px-3 text-xs sm:text-sm font-medium text-stone-800 focus:outline-hidden focus:ring-2 focus:ring-amber-500/40"
+                    className="w-full h-10 rounded-lg border border-border bg-card px-3 text-xs sm:text-sm font-medium text-foreground focus:outline-hidden focus:ring-2 focus:ring-gold/50"
                   >
                     {FASHION_SEASONS.map((s) => (
                       <option key={s} value={s}>
@@ -474,7 +443,7 @@ function GeneratePage() {
 
                 {/* 4. Vibe Preference */}
                 <div className="space-y-2">
-                  <label className="text-xs font-semibold text-stone-700 uppercase tracking-wider">
+                  <label className="text-xs font-semibold text-foreground uppercase tracking-wider">
                     Aesthetic Vibe
                   </label>
                   <div className="space-y-1.5">
@@ -487,15 +456,15 @@ function GeneratePage() {
                           onClick={() => setSelectedVibe(v.id)}
                           className={`w-full text-left p-2.5 rounded-lg border transition-all cursor-pointer flex items-center justify-between ${
                             isSelected
-                              ? "border-amber-600 bg-amber-50/60 text-stone-900 font-medium shadow-2xs"
-                              : "border-stone-200/80 bg-white hover:bg-stone-50/80 text-stone-600"
+                              ? "border-gold/40 border border-gold/40 text-foreground font-medium "
+                              : "border-border bg-card hover:bg-secondary text-muted-foreground"
                           }`}
                         >
                           <div>
-                            <p className="text-xs font-medium text-stone-800">{v.label}</p>
-                            <p className="text-[11px] text-stone-500">{v.desc}</p>
+                            <p className="text-xs font-medium text-foreground">{v.label}</p>
+                            <p className="text-[11px] text-muted-foreground">{v.desc}</p>
                           </div>
-                          {isSelected && <Check className="size-4 text-amber-600 shrink-0 ml-2" />}
+                          {isSelected && <Check className="size-4 text-gold-ink shrink-0 ml-2" />}
                         </button>
                       );
                     })}
@@ -503,15 +472,15 @@ function GeneratePage() {
                 </div>
 
                 {/* 5. Modesty & Coverage Preference */}
-                <div className="space-y-2 pt-1 border-t border-stone-100">
-                  <label className="text-xs font-semibold text-stone-700 uppercase tracking-wider flex items-center justify-between">
+                <div className="space-y-2 pt-1 border-t border-border">
+                  <label className="text-xs font-semibold text-foreground uppercase tracking-wider flex items-center justify-between">
                     <span>Modesty & Coverage Preference</span>
-                    <span className="text-[10px] text-amber-700 font-medium">Profile Linked</span>
+                    <span className="text-[10px] text-gold-ink font-medium">Profile Linked</span>
                   </label>
                   <select
                     value={modestyFilter}
                     onChange={(e) => setModestyFilter(e.target.value)}
-                    className="w-full h-10 rounded-lg border border-stone-300 bg-stone-50/50 px-3 text-xs sm:text-sm font-medium text-stone-800 focus:outline-hidden focus:ring-2 focus:ring-amber-500/40"
+                    className="w-full h-10 rounded-lg border border-border bg-card px-3 text-xs sm:text-sm font-medium text-foreground focus:outline-hidden focus:ring-2 focus:ring-gold/50"
                   >
                     <option value="Modest & Loose Fit">
                       Modest & Relaxed (Loose silhouettes, comfortable drape)
@@ -527,15 +496,15 @@ function GeneratePage() {
                 </div>
 
                 {/* 6. Optional Hero Item Picker */}
-                <div className="space-y-2 pt-1 border-t border-stone-100">
-                  <label className="text-xs font-semibold text-stone-700 uppercase tracking-wider flex items-center justify-between">
+                <div className="space-y-2 pt-1 border-t border-border">
+                  <label className="text-xs font-semibold text-foreground uppercase tracking-wider flex items-center justify-between">
                     <span>Hero Item to Style Around</span>
-                    <span className="text-[10px] text-stone-400 font-normal">Optional</span>
+                    <span className="text-[10px] text-muted-foreground font-normal">Optional</span>
                   </label>
                   <select
                     value={heroItemId}
                     onChange={(e) => setHeroItemId(e.target.value)}
-                    className="w-full h-10 rounded-lg border border-stone-300 bg-stone-50/50 px-3 text-xs font-medium text-stone-800 focus:outline-hidden focus:ring-2 focus:ring-amber-500/40"
+                    className="w-full h-10 rounded-lg border border-border bg-card px-3 text-xs font-medium text-foreground focus:outline-hidden focus:ring-2 focus:ring-gold/50"
                   >
                     <option value="none">No specific piece (Let AI choose full look)</option>
                     {wardrobe.map((item) => (
@@ -546,15 +515,15 @@ function GeneratePage() {
                   </select>
 
                   {heroItem && (
-                    <div className="flex items-center gap-3 p-2 rounded-lg bg-stone-100 border border-stone-200 text-xs">
+                    <div className="flex items-center gap-3 p-2 rounded-lg bg-card border border-border text-xs">
                       <img
                         src={heroItem.image_url}
                         alt={heroItem.title || "Hero piece"}
-                        className="size-10 rounded-md object-cover border border-stone-300 shrink-0"
+                        className="size-10 rounded-md object-cover border border-border shrink-0"
                       />
                       <div className="overflow-hidden">
-                        <p className="font-medium text-stone-900 truncate">{heroItem.title}</p>
-                        <p className="text-[11px] text-stone-500 truncate">
+                        <p className="font-medium text-foreground truncate">{heroItem.title}</p>
+                        <p className="text-[11px] text-muted-foreground truncate">
                           {heroItem.primary_color || "Color"} · {heroItem.fabric_type || "Fabric"}
                         </p>
                       </div>
@@ -567,16 +536,16 @@ function GeneratePage() {
                   type="submit"
                   disabled={isCurating}
                   size="lg"
-                  className="w-full mt-4 gap-2 bg-stone-900 hover:bg-stone-800 text-amber-50 font-medium py-3 rounded-xl shadow-md cursor-pointer transition-all disabled:opacity-70"
+                  className="w-full mt-4 gap-2 border border-gold bg-transparent text-gold-ink hover:bg-gold/10 font-medium py-3 rounded-md cursor-pointer transition-all disabled:opacity-70"
                 >
                   {isCurating ? (
                     <>
-                      <Sparkles className="size-4 animate-spin text-amber-400" />
+                      <Sparkles className="size-4 animate-spin text-gold-ink" />
                       <span>Styling your closet...</span>
                     </>
                   ) : (
                     <>
-                      <Sparkles className="size-4 text-amber-400" />
+                      <Sparkles className="size-4 text-gold-ink" />
                       <span>Generate AI Outfit Recommendations</span>
                     </>
                   )}
@@ -585,15 +554,15 @@ function GeneratePage() {
             </div>
 
             {/* Closet Inventory Summary Pill */}
-            <div className="rounded-xl border border-stone-200/80 bg-stone-100/50 p-4 text-xs text-stone-600 flex items-center justify-between">
+            <div className="rounded-md border border-border bg-card p-4 text-xs text-muted-foreground flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Shirt className="size-4 text-stone-500" />
+                <Shirt className="size-4 text-muted-foreground" />
                 <span>
                   Closet Inventory: <strong>{wardrobe.length} items</strong> available for AI
                   curation
                 </span>
               </div>
-              <Link to="/closet" className="text-amber-700 hover:underline font-medium text-[11px]">
+              <Link to="/closet" className="text-gold-ink hover:underline font-medium text-[11px]">
                 Add more items →
               </Link>
             </div>
@@ -605,35 +574,35 @@ function GeneratePage() {
           <div className="lg:col-span-7 space-y-6">
             {isCurating ? (
               /* Loading State */
-              <div className="rounded-2xl border border-dashed border-amber-200 bg-amber-50/40 p-12 text-center space-y-6">
-                <div className="relative mx-auto flex size-16 items-center justify-center rounded-full bg-white shadow-xs border border-amber-200">
-                  <Sparkles className="size-8 text-amber-600 animate-pulse" />
+              <div className="rounded-md border border-dashed border-gold/40 border border-gold/40 p-12 text-center space-y-6">
+                <div className="relative mx-auto flex size-16 items-center justify-center rounded-full bg-card border border-gold/40">
+                  <Sparkles className="size-8 text-gold-ink animate-pulse" />
                 </div>
                 <div className="space-y-2">
-                  <h3 className="text-xl font-display font-medium text-stone-900">
+                  <h3 className="text-xl font-display font-medium text-foreground">
                     Styling Your Closet...
                   </h3>
-                  <p className="text-xs text-amber-800 max-w-md mx-auto font-mono">
+                  <p className="text-xs text-gold-ink max-w-md mx-auto font-mono">
                     {curationStage || "Harmonizing palettes, fabrics, and jewelry accents..."}
                   </p>
                 </div>
-                <div className="max-w-xs mx-auto h-1.5 bg-amber-200/60 rounded-full overflow-hidden">
-                  <div className="h-full bg-amber-600 rounded-full animate-pulse w-3/4" />
+                <div className="max-w-xs mx-auto h-1.5 border border-gold/40 rounded-full overflow-hidden">
+                  <div className="h-full bg-gold rounded-full animate-pulse w-3/4" />
                 </div>
               </div>
             ) : recommendations && recommendations.length > 0 ? (
               /* Results Cards */
               <div className="space-y-6">
                 {infoMessage && (
-                  <div className="rounded-lg border border-amber-200 bg-amber-50/80 px-4 py-2.5 text-xs text-amber-800 flex items-center gap-2">
-                    <Info className="size-4 text-amber-600 shrink-0" />
+                  <div className="rounded-lg border border-gold/40 border border-gold/40 px-4 py-2.5 text-xs text-gold-ink flex items-center gap-2">
+                    <Info className="size-4 text-gold-ink shrink-0" />
                     <span>{infoMessage}</span>
                   </div>
                 )}
 
                 {/* Option Tabs Header */}
-                <div className="flex items-center gap-2 border-b border-stone-200 pb-3">
-                  <span className="text-xs font-semibold uppercase tracking-wider text-stone-500 mr-2">
+                <div className="flex items-center gap-2 border-b border-border pb-3">
+                  <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mr-2">
                     Curation Options:
                   </span>
                   {recommendations.map((rec, idx) => (
@@ -642,8 +611,8 @@ function GeneratePage() {
                       onClick={() => setActiveOptionTab(idx)}
                       className={`px-4 py-2 rounded-lg text-xs font-medium transition-all cursor-pointer ${
                         activeOptionTab === idx
-                          ? "bg-stone-900 text-amber-100 shadow-sm"
-                          : "bg-white text-stone-600 border border-stone-200 hover:bg-stone-50"
+                          ? "bg-secondary text-gold-ink "
+                          : "bg-card text-muted-foreground border border-border hover:bg-secondary"
                       }`}
                     >
                       {rec.option_name.split(":")[0] || `Option ${idx + 1}`}
@@ -658,40 +627,40 @@ function GeneratePage() {
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.3 }}
-                    className="rounded-2xl border border-stone-200/90 bg-white p-6 sm:p-7 shadow-xs space-y-6"
+                    className="rounded-md border border-border bg-card p-6 sm:p-7 space-y-6"
                   >
                     {/* Header */}
-                    <div className="space-y-2 border-b border-stone-100 pb-5">
+                    <div className="space-y-2 border-b border-border pb-5">
                       <div className="flex flex-wrap items-center gap-2">
-                        <Badge className="bg-amber-100 text-amber-900 border-amber-200 text-xs">
+                        <Badge className="border border-gold/40 text-gold-ink border-gold/40 text-xs">
                           {selectedOccasion}
                         </Badge>
-                        <Badge variant="outline" className="text-xs text-stone-600">
+                        <Badge variant="outline" className="text-xs text-muted-foreground">
                           {selectedTimeOfDay}
                         </Badge>
-                        <Badge variant="outline" className="text-xs text-stone-600">
+                        <Badge variant="outline" className="text-xs text-muted-foreground">
                           {selectedVibe}
                         </Badge>
                         <Badge
                           variant="outline"
-                          className="text-xs border-amber-300 bg-amber-50/60 text-amber-900 font-medium"
+                          className="text-xs border-gold/40 border border-gold/40 text-gold-ink font-medium"
                         >
                           {profile?.bodyType || "Hourglass"} Frame • {modestyFilter}
                         </Badge>
                       </div>
-                      <h2 className="text-2xl font-display font-semibold text-stone-900">
+                      <h2 className="text-2xl font-display font-semibold text-foreground">
                         {currentOption.option_name}
                       </h2>
-                      <p className="text-sm text-stone-600 italic leading-relaxed">
+                      <p className="text-sm text-muted-foreground italic leading-relaxed">
                         "{currentOption.style_reasoning}"
                       </p>
                     </div>
 
                     {/* Wardrobe Items Used in This Look */}
                     <div className="space-y-3">
-                      <h4 className="text-xs font-semibold text-stone-700 uppercase tracking-wider flex items-center justify-between">
+                      <h4 className="text-xs font-semibold text-foreground uppercase tracking-wider flex items-center justify-between">
                         <span>Selected Wardrobe Pieces ({matchedItems.length})</span>
-                        <span className="text-[11px] text-stone-400 font-normal">
+                        <span className="text-[11px] text-muted-foreground font-normal">
                           From your digitized closet
                         </span>
                       </h4>
@@ -701,9 +670,9 @@ function GeneratePage() {
                           {matchedItems.map((item) => (
                             <div
                               key={item.id}
-                              className="group relative rounded-xl border border-stone-200 bg-stone-50/60 overflow-hidden hover:shadow-xs transition-all"
+                              className="group relative rounded-md border border-border bg-card overflow-hidden transition-all"
                             >
-                              <div className="aspect-square w-full overflow-hidden bg-stone-200/50">
+                              <div className="aspect-square w-full overflow-hidden bg-secondary">
                                 <img
                                   src={item.image_url}
                                   alt={item.title || "Garment"}
@@ -717,10 +686,10 @@ function GeneratePage() {
                                 >
                                   {item.category?.name || "Garment"}
                                 </Badge>
-                                <p className="text-xs font-medium text-stone-900 truncate">
+                                <p className="text-xs font-medium text-foreground truncate">
                                   {item.title}
                                 </p>
-                                <p className="text-[10px] text-stone-500 truncate">
+                                <p className="text-[10px] text-muted-foreground truncate">
                                   {item.primary_color || ""}{" "}
                                   {item.fabric_type ? `· ${item.fabric_type}` : ""}
                                 </p>
@@ -729,42 +698,42 @@ function GeneratePage() {
                           ))}
                         </div>
                       ) : (
-                        <div className="rounded-lg border border-stone-200 bg-stone-50 p-4 text-xs text-stone-500">
+                        <div className="rounded-lg border border-border bg-card p-4 text-xs text-muted-foreground">
                           Curated outfit pieces: {currentOption.selected_item_ids.join(", ")}
                         </div>
                       )}
                     </div>
 
                     {/* Outfit Breakdown Details */}
-                    <div className="rounded-xl border border-stone-200 bg-stone-50/70 p-4 space-y-3">
-                      <h4 className="text-xs font-semibold text-stone-800 uppercase tracking-wider flex items-center gap-1.5">
-                        <Layers className="size-4 text-amber-600" />
+                    <div className="rounded-md border border-border bg-card p-4 space-y-3">
+                      <h4 className="text-xs font-semibold text-foreground uppercase tracking-wider flex items-center gap-1.5">
+                        <Layers className="size-4 text-gold-ink" />
                         <span>Outfit Breakdown</span>
                       </h4>
                       <dl className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-                        <div className="border-b sm:border-b-0 sm:border-r border-stone-200 pb-2 sm:pb-0 sm:pr-3">
-                          <dt className="text-stone-400 font-medium">Top / Main Ensemble</dt>
-                          <dd className="font-semibold text-stone-900 mt-0.5">
+                        <div className="border-b sm:border-b-0 sm:border-r border-border pb-2 sm:pb-0 sm:pr-3">
+                          <dt className="text-muted-foreground font-medium">Top / Main Ensemble</dt>
+                          <dd className="font-semibold text-foreground mt-0.5">
                             {currentOption.outfit_breakdown.top_or_full_body}
                           </dd>
                         </div>
                         {currentOption.outfit_breakdown.bottom && (
-                          <div className="border-b sm:border-b-0 border-stone-200 pb-2 sm:pb-0">
-                            <dt className="text-stone-400 font-medium">Bottom / Trousers</dt>
-                            <dd className="font-semibold text-stone-900 mt-0.5">
+                          <div className="border-b sm:border-b-0 border-border pb-2 sm:pb-0">
+                            <dt className="text-muted-foreground font-medium">Bottom / Trousers</dt>
+                            <dd className="font-semibold text-foreground mt-0.5">
                               {currentOption.outfit_breakdown.bottom}
                             </dd>
                           </div>
                         )}
-                        <div className="border-b sm:border-b-0 sm:border-r border-stone-200 pb-2 sm:pb-0 sm:pr-3">
-                          <dt className="text-stone-400 font-medium">Footwear</dt>
-                          <dd className="font-semibold text-stone-900 mt-0.5">
+                        <div className="border-b sm:border-b-0 sm:border-r border-border pb-2 sm:pb-0 sm:pr-3">
+                          <dt className="text-muted-foreground font-medium">Footwear</dt>
+                          <dd className="font-semibold text-foreground mt-0.5">
                             {currentOption.outfit_breakdown.footwear}
                           </dd>
                         </div>
                         <div>
-                          <dt className="text-stone-400 font-medium">Jewelry & Accents</dt>
-                          <dd className="font-semibold text-stone-900 mt-0.5">
+                          <dt className="text-muted-foreground font-medium">Jewelry & Accents</dt>
+                          <dd className="font-semibold text-foreground mt-0.5">
                             {currentOption.outfit_breakdown.jewelry_and_accessories.join(", ") ||
                               "None"}
                           </dd>
@@ -774,11 +743,11 @@ function GeneratePage() {
 
                     {/* Step-by-Step Styling Instructions */}
                     <div className="space-y-2">
-                      <h4 className="text-xs font-semibold text-stone-700 uppercase tracking-wider flex items-center gap-1.5">
-                        <Compass className="size-4 text-amber-600" />
+                      <h4 className="text-xs font-semibold text-foreground uppercase tracking-wider flex items-center gap-1.5">
+                        <Compass className="size-4 text-gold-ink" />
                         <span>Styling & Proportions Directive</span>
                       </h4>
-                      <p className="text-xs sm:text-sm text-stone-700 leading-relaxed bg-amber-50/30 border border-amber-100 rounded-xl p-3.5">
+                      <p className="text-xs sm:text-sm text-foreground leading-relaxed border border-gold/40 border border-gold/40 rounded-md p-3.5">
                         {currentOption.styling_instructions}
                       </p>
                     </div>
@@ -786,45 +755,45 @@ function GeneratePage() {
                     {/* Hair & Makeup Inspiration Cards (Dual Column) */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
                       {/* Hairstyle */}
-                      <div className="rounded-xl border border-stone-200/90 bg-white p-4 space-y-2 shadow-2xs">
-                        <div className="flex items-center gap-2 text-stone-900">
-                          <div className="size-7 rounded-full bg-amber-100/70 flex items-center justify-center text-amber-800">
+                      <div className="rounded-md border border-border bg-card p-4 space-y-2">
+                        <div className="flex items-center gap-2 text-foreground">
+                          <div className="size-7 rounded-full border border-gold/40 flex items-center justify-center text-gold-ink">
                             <Scissors className="size-3.5" />
                           </div>
                           <h5 className="text-xs font-semibold uppercase tracking-wider">
                             Hairstyle Recommendation
                           </h5>
                         </div>
-                        <p className="text-xs text-stone-600 leading-relaxed">
+                        <p className="text-xs text-muted-foreground leading-relaxed">
                           {currentOption.hair_style_recommendation}
                         </p>
                       </div>
 
                       {/* Makeup */}
-                      <div className="rounded-xl border border-stone-200/90 bg-white p-4 space-y-2 shadow-2xs">
-                        <div className="flex items-center gap-2 text-stone-900">
-                          <div className="size-7 rounded-full bg-rose-100/70 flex items-center justify-center text-rose-800">
+                      <div className="rounded-md border border-border bg-card p-4 space-y-2">
+                        <div className="flex items-center gap-2 text-foreground">
+                          <div className="size-7 rounded-full bg-gold/10 flex items-center justify-center text-gold-ink">
                             <Palette className="size-3.5" />
                           </div>
                           <h5 className="text-xs font-semibold uppercase tracking-wider">
                             Makeup Inspiration
                           </h5>
                         </div>
-                        <p className="text-xs text-stone-600 leading-relaxed">
+                        <p className="text-xs text-muted-foreground leading-relaxed">
                           {currentOption.makeup_inspiration}
                         </p>
                       </div>
                     </div>
 
                     {/* Virtual Fitting Studio Jump Link */}
-                    <div className="pt-4 border-t border-stone-100 flex flex-col sm:flex-row items-center justify-between gap-3">
-                      <p className="text-xs text-stone-500">
+                    <div className="pt-4 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-3">
+                      <p className="text-xs text-muted-foreground">
                         Ready to see this look placed over your body proportions?
                       </p>
                       <Button
                         asChild
                         size="default"
-                        className="gap-2 bg-stone-900 hover:bg-stone-800 text-white cursor-pointer w-full sm:w-auto"
+                        className="gap-2 border border-gold bg-transparent text-gold-ink hover:bg-gold/10 cursor-pointer w-full sm:w-auto"
                       >
                         <Link to="/studio">
                           <span>Try on in Fitting Studio</span>
@@ -837,15 +806,15 @@ function GeneratePage() {
               </div>
             ) : (
               /* Initial Empty State */
-              <div className="rounded-2xl border border-stone-200/90 bg-white p-10 text-center space-y-5 shadow-xs">
-                <div className="mx-auto flex size-14 items-center justify-center rounded-full bg-amber-50 text-amber-700 border border-amber-200">
+              <div className="rounded-md border border-border bg-card p-10 text-center space-y-5">
+                <div className="mx-auto flex size-14 items-center justify-center rounded-full border border-gold/40 text-gold-ink border border-gold/40">
                   <Sparkles className="size-7" />
                 </div>
                 <div className="space-y-1.5 max-w-md mx-auto">
-                  <h3 className="text-xl font-display font-medium text-stone-900">
+                  <h3 className="text-xl font-display font-medium text-foreground">
                     Your Personal Digital Stylist
                   </h3>
-                  <p className="text-xs sm:text-sm text-stone-500 leading-relaxed">
+                  <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
                     Select an upcoming event, time of day, and desired vibe on the left. Style
                     Mirror will curate cohesive outfits using your physical wardrobe, complete with
                     hair and makeup inspiration.
@@ -854,9 +823,9 @@ function GeneratePage() {
                 <div className="pt-2 flex justify-center">
                   <Button
                     onClick={handleCurateOutfit}
-                    className="gap-2 bg-stone-900 hover:bg-stone-800 text-amber-50 cursor-pointer text-xs"
+                    className="gap-2 border border-gold bg-transparent text-gold-ink hover:bg-gold/10 cursor-pointer text-xs"
                   >
-                    <Sparkles className="size-3.5 text-amber-400" />
+                    <Sparkles className="size-3.5 text-gold-ink" />
                     <span>Curate Sample Look for Tonight</span>
                   </Button>
                 </div>

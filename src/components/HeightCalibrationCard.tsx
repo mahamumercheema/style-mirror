@@ -50,7 +50,7 @@ export function HeightCalibrationCard({
     <form onSubmit={handleSubmit} className="surface mx-auto max-w-xl space-y-5 p-6">
       <div className="flex items-start gap-3">
         <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-secondary">
-          <Ruler className="size-5 text-accent-foreground/80" />
+          <Ruler className="size-5 text-gold-ink" />
         </div>
         <div>
           <p className="eyebrow">Before we measure</p>

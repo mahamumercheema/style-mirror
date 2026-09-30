@@ -240,8 +240,8 @@ export function AiTryOnPanel({
                 className={cn(
                   "rounded-full border px-3.5 py-1.5 text-xs font-medium transition-colors",
                   category === option
-                    ? "border-foreground bg-foreground text-background"
-                    : "border-border text-foreground/80 hover:border-foreground/50",
+                    ? "border-gold bg-gold/10 text-gold-ink"
+                    : "border-border text-muted-foreground hover:border-foreground/50",
                 )}
               >
                 {CATEGORY_LABELS[option]}
@@ -254,7 +254,7 @@ export function AiTryOnPanel({
               Analyzing the garment...
             </p>
           ) : detected.needsConfirmation ? (
-            <p className="text-xs font-medium text-amber-700">
+            <p className="text-xs font-medium text-gold-ink">
               {category
                 ? "Not certain — please confirm the garment type."
                 : "Couldn't identify the garment — please choose its type."}

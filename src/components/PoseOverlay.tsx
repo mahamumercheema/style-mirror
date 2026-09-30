@@ -126,17 +126,17 @@ export function PoseOverlay({
 
         {/* Floating status pill */}
         <div className="absolute top-3 left-3 right-36 flex flex-wrap items-center gap-2">
-          <span className="flex items-center gap-1.5 rounded-full bg-background/90 px-3 py-1 text-xs font-medium backdrop-blur-sm shadow-sm">
+          <span className="flex items-center gap-1.5 rounded-full bg-background/90 px-3 py-1 text-xs font-medium backdrop-blur-sm">
             {confidencePct}% landmark confidence
           </span>
           {detectedCount && totalCount ? (
-            <span className="hidden items-center gap-1 rounded-full bg-background/90 px-2.5 py-1 text-xs text-muted-foreground backdrop-blur-sm sm:flex shadow-sm">
+            <span className="hidden items-center gap-1 rounded-full bg-background/90 px-2.5 py-1 text-xs text-foreground backdrop-blur-sm sm:flex">
               {detectedCount}/{totalCount} landmarks
             </span>
           ) : null}
           {backgroundRemoved ? (
-            <span className="hidden items-center gap-1 rounded-full bg-background/90 px-2.5 py-1 text-xs text-muted-foreground backdrop-blur-sm sm:flex shadow-sm">
-              <Wand2 className="size-3 text-accent-foreground/70" />
+            <span className="hidden items-center gap-1 rounded-full bg-background/90 px-2.5 py-1 text-xs text-foreground backdrop-blur-sm sm:flex">
+              <Wand2 className="size-3 text-gold-ink" />
               Background removed
             </span>
           ) : null}
@@ -148,7 +148,7 @@ export function PoseOverlay({
             size="sm"
             variant="secondary"
             onClick={() => setShowSkeleton((prev) => !prev)}
-            className="h-8 gap-1.5 bg-background/90 px-2.5 text-xs backdrop-blur-sm shadow-sm"
+            className="h-8 gap-1.5 bg-background/90 px-2.5 text-xs backdrop-blur-sm"
           >
             {showSkeleton ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}
             {showSkeleton ? "Hide overlay" : "Show overlay"}
@@ -158,7 +158,7 @@ export function PoseOverlay({
 
       {lowConfidenceMeasurements.length > 0 ? (
         <div className="border-t border-border px-4 py-3 text-xs">
-          <p className="flex items-start gap-1.5 text-amber-700">
+          <p className="flex items-start gap-1.5 text-gold-ink">
             <AlertTriangle className="mt-0.5 size-3.5 shrink-0" />
             <span>
               <span className="font-medium">Low confidence:</span>{" "}
@@ -170,7 +170,7 @@ export function PoseOverlay({
 
       <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border p-4 text-xs text-muted-foreground">
         <div className="flex items-center gap-2">
-          <Sparkles className="size-3.5 text-accent-foreground/70" />
+          <Sparkles className="size-3.5 text-gold-ink" />
           <span>Real-time pose detected on your device</span>
         </div>
         <div className="flex items-center gap-2">

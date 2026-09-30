@@ -278,7 +278,7 @@ export function ColorWheel({
       >
         <canvas
           ref={canvasRef}
-          className="rounded-full shadow-inner pointer-events-none"
+          className="rounded-full pointer-events-none"
           style={{ width: size, height: size }}
         />
 
@@ -396,7 +396,7 @@ export function ColorWheel({
         <div className="flex items-center justify-between gap-3 pt-1 rounded-lg border border-border/80 bg-secondary/30 p-2.5">
           <div className="flex items-center gap-2.5 min-w-0">
             <div
-              className="size-7 rounded-md border border-black/10 shadow-xs shrink-0"
+              className="size-7 rounded-md border border-black/10 shrink-0"
               style={{ backgroundColor: baseColorHex }}
             />
             <div className="min-w-0">
