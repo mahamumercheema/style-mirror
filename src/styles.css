@@ -152,7 +152,6 @@
   color-scheme: dark;
 }
 
-
 /* Landing page lower section keeps the original light palette */
 .theme-cream {
   --gold-ink: #8a6b2e;
@@ -401,7 +400,6 @@
     animation: none;
   }
 }
-
 
 /*
  * Inner pages (every route except the landing page) sit on the animated studio-light

@@ -59,7 +59,40 @@ interface AuthContextType {
   logout: () => void;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+export const defaultAuthContext: AuthContextType = {
+  user: null,
+  isAuthenticated: false,
+  isGuest: true,
+  hasGuestSessionItems: false,
+  isModalOpen: false,
+  modalView: "login",
+  signUpStep: 1,
+  pendingEmail: "",
+  resendCooldown: 0,
+  gateReason: null,
+  redirectRoute: null,
+  isSubmitting: false,
+  devOtpCode: null,
+  openLogin: () => {},
+  openSignUp: () => {},
+  openEmail2FA: () => {},
+  promptSaveGuestWardrobe: () => {},
+  requireAuth: () => false,
+  closeModal: () => {},
+  setModalView: () => {},
+  setRedirectRoute: () => {},
+  loginWithGoogle: async () => ({ success: false, error: "Authentication initializing" }),
+  loginAsGuest: () => {},
+  requestEmail2FA: async () => ({ success: false, error: "Authentication initializing" }),
+  verifyEmail2FA: async () => ({ success: false, error: "Authentication initializing" }),
+  startSignUp: async () => ({ success: false, error: "Authentication initializing" }),
+  verifyTwoStepCode: async () => ({ success: false, error: "Authentication initializing" }),
+  resendCode: async () => {},
+  backToStep1: () => {},
+  logout: () => {},
+};
+
+const AuthContext = createContext<AuthContextType>(defaultAuthContext);
 
 const USER_STORAGE_KEY = "vtr_auth_user";
 const TOKEN_STORAGE_KEY = "vtr_auth_token";
@@ -529,8 +562,5 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 export function useAuth() {
   const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error("useAuth must be used within an AuthProvider");
-  }
-  return context;
+  return context ?? defaultAuthContext;
 }

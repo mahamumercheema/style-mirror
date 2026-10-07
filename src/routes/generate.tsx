@@ -28,6 +28,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/context/AuthContext";
+import { GuestLockScreenPreview } from "@/components/GuestLockScreenPreview";
 import {
   ArrowRight,
   Sparkles,
@@ -195,6 +196,13 @@ class GenerateErrorBoundary extends React.Component<
 }
 
 function GenerateRouteWrapper() {
+  const { user, isAuthenticated } = useAuth();
+
+  // Route Guard / Auth Gate: Unauthenticated guests see the preview teaser lock screen
+  if (!isAuthenticated || !user) {
+    return <GuestLockScreenPreview feature="stylist" />;
+  }
+
   return (
     <GenerateErrorBoundary>
       <GeneratePage />
@@ -242,14 +250,8 @@ function GeneratePage() {
   // Load wardrobe, occasions, and personalized user profile
   const refreshWardrobe = useCallback(() => {
     try {
-      if (isGuestUser(activeUserId)) {
-        // For unauthenticated guest users, load strictly from browser sessionStorage
-        const guestItems = getGuestSessionWardrobe();
-        setWardrobe(guestItems);
-      } else {
-        const items = getStoredWardrobeItems(activeUserId);
-        setWardrobe(items);
-      }
+      const items = getStoredWardrobeItems(activeUserId);
+      setWardrobe(items || []);
       const occ = getOccasions();
       setOccasions(occ);
       const cats = getCategories();

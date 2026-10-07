@@ -57,7 +57,7 @@ export function SiteHeader() {
             Fitting Studio
           </Link>
           <div className="hidden h-4 w-px bg-foreground/25 sm:block" />
-          <HeaderAuthButtons onDark showAccountMenu={false} />
+          <HeaderAuthButtons onDark showAccountMenu={true} />
         </div>
         <MobileNav />
       </nav>

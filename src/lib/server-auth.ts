@@ -78,6 +78,48 @@ function emailUnavailable(): AuthResult | null {
 const emailVerifications = new Map<string, EmailVerificationRecord>();
 const users = new Map<string, UserRecord>();
 
+export interface ActiveSession {
+  token: string;
+  userId: string;
+  email: string;
+  createdAt: number;
+}
+
+export const activeSessions = new Map<string, ActiveSession>();
+
+export function registerSession(token: string, userId: string, email: string): ActiveSession {
+  const session: ActiveSession = {
+    token,
+    userId,
+    email,
+    createdAt: Date.now(),
+  };
+  activeSessions.set(token, session);
+  return session;
+}
+
+export function verifySessionToken(
+  authHeaderOrToken: string | null | undefined,
+): ActiveSession | null {
+  if (!authHeaderOrToken) return null;
+  const token = authHeaderOrToken.replace(/^Bearer\s+/i, "").trim();
+  if (!token) return null;
+  const session = activeSessions.get(token);
+  if (session) return session;
+
+  // Google OAuth demo session mapping
+  if (token.startsWith("google_oauth_token_")) {
+    return {
+      token,
+      userId: "usr_google",
+      email: "alex.fashion@gmail.com",
+      createdAt: Date.now(),
+    };
+  }
+
+  return null;
+}
+
 /**
  * Sanitize email input to prevent script/injection attacks
  */
@@ -357,6 +399,7 @@ export async function handleVerifyCode(body: {
 
   // Issue session auth token
   const token = "vtr_tok_" + crypto.randomBytes(24).toString("hex");
+  registerSession(token, newUser.id, newUser.email);
 
   return {
     status: 200,
@@ -592,6 +635,7 @@ export async function handleVerifyEmailOtp(body: {
   }
 
   const token = "vtr_tok_" + crypto.randomBytes(24).toString("hex");
+  registerSession(token, user.id, user.email);
 
   return {
     status: 200,

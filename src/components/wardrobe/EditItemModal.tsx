@@ -1,5 +1,11 @@
 import { useState, useEffect } from "react";
-import { FASHION_COLORS, FASHION_FABRICS, FASHION_SEASONS } from "@/lib/wardrobe-service";
+import {
+  FASHION_COLORS,
+  FASHION_FABRICS,
+  FASHION_SEASONS,
+  DEFAULT_CATEGORIES,
+  DEFAULT_OCCASIONS,
+} from "@/lib/wardrobe-service";
 import type {
   CategoryEntity,
   OccasionEntity,
@@ -53,6 +59,9 @@ export function EditItemModal({
   }, [item]);
 
   if (!isOpen || !item) return null;
+
+  const effectiveCategories = categories && categories.length > 0 ? categories : DEFAULT_CATEGORIES;
+  const effectiveOccasions = occasions && occasions.length > 0 ? occasions : DEFAULT_OCCASIONS;
 
   const toggleOccasion = (id: number) => {
     setSelectedOccasions((prev) =>
@@ -158,11 +167,15 @@ export function EditItemModal({
                 className="w-full h-9 rounded-md border border-border bg-background px-3 text-xs text-foreground cursor-pointer focus:outline-hidden focus:ring-2 focus:ring-ring"
               >
                 <option value="">Select Category...</option>
-                {["Tops", "Bottoms", "Full Body / Ethnic Set", "Footwear", "Accessories"].map(
+                {["Full-Body / Ethnic", "Tops", "Bottoms", "Footwear", "Jewelry & Accessories"].map(
                   (parent) => (
                     <optgroup key={parent} label={parent}>
-                      {categories
-                        .filter((c) => c.parent_type === parent)
+                      {effectiveCategories
+                        .filter(
+                          (c) =>
+                            c.parent_type === parent ||
+                            (parent === "Jewelry & Accessories" && c.parent_type === "Accessories"),
+                        )
                         .map((cat) => (
                           <option key={cat.id} value={cat.id}>
                             {cat.name}
@@ -199,38 +212,38 @@ export function EditItemModal({
               <Label htmlFor="edit-color" className="text-xs font-medium">
                 Primary Color
               </Label>
-              <select
+              <Input
                 id="edit-color"
+                list="edit-color-datalist"
+                placeholder="e.g., Emerald Green, Navy Blue..."
                 value={primaryColor}
                 onChange={(e) => setPrimaryColor(e.target.value)}
-                className="w-full h-9 rounded-md border border-border bg-background px-3 text-xs text-foreground cursor-pointer focus:outline-hidden focus:ring-2 focus:ring-ring"
-              >
-                <option value="">Select Color...</option>
+                className="text-xs h-9"
+              />
+              <datalist id="edit-color-datalist">
                 {FASHION_COLORS.map((col) => (
-                  <option key={col} value={col}>
-                    {col}
-                  </option>
+                  <option key={col} value={col} />
                 ))}
-              </select>
+              </datalist>
             </div>
 
             <div className="space-y-1.5">
               <Label htmlFor="edit-fabric" className="text-xs font-medium">
                 Fabric Type
               </Label>
-              <select
+              <Input
                 id="edit-fabric"
+                list="edit-fabric-datalist"
+                placeholder="e.g., Raw Silk, Cotton, Chiffon..."
                 value={fabricType}
                 onChange={(e) => setFabricType(e.target.value)}
-                className="w-full h-9 rounded-md border border-border bg-background px-3 text-xs text-foreground cursor-pointer focus:outline-hidden focus:ring-2 focus:ring-ring"
-              >
-                <option value="">Select Fabric...</option>
+                className="text-xs h-9"
+              />
+              <datalist id="edit-fabric-datalist">
                 {FASHION_FABRICS.map((fab) => (
-                  <option key={fab} value={fab}>
-                    {fab}
-                  </option>
+                  <option key={fab} value={fab} />
                 ))}
-              </select>
+              </datalist>
             </div>
           </div>
 
@@ -238,17 +251,17 @@ export function EditItemModal({
           <div className="space-y-1.5">
             <Label className="text-xs font-medium">Suitable Occasions</Label>
             <div className="flex flex-wrap gap-1.5 pt-1">
-              {occasions.map((occ) => {
+              {effectiveOccasions.map((occ) => {
                 const isSelected = selectedOccasions.includes(occ.id);
                 return (
                   <button
                     key={occ.id}
                     type="button"
                     onClick={() => toggleOccasion(occ.id)}
-                    className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs transition-all cursor-pointer ${
+                    className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs transition-all cursor-pointer ${
                       isSelected
-                        ? "border border-gold bg-gold/10 text-gold-ink font-medium "
-                        : "border border-border/80 bg-background text-muted-foreground hover:text-foreground"
+                        ? "bg-primary text-primary-foreground font-medium shadow-xs"
+                        : "border border-border/80 bg-background text-muted-foreground hover:text-foreground hover:border-foreground/30"
                     }`}
                   >
                     {isSelected && <Check className="size-3" />}

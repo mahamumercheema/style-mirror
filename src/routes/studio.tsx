@@ -35,6 +35,7 @@ import { FRAME_LABEL, IMAGE_FRAME } from "@/lib/frame-styles";
 import { ColorStudioPanel } from "@/components/colors/ColorStudioPanel";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
+import { GuestLockScreenPreview } from "@/components/GuestLockScreenPreview";
 import { getUserProfile } from "@/lib/wardrobe-service";
 import { apiUpdateUserProfile } from "@/lib/user.functions";
 import type { UserProfile } from "@/types/wardrobe";
@@ -56,6 +57,17 @@ import {
 } from "@/lib/color-palette";
 import { cn } from "@/lib/utils";
 
+function StudioRouteWrapper() {
+  const { user, isAuthenticated } = useAuth();
+
+  // Route Guard / Auth Gate: Unauthenticated guests see the preview teaser lock screen
+  if (!isAuthenticated || !user) {
+    return <GuestLockScreenPreview feature="studio" />;
+  }
+
+  return <Studio />;
+}
+
 export const Route = createFileRoute("/studio")({
   head: () => ({
     meta: [
@@ -75,17 +87,14 @@ export const Route = createFileRoute("/studio")({
       { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
-  component: Studio,
+  component: StudioRouteWrapper,
 });
 
 type WorkflowStep = 1 | 2 | 3;
 
 function Studio() {
-  const { user, openLogin, openSignUp, loginAsGuest } = useAuth();
-  // The studio opens to any session, guests included ("Continue as guest" unlocks it);
-  // the auth context's stricter isAuthenticated (no guests) still gates the AI Stylist/closet
-  const hasStudioAccess = Boolean(user);
-
+  const { user, isAuthenticated, isGuest, openLogin, openSignUp, loginAsGuest } = useAuth();
+  const hasStudioAccess = isAuthenticated || isGuest;
   const [photo, setPhoto] = useState<string | null>(null);
   const [currentStep, setCurrentStep] = useState<WorkflowStep>(1);
   const [status, setStatus] = useState<"idle" | "measuring" | "done" | "failed">("idle");
@@ -178,7 +187,7 @@ function Studio() {
       };
       img.src = basePhoto;
     }
-  }, [user?.id]);
+  }, [user?.id, photo]);
 
   // What gets tried on: the chosen item, or the Color Studio's custom colourway
   const tryOnGarment = useMemo<ProductPreview | null>(

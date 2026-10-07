@@ -10,12 +10,10 @@ import {
   toggleFavoriteWardrobeItem,
   seedSampleWardrobe,
   MOCK_WARDROBE_ITEMS,
+  DEFAULT_CATEGORIES,
+  DEFAULT_OCCASIONS,
   PARENT_CATEGORY_GROUPS,
   FASHION_SEASONS,
-  isGuestUser,
-  getGuestSessionWardrobe,
-  clearGuestSessionWardrobe,
-  seedGuestSessionWithDemoGarments,
 } from "@/lib/wardrobe-service";
 import type {
   WardrobeItemWithDetails,
@@ -31,6 +29,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/context/AuthContext";
+import { GuestLockScreenPreview } from "@/components/GuestLockScreenPreview";
 import {
   ArrowRight,
   Filter,
@@ -125,6 +124,13 @@ class ClosetErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBound
 }
 
 function ClosetRouteWrapper() {
+  const { user, isAuthenticated } = useAuth();
+
+  // Route Guard / Auth Gate: Unauthenticated guests see the preview teaser lock screen
+  if (!isAuthenticated || !user) {
+    return <GuestLockScreenPreview feature="closet" />;
+  }
+
   return (
     <ClosetErrorBoundary>
       <ClosetPage />
@@ -146,9 +152,8 @@ const CATEGORY_TABS = [
 const OCCASION_TAGS = ["Office", "Casual", "Dinner", "Wedding"];
 
 function ClosetPage() {
-  const { user, promptSaveGuestWardrobe } = useAuth();
+  const { user } = useAuth();
   const activeUserId = user?.id || "guest_user";
-  const isGuest = isGuestUser(activeUserId);
 
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [items, setItems] = useState<WardrobeItemWithDetails[]>([]);
@@ -181,20 +186,11 @@ function ClosetPage() {
     }
   }, []);
 
-  // Safe load of items
+  // Safe load of items for logged-in user
   const refreshItems = useCallback(() => {
     try {
-      if (isGuestUser(activeUserId)) {
-        const guestItems = getGuestSessionWardrobe();
-        setItems(guestItems);
-      } else {
-        const loaded = getStoredWardrobeItems(activeUserId);
-        if (Array.isArray(loaded) && loaded.length > 0) {
-          setItems(loaded);
-        } else {
-          setItems(MOCK_WARDROBE_ITEMS);
-        }
-      }
+      const loaded = getStoredWardrobeItems(activeUserId);
+      setItems(loaded || []);
     } catch (err) {
       console.warn("Falling back to wardrobe items:", err);
       setItems([]);
@@ -206,26 +202,6 @@ function ClosetPage() {
   useEffect(() => {
     refreshItems();
   }, [refreshItems]);
-
-  const handleClearGuestSession = () => {
-    if (
-      typeof window !== "undefined" &&
-      !window.confirm(
-        "Reset Guest Session?\n\nThis will clear all temporary clothing photos stored in your browser session. This action cannot be undone.",
-      )
-    ) {
-      return;
-    }
-    clearGuestSessionWardrobe();
-    setItems([]);
-    toast.info("Guest session cleared.");
-  };
-
-  const handleSeedGuestDemo = () => {
-    const demoItems = seedGuestSessionWithDemoGarments();
-    setItems(demoItems);
-    toast.success("Loaded 4 sample garments into your guest session!");
-  };
 
   // Safe filtering of items
   const filteredItems = useMemo(() => {
@@ -355,8 +331,14 @@ function ClosetPage() {
   };
 
   const handleSeedDefaults = () => {
-    const seeded = seedSampleWardrobe(activeUserId);
-    setItems(seeded);
+    try {
+      const seeded = seedSampleWardrobe(activeUserId);
+      setItems(Array.isArray(seeded) ? seeded : []);
+      toast.success("Loaded starter outfits into your closet!");
+    } catch (err) {
+      console.error("Seed error:", err);
+      toast.error("Could not load starter outfits.");
+    }
   };
 
   const favoriteCount = items.filter((i) => i.is_favorite).length;
@@ -365,22 +347,22 @@ function ClosetPage() {
     <main className="min-h-screen pb-20">
       <div className="mx-auto w-full max-w-6xl px-4 sm:px-6 pt-8 sm:pt-10 space-y-8">
         {/* ========================================================================= */}
-        {/* 1. Top Header: Page Title "My Wardrobe" & "Add New Item" Button */}
+        {/* 1. Top Header: Page Title "My Closet" & "+ Add New Item" Button */}
         {/* ========================================================================= */}
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-border/60 pb-6">
           <div>
             <div className="flex items-center gap-2">
               <p className="eyebrow text-primary">Smart Outfit Engine</p>
               <Badge variant="outline" className="text-[10px] bg-secondary/80 font-mono">
-                Phase 2 Engine
+                Personal Wardrobe
               </Badge>
             </div>
             <h1 className="mt-1 text-3xl sm:text-4xl md:text-5xl font-display font-semibold tracking-tight text-foreground">
-              My Wardrobe
+              My Closet
             </h1>
             <p className="mt-2 text-sm text-muted-foreground max-w-2xl">
               Curate your personal collection of Western attire, traditional ethnic wear (Shalwar
-              Kameez, Gharara, Frocks), footwear, and jewelry for real-time virtual try-on.
+              Kameez, Gharara, Frocks), footwear, and accessories for real-time virtual try-on.
             </p>
           </div>
 
@@ -392,6 +374,7 @@ function ClosetPage() {
               className="gap-2 font-medium border-gold/30 bg-gold/10 hover:bg-gold/10 text-gold-ink cursor-pointer"
             >
               <Link to="/generate">
+                <Sparkles className="size-4" />
                 <span>AI Stylist</span>
               </Link>
             </Button>
@@ -399,234 +382,162 @@ function ClosetPage() {
               id="add-new-item-header-btn"
               onClick={() => setIsAddModalOpen(true)}
               size="default"
-              className="gap-2 font-medium shadow-sm cursor-pointer bg-primary text-primary-foreground hover:bg-primary/90"
+              className="gap-2 font-semibold shadow-sm cursor-pointer bg-gold text-background hover:bg-gold/90 border border-gold"
             >
-              <Plus className="size-4" />
-              <span>Add New Item</span>
+              <Plus className="size-4 stroke-[2.5]" />
+              <span>+ Add New Item</span>
             </Button>
           </div>
         </div>
 
-        {/* Guest Mode Session Status Banner */}
-        {isGuest && (
-          <div className="rounded-xl border border-gold/30 bg-gold/10 p-4 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <div className="flex size-10 items-center justify-center rounded-xl bg-gold/10 text-gold-ink shrink-0 border border-gold/30">
-                <Sparkles className="size-5 text-gold-ink" />
+        {/* ========================================================================= */}
+        {/* 2. Category & Occasion Navigation Filter Bar (Only if items exist) */}
+        {/* ========================================================================= */}
+        {items.length > 0 && (
+          <section className="space-y-4 rounded-xl border border-border bg-card p-4 sm:p-5 shadow-xs">
+            {/* Search, Season, Favorites Bar */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="relative flex-1 max-w-md">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+                <Input
+                  type="text"
+                  placeholder="Search by name, fabric, color, or style..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-9 h-9 text-xs sm:text-sm bg-background"
+                />
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchQuery("")}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-muted-foreground hover:text-foreground cursor-pointer"
+                  >
+                    Clear
+                  </button>
+                )}
               </div>
-              <div>
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="font-semibold text-foreground text-sm">
-                    Guest Mode (Active Browser Session):
-                  </span>
-                  <Badge
-                    variant="outline"
-                    className="text-[10px] font-mono bg-card text-foreground border-gold/30"
+
+              <div className="flex items-center gap-2 flex-wrap">
+                {/* Season Selector */}
+                <select
+                  value={selectedSeason}
+                  onChange={(e) => setSelectedSeason(e.target.value)}
+                  className="h-9 rounded-md border border-border bg-background px-3 text-xs font-medium text-foreground cursor-pointer focus:outline-hidden focus:ring-2 focus:ring-ring"
+                  aria-label="Filter by season"
+                >
+                  {FASHION_SEASONS.map((s) => (
+                    <option key={s} value={s}>
+                      {s === "All Season" ? "All Seasons" : `${s} Season`}
+                    </option>
+                  ))}
+                </select>
+
+                {/* Favorites Toggle */}
+                <Button
+                  type="button"
+                  variant={showFavoritesOnly ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setShowFavoritesOnly(!showFavoritesOnly)}
+                  className={`h-9 gap-1.5 text-xs font-medium cursor-pointer transition-all ${
+                    showFavoritesOnly
+                      ? "bg-rose-600 hover:bg-rose-700 text-white"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  <Heart
+                    className={`size-3.5 ${showFavoritesOnly ? "fill-white text-white" : "text-rose-500"}`}
+                  />
+                  <span>Favorites ({favoriteCount})</span>
+                </Button>
+
+                {/* Reset Filters */}
+                {(selectedCategoryTab !== "All" ||
+                  selectedOccasionTag !== null ||
+                  selectedSeason !== "All Season" ||
+                  showFavoritesOnly ||
+                  searchQuery.trim().length > 0) && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleResetFilters}
+                    className="h-9 gap-1 text-xs text-muted-foreground hover:text-foreground cursor-pointer"
                   >
-                    {items.length} temporary photo{items.length === 1 ? "" : "s"}
-                  </Badge>
-                  <Badge
-                    variant="secondary"
-                    className="text-[10px] bg-card text-emerald-300 border border-emerald-500/30"
-                  >
-                    Auto-Background Isolated PNG
-                  </Badge>
-                  <Badge
-                    variant="outline"
-                    className="text-[10px] bg-gold/10 text-gold-ink border-gold/30"
-                  >
-                    Session Storage
-                  </Badge>
-                </div>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  Your uploaded clothing cutouts are cached in this browser session. Browser closure
-                  or session reset clears this data.
-                </p>
+                    <RotateCcw className="size-3" />
+                    <span>Reset</span>
+                  </Button>
+                )}
               </div>
             </div>
 
-            <div className="flex items-center gap-2 shrink-0 flex-wrap">
-              {items.length > 0 && (
-                <Button
-                  id="closet-guest-save-wardrobe-btn"
-                  onClick={() => promptSaveGuestWardrobe()}
-                  size="sm"
-                  className="gap-1.5 text-xs cursor-pointer shadow-xs font-medium"
-                >
-                  <span>Save My Wardrobe</span>
-                </Button>
-              )}
-              {items.length > 0 ? (
-                <Button
-                  onClick={handleClearGuestSession}
-                  size="sm"
-                  variant="outline"
-                  className="gap-1 text-muted-foreground hover:text-destructive hover:bg-destructive/10 text-xs cursor-pointer"
-                  title="Clear all temporary clothing items"
-                >
-                  <RotateCcw className="size-3" />
-                  <span>Reset Session</span>
-                </Button>
-              ) : (
-                <Button
-                  onClick={handleSeedGuestDemo}
-                  size="sm"
-                  variant="outline"
-                  className="gap-1 text-gold-ink border-gold/30 bg-card hover:bg-gold/10 text-xs cursor-pointer"
-                >
-                  <span>Load Sample Items</span>
-                </Button>
-              )}
+            {/* Category Tabs: Scrollable or Tabbed Filters */}
+            <div className="space-y-2 border-t border-border/60 pt-3">
+              <div className="flex items-center justify-between">
+                <span className="eyebrow text-[11px] text-muted-foreground">Category Tabs</span>
+                <span className="text-[11px] text-muted-foreground">
+                  Showing <strong className="text-foreground">{filteredItems.length}</strong> of{" "}
+                  {items.length} items
+                </span>
+              </div>
+              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+                {CATEGORY_TABS.map((tab) => {
+                  const isSelected = selectedCategoryTab === tab;
+                  return (
+                    <button
+                      key={tab}
+                      type="button"
+                      onClick={() => setSelectedCategoryTab(tab)}
+                      className={`shrink-0 rounded-lg px-3.5 py-1.5 text-xs font-medium transition-all cursor-pointer ${
+                        isSelected
+                          ? "bg-primary text-primary-foreground shadow-xs font-semibold"
+                          : "bg-secondary/60 text-secondary-foreground hover:bg-secondary hover:text-foreground"
+                      }`}
+                    >
+                      {tab}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
-          </div>
-        )}
 
-        {/* ========================================================================= */}
-        {/* 2. Category & Occasion Navigation Filter Bar */}
-        {/* ========================================================================= */}
-        <section className="space-y-4 rounded-xl border border-border bg-card p-4 sm:p-5 shadow-xs">
-          {/* Search, Season, Favorites Bar */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div className="relative flex-1 max-w-md">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-              <Input
-                type="text"
-                placeholder="Search by name, fabric, color, or style..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9 h-9 text-xs sm:text-sm bg-background"
-              />
-              {searchQuery && (
+            {/* Occasion Filters: Multi-Select / Tag Bar */}
+            <div className="space-y-2 border-t border-border/60 pt-3">
+              <div className="flex items-center justify-between">
+                <span className="eyebrow text-[11px] text-muted-foreground">Occasion Filters</span>
+              </div>
+              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
                 <button
                   type="button"
-                  onClick={() => setSearchQuery("")}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-muted-foreground hover:text-foreground cursor-pointer"
+                  onClick={() => setSelectedOccasionTag(null)}
+                  className={`shrink-0 rounded-full px-3 py-1 text-xs transition-all cursor-pointer ${
+                    selectedOccasionTag === null
+                      ? "bg-primary/90 text-primary-foreground font-medium"
+                      : "border border-border/80 bg-background text-muted-foreground hover:text-foreground hover:border-foreground/40"
+                  }`}
                 >
-                  Clear
+                  All Occasions
                 </button>
-              )}
+                {OCCASION_TAGS.map((tag) => {
+                  const isSelected = selectedOccasionTag === tag;
+                  return (
+                    <button
+                      key={tag}
+                      type="button"
+                      onClick={() => setSelectedOccasionTag(isSelected ? null : tag)}
+                      className={`shrink-0 rounded-full px-3 py-1 text-xs transition-all cursor-pointer flex items-center gap-1.5 ${
+                        isSelected
+                          ? "bg-primary text-primary-foreground font-medium shadow-xs"
+                          : "border border-border/80 bg-background text-muted-foreground hover:text-foreground hover:border-foreground/40"
+                      }`}
+                    >
+                      <span>{tag}</span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
-
-            <div className="flex items-center gap-2 flex-wrap">
-              {/* Season Selector */}
-              <select
-                value={selectedSeason}
-                onChange={(e) => setSelectedSeason(e.target.value)}
-                className="h-9 rounded-md border border-border bg-background px-3 text-xs font-medium text-foreground cursor-pointer focus:outline-hidden focus:ring-2 focus:ring-ring"
-                aria-label="Filter by season"
-              >
-                {FASHION_SEASONS.map((s) => (
-                  <option key={s} value={s}>
-                    {s === "All Season" ? "All Seasons" : `${s} Season`}
-                  </option>
-                ))}
-              </select>
-
-              {/* Favorites Toggle */}
-              <Button
-                type="button"
-                variant={showFavoritesOnly ? "default" : "outline"}
-                size="sm"
-                onClick={() => setShowFavoritesOnly(!showFavoritesOnly)}
-                className={`h-9 gap-1.5 text-xs font-medium cursor-pointer transition-all ${
-                  showFavoritesOnly
-                    ? "bg-rose-600 hover:bg-rose-700 text-white"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                <Heart
-                  className={`size-3.5 ${showFavoritesOnly ? "fill-white text-white" : "text-rose-500"}`}
-                />
-                <span>Favorites ({favoriteCount})</span>
-              </Button>
-
-              {/* Reset Filters */}
-              {(selectedCategoryTab !== "All" ||
-                selectedOccasionTag !== null ||
-                selectedSeason !== "All Season" ||
-                showFavoritesOnly ||
-                searchQuery.trim().length > 0) && (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleResetFilters}
-                  className="h-9 gap-1 text-xs text-muted-foreground hover:text-foreground cursor-pointer"
-                >
-                  <RotateCcw className="size-3" />
-                  <span>Reset</span>
-                </Button>
-              )}
-            </div>
-          </div>
-
-          {/* Category Tabs: Scrollable or Tabbed Filters */}
-          <div className="space-y-2 border-t border-border/60 pt-3">
-            <div className="flex items-center justify-between">
-              <span className="eyebrow text-[11px] text-muted-foreground">Category Tabs</span>
-              <span className="text-[11px] text-muted-foreground">
-                Showing <strong className="text-foreground">{filteredItems.length}</strong> of{" "}
-                {items.length} items
-              </span>
-            </div>
-            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
-              {CATEGORY_TABS.map((tab) => {
-                const isSelected = selectedCategoryTab === tab;
-                return (
-                  <button
-                    key={tab}
-                    type="button"
-                    onClick={() => setSelectedCategoryTab(tab)}
-                    className={`shrink-0 rounded-lg px-3.5 py-1.5 text-xs font-medium transition-all cursor-pointer ${
-                      isSelected
-                        ? "bg-primary text-primary-foreground shadow-xs font-semibold"
-                        : "bg-secondary/60 text-secondary-foreground hover:bg-secondary hover:text-foreground"
-                    }`}
-                  >
-                    {tab}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Occasion Filters: Multi-Select / Tag Bar */}
-          <div className="space-y-2 border-t border-border/60 pt-3">
-            <div className="flex items-center justify-between">
-              <span className="eyebrow text-[11px] text-muted-foreground">Occasion Filters</span>
-            </div>
-            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
-              <button
-                type="button"
-                onClick={() => setSelectedOccasionTag(null)}
-                className={`shrink-0 rounded-full px-3 py-1 text-xs transition-all cursor-pointer ${
-                  selectedOccasionTag === null
-                    ? "bg-primary/90 text-primary-foreground font-medium"
-                    : "border border-border/80 bg-background text-muted-foreground hover:text-foreground hover:border-foreground/40"
-                }`}
-              >
-                All Occasions
-              </button>
-              {OCCASION_TAGS.map((tag) => {
-                const isSelected = selectedOccasionTag === tag;
-                return (
-                  <button
-                    key={tag}
-                    type="button"
-                    onClick={() => setSelectedOccasionTag(isSelected ? null : tag)}
-                    className={`shrink-0 rounded-full px-3 py-1 text-xs transition-all cursor-pointer flex items-center gap-1.5 ${
-                      isSelected
-                        ? "bg-primary text-primary-foreground font-medium shadow-xs"
-                        : "border border-border/80 bg-background text-muted-foreground hover:text-foreground hover:border-foreground/40"
-                    }`}
-                  >
-                    <span>{tag}</span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        </section>
+          </section>
+        )}
 
         {/* ========================================================================= */}
         {/* 3. Wardrobe Grid View (Resilient with Loading & Fallbacks) */}
@@ -635,6 +546,42 @@ function ClosetPage() {
           <div className="flex flex-col items-center justify-center py-24 space-y-4">
             <Loader2 className="size-8 animate-spin text-primary" />
             <p className="text-sm text-muted-foreground">Loading your digital wardrobe...</p>
+          </div>
+        ) : items.length === 0 ? (
+          /* Clean Empty Closet State for newly registered / 0-item user */
+          <div className="rounded-2xl border border-dashed border-border bg-card/60 p-12 sm:p-16 text-center space-y-6 shadow-xs max-w-2xl mx-auto my-6">
+            <div className="mx-auto flex size-16 items-center justify-center rounded-full bg-gold/10 text-gold-ink border border-gold/30">
+              <Shirt className="size-8" />
+            </div>
+            <div className="space-y-2">
+              <h3 className="text-xl sm:text-2xl font-display font-medium text-foreground">
+                Your closet is empty!
+              </h3>
+              <p className="text-sm text-muted-foreground max-w-md mx-auto leading-relaxed">
+                Click <span className="font-semibold text-foreground">"+ Add New Item"</span> above
+                to start building your digital wardrobe.
+              </p>
+            </div>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+              <Button
+                id="add-new-item-empty-btn"
+                onClick={() => setIsAddModalOpen(true)}
+                size="default"
+                className="gap-2 font-semibold shadow-sm cursor-pointer bg-gold text-background hover:bg-gold/90 border border-gold w-full sm:w-auto"
+              >
+                <Plus className="size-4 stroke-[2.5]" />
+                <span>+ Add New Item</span>
+              </Button>
+              <Button
+                onClick={handleSeedDefaults}
+                variant="outline"
+                size="default"
+                className="gap-2 cursor-pointer text-xs w-full sm:w-auto border-border/80 hover:bg-secondary"
+              >
+                <Sparkles className="size-3.5 text-gold-ink" />
+                <span>Load Starter Outfits</span>
+              </Button>
+            </div>
           </div>
         ) : filteredItems.length > 0 ? (
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-5">
@@ -648,40 +595,6 @@ function ClosetPage() {
               />
             ))}
           </div>
-        ) : isGuest && items.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-gold/30 bg-gold/10 p-12 text-center space-y-4">
-            <div className="mx-auto flex size-14 items-center justify-center rounded-full bg-gold/10 text-gold-ink border border-gold/30">
-              <Sparkles className="size-7 text-gold-ink" />
-            </div>
-            <div className="space-y-1">
-              <h3 className="text-lg font-display font-medium text-foreground">
-                Your Guest Wardrobe is Empty
-              </h3>
-              <p className="text-xs text-muted-foreground max-w-md mx-auto">
-                Upload your clothing photos to automatically remove backgrounds and store isolated
-                cutouts in your temporary browser session. Or load sample items to explore right
-                away.
-              </p>
-            </div>
-            <div className="flex items-center justify-center gap-3 pt-2">
-              <Button
-                onClick={() => setIsAddModalOpen(true)}
-                size="sm"
-                className="gap-1.5 cursor-pointer text-xs"
-              >
-                <Plus className="size-3.5" />
-                <span>Upload First Clothing Photo</span>
-              </Button>
-              <Button
-                onClick={handleSeedGuestDemo}
-                variant="outline"
-                size="sm"
-                className="gap-1.5 cursor-pointer text-xs border-gold/30 bg-card hover:bg-gold/10 text-gold-ink"
-              >
-                <span>Load Sample Clothes</span>
-              </Button>
-            </div>
-          </div>
         ) : (
           <div className="rounded-xl border border-dashed border-border bg-card/40 p-12 text-center space-y-4">
             <div className="mx-auto flex size-14 items-center justify-center rounded-full bg-secondary text-muted-foreground">
@@ -692,7 +605,7 @@ function ClosetPage() {
                 No garments found in this view
               </h3>
               <p className="text-xs text-muted-foreground max-w-sm mx-auto">
-                Try clearing your filters, or click "Add New Item" to add your favorite clothes,
+                Try clearing your filters, or click "+ Add New Item" to add your favorite clothes,
                 shoes, or jewelry.
               </p>
             </div>
@@ -707,20 +620,12 @@ function ClosetPage() {
                 <span>Reset Filters</span>
               </Button>
               <Button
-                onClick={handleSeedDefaults}
-                variant="outline"
-                size="sm"
-                className="gap-1.5 cursor-pointer text-xs"
-              >
-                <span>Restore Sample Outfits</span>
-              </Button>
-              <Button
                 onClick={() => setIsAddModalOpen(true)}
                 size="sm"
-                className="gap-1.5 cursor-pointer text-xs"
+                className="gap-1.5 cursor-pointer text-xs bg-gold text-background hover:bg-gold/90"
               >
                 <Plus className="size-3.5" />
-                <span>Add Item</span>
+                <span>+ Add New Item</span>
               </Button>
             </div>
           </div>

@@ -705,7 +705,12 @@ export function getStoredWardrobeItems(
   filters?: WardrobeFilterOptions,
 ): WardrobeItemWithDetails[] {
   try {
-    const key = WARDROBE_STORAGE_PREFIX + (userId || "default_user");
+    // Unauthenticated guest users have no active personal wardrobe
+    if (!userId || isGuestUser(userId)) {
+      return [];
+    }
+
+    const key = WARDROBE_STORAGE_PREFIX + userId;
     let items: WardrobeItemWithDetails[] | null = null;
 
     // 1. Try reading from localStorage (an empty array is a valid, emptied wardrobe)
@@ -726,9 +731,9 @@ export function getStoredWardrobeItems(
       items = inMemoryWardrobeStore[key] ?? null;
     }
 
-    // 3. First visit only: seed with sample items
+    // 3. User's personal wardrobe starts clean (no mock pollution)
     if (!items) {
-      items = cloneMockWardrobeItems();
+      items = [];
       inMemoryWardrobeStore[key] = items;
       safeSetLocalStorage(key, JSON.stringify(items));
     }
