@@ -34,6 +34,18 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { GuestLockScreenPreview } from "@/components/GuestLockScreenPreview";
+
+function ProfileRouteWrapper() {
+  const { user, isAuthenticated } = useAuth();
+
+  // Route Guard / Auth Gate: Unauthenticated guests see the preview teaser lock screen
+  if (!isAuthenticated || !user) {
+    return <GuestLockScreenPreview feature="profile" />;
+  }
+
+  return <ProfilePage />;
+}
 
 export const Route = createFileRoute("/profile")({
   head: () => ({
@@ -47,7 +59,7 @@ export const Route = createFileRoute("/profile")({
       { property: "og:title", content: "Profile & Measurements — Atelier Ora" },
     ],
   }),
-  component: ProfilePage,
+  component: ProfileRouteWrapper,
 });
 
 const BODY_SHAPES: {
@@ -156,7 +168,7 @@ const OCCASION_OPTIONS = [
 ];
 
 function ProfilePage() {
-  const { user, isAuthenticated, openLogin } = useAuth();
+  const { user } = useAuth();
   const activeUserId = user?.id || "guest_user";
 
   const [profile, setProfile] = useState<UserProfile | null>(null);

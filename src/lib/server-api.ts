@@ -5,6 +5,7 @@ import {
   handleLogin,
   handleRequestEmailOtp,
   handleVerifyEmailOtp,
+  verifySessionToken,
   type AuthResult,
 } from "./server-auth";
 import {
@@ -82,13 +83,33 @@ export async function handleApiRouter(request: Request): Promise<Response | null
     });
   }
 
-  // Extract User ID from header or query or fallback
+  // 2. Authentication Verification for Protected Endpoints
   const authHeader = request.headers.get("authorization");
-  const userIdParam = url.searchParams.get("userId");
-  const activeUserId =
-    userIdParam ||
-    (authHeader ? authHeader.replace("Bearer ", "").trim() : "default_user") ||
-    "default_user";
+  const authSession = verifySessionToken(authHeader);
+
+  // Protected endpoints require valid session
+  if (
+    pathname === "/api/user/profile" ||
+    pathname === "/api/wardrobe" ||
+    pathname.startsWith("/api/wardrobe/") ||
+    pathname === "/api/recommend-outfit"
+  ) {
+    if (!authSession) {
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error:
+            "Unauthorized: Active session token required. Please log in to access this feature.",
+        }),
+        {
+          status: 401,
+          headers: { "Content-Type": "application/json" },
+        },
+      );
+    }
+  }
+
+  const activeUserId = authSession?.userId || "guest_user";
 
   // User Profile Endpoints (/api/user/profile)
   if (pathname === "/api/user/profile") {

@@ -205,14 +205,8 @@ function Landing() {
                 >
                   Fitting Studio
                 </Link>
-                {/* The signed-in account pill is hidden on the landing page; the session itself
-                    is untouched and the pill (with Log out) still shows on the other pages. */}
-                {!isAuthenticated ? (
-                  <>
-                    <div className="hidden h-4 w-px bg-cream/30 sm:block" />
-                    <HeaderAuthButtons onDark />
-                  </>
-                ) : null}
+                <div className="hidden h-4 w-px bg-cream/30 sm:block" />
+                <HeaderAuthButtons onDark showAccountMenu={true} />
               </div>
             </nav>
           </div>

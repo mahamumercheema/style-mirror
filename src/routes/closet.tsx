@@ -31,6 +31,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/context/AuthContext";
+import { GuestLockScreenPreview } from "@/components/GuestLockScreenPreview";
 import {
   ArrowRight,
   Filter,
@@ -125,6 +126,13 @@ class ClosetErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBound
 }
 
 function ClosetRouteWrapper() {
+  const { user, isAuthenticated } = useAuth();
+
+  // Route Guard / Auth Gate: Unauthenticated guests see the preview teaser lock screen
+  if (!isAuthenticated || !user) {
+    return <GuestLockScreenPreview feature="closet" />;
+  }
+
   return (
     <ClosetErrorBoundary>
       <ClosetPage />
@@ -146,9 +154,8 @@ const CATEGORY_TABS = [
 const OCCASION_TAGS = ["Office", "Casual", "Dinner", "Wedding"];
 
 function ClosetPage() {
-  const { user, promptSaveGuestWardrobe } = useAuth();
+  const { user } = useAuth();
   const activeUserId = user?.id || "guest_user";
-  const isGuest = isGuestUser(activeUserId);
 
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [items, setItems] = useState<WardrobeItemWithDetails[]>([]);
@@ -181,20 +188,11 @@ function ClosetPage() {
     }
   }, []);
 
-  // Safe load of items
+  // Safe load of items for logged-in user
   const refreshItems = useCallback(() => {
     try {
-      if (isGuestUser(activeUserId)) {
-        const guestItems = getGuestSessionWardrobe();
-        setItems(guestItems);
-      } else {
-        const loaded = getStoredWardrobeItems(activeUserId);
-        if (Array.isArray(loaded) && loaded.length > 0) {
-          setItems(loaded);
-        } else {
-          setItems(MOCK_WARDROBE_ITEMS);
-        }
-      }
+      const loaded = getStoredWardrobeItems(activeUserId);
+      setItems(loaded || []);
     } catch (err) {
       console.warn("Falling back to wardrobe items:", err);
       setItems([]);
