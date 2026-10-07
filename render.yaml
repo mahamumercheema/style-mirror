@@ -1,0 +1,36 @@
+# Render Blueprint: hosts Atelier Ora as a Node web service that redeploys on every push
+# to main. Set it up once at render.com with New → Blueprint → this repository.
+#
+# Secrets are never stored here: Render asks for each `sync: false` value when the
+# Blueprint is created, and they can be changed later under the service's Environment tab.
+services:
+  - type: web
+    name: style-mirror
+    runtime: node
+    plan: free
+    branch: main
+    autoDeploy: true
+    buildCommand: npm install && npm run build
+    startCommand: node .output/server/index.mjs
+    healthCheckPath: /
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      # Hugging Face token for the AI try-on (required for try-on)
+      - key: HF_TOKEN
+        sync: false
+      # Google Gemini key for the AI Stylist (optional)
+      - key: GEMINI_API_KEY
+        sync: false
+      # Email service for sign-in codes (optional; without it email sign-in is turned off,
+      # and Google sign-in and guest mode still work)
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        sync: false
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
+      - key: SMTP_FROM
+        sync: false
