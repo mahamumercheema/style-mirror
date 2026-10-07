@@ -222,7 +222,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const loginAsGuest = () => {
     const guestUser: User = {
       id: "guest_user",
-      email: "guest@stylemirror.com",
+      email: "guest@atelierora.com",
       name: "Guest Stylist",
       createdAt: new Date().toISOString(),
       emailVerified: true,

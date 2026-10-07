@@ -53,30 +53,12 @@ export interface AuthResult {
   body: AuthResponseBody;
 }
 
+/** One message for unknown email and wrong password, so logins don't reveal which emails exist */
+const INVALID_CREDENTIALS = "Incorrect email or password.";
+
 // In-memory persistent database collections
 const emailVerifications = new Map<string, EmailVerificationRecord>();
 const users = new Map<string, UserRecord>();
-
-// Pre-seed demo users (password: password123)
-(async () => {
-  const demoHash = await bcrypt.hash("password123", 10);
-  users.set("demo@atelierora.com", {
-    id: "usr_demo",
-    email: "demo@atelierora.com",
-    password_hash: demoHash,
-    name: "Demo User",
-    is_verified: true,
-    created_at: new Date().toISOString(),
-  });
-  users.set("amna.laaj21@gmail.com", {
-    id: "usr_amna",
-    email: "amna.laaj21@gmail.com",
-    password_hash: demoHash,
-    name: "Amna",
-    is_verified: true,
-    created_at: new Date().toISOString(),
-  });
-})();
 
 /**
  * Sanitize email input to prevent script/injection attacks
@@ -491,7 +473,7 @@ export async function handleLogin(body: {
       status: 401,
       body: {
         success: false,
-        error: "No account found with this email. Please sign up first.",
+        error: INVALID_CREDENTIALS,
       },
     };
   }
@@ -512,7 +494,7 @@ export async function handleLogin(body: {
       status: 401,
       body: {
         success: false,
-        error: "Incorrect password. Please verify your credentials and try again.",
+        error: INVALID_CREDENTIALS,
       },
     };
   }

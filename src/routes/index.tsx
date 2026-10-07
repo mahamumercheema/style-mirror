@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { ArrowRight, Ruler, ScanLine, Shirt } from "lucide-react";
 
 import { HeaderAuthButtons } from "@/components/HeaderAuthButtons";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
 import heroCollage1 from "@/assets/hero-collage-1.jpg";
 import heroCollage2 from "@/assets/hero-collage-2.jpg";
@@ -106,6 +108,9 @@ function OraWordmark({ className }: { className?: string }) {
     </svg>
   );
 }
+
+/** Landing calls to action: normal button text size, full width on phones */
+const LANDING_CTA = "w-full text-[13px] tracking-[0.16em] md:w-auto";
 
 function Landing() {
   const { isAuthenticated, requireAuth } = useAuth();
@@ -215,9 +220,9 @@ function Landing() {
 
         {/* First screen. Desktop: wordmark centred in the first viewport over the photo seam;
             text block at the far left starting at 52% of the viewport (below the left model's
-            face), with the action links centred directly beneath it so they can never overlap.
-            Mobile: wordmark, text, links stacked and centred. */}
-        <div className="relative flex flex-col items-center gap-10 px-6 pt-28 pb-20 md:block md:min-h-[100svh] md:px-0 md:pt-[52svh] md:pb-[8svh]">
+            face). Mobile: wordmark and text stacked and centred. The calls to action sit below
+            the how-it-works steps. */}
+        <div className="relative flex flex-col items-center gap-10 px-6 pt-28 pb-14 md:block md:min-h-[100svh] md:px-0 md:pt-[52svh] md:pb-[6svh]">
           <div className="pointer-events-none flex justify-center md:absolute md:inset-x-0 md:top-0 md:h-[100svh] md:min-h-[560px] md:items-center">
             <OraWordmark className="fade-rise h-[30vh] w-auto [animation-duration:800ms] md:h-[42vh]" />
           </div>
@@ -237,35 +242,10 @@ function Landing() {
               makeup inspiration.
             </p>
           </div>
-
-          <div className="flex flex-wrap items-center justify-center gap-x-8 gap-y-5 md:mt-12 md:gap-x-11">
-            <Link
-              to="/studio"
-              onClick={(e) => handleGatedNavigation(e, "/studio")}
-              className="hero-link inline-flex items-center gap-2.5 text-cream cursor-pointer"
-            >
-              Try it now
-              <ArrowRight className="size-3.5 md:size-4" />
-            </Link>
-            <Link
-              to="/generate"
-              onClick={(e) => handleGatedNavigation(e, "/generate")}
-              className="hero-link text-gold cursor-pointer"
-            >
-              AI Stylist
-            </Link>
-            <Link
-              to="/closet"
-              onClick={(e) => handleGatedNavigation(e, "/closet")}
-              className="hero-link text-cream cursor-pointer"
-            >
-              Manage Closet
-            </Link>
-          </div>
         </div>
       </div>
 
-      <section className="mx-auto w-full max-w-6xl px-6 pt-14 pb-32 md:pt-24">
+      <section className="mx-auto w-full max-w-6xl px-6 pt-14 pb-20 md:pt-24">
         <p className="eyebrow">How it works</p>
         <div className="mt-10 grid gap-12 md:grid-cols-3 md:gap-10">
           {STEPS.map((step, index) => (
@@ -280,6 +260,33 @@ function Landing() {
               <p className="mt-2.5 text-sm leading-relaxed text-muted-foreground">{step.copy}</p>
             </div>
           ))}
+        </div>
+
+        {/* Calls to action, centred under the steps. Phones: stacked, full width. */}
+        <div className="mt-12 flex flex-col items-stretch gap-3 md:flex-row md:items-center md:justify-center md:gap-4">
+          <Button
+            asChild
+            size="lg"
+            className={cn(
+              LANDING_CTA,
+              "h-12 border-foreground bg-foreground px-8 text-background hover:bg-foreground/90",
+            )}
+          >
+            <Link to="/studio" onClick={(e) => handleGatedNavigation(e, "/studio")}>
+              Try it now
+              <ArrowRight className="size-4" />
+            </Link>
+          </Button>
+          <Button asChild variant="outline" size="lg" className={LANDING_CTA}>
+            <Link to="/generate" onClick={(e) => handleGatedNavigation(e, "/generate")}>
+              AI Stylist
+            </Link>
+          </Button>
+          <Button asChild variant="outline" size="lg" className={LANDING_CTA}>
+            <Link to="/closet" onClick={(e) => handleGatedNavigation(e, "/closet")}>
+              Manage Closet
+            </Link>
+          </Button>
         </div>
       </section>
     </main>

@@ -267,7 +267,8 @@
   font-weight: 500;
   text-transform: uppercase;
   letter-spacing: var(--tracking-editorial);
-  color: var(--color-muted-foreground);
+  /* --muted-foreground (not --color-…) so the cream landing scope gets its own darker grey */
+  color: var(--muted-foreground);
 }
 
 /* Full-bleed page edges: content runs edge to edge with a fluid side gutter */

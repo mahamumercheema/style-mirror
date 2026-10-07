@@ -10,7 +10,6 @@ import {
   Mail,
   RefreshCw,
   ShieldCheck,
-  Sparkles,
   X,
 } from "lucide-react";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
@@ -190,13 +189,6 @@ export function AuthModal() {
     }
   };
 
-  // Auto-fill demo account for rapid evaluation
-  const handleAutofillDemo = () => {
-    setLoginEmail("demo@atelierora.com");
-    setLoginPassword("password123");
-    setLoginError(null);
-  };
-
   // Handle Email 2FA Code Request
   const handleRequest2FACode = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -270,20 +262,6 @@ export function AuthModal() {
   const passwordsMatch = confirmPassword.length > 0 && signUpPassword === confirmPassword;
   const passwordsMismatch = confirmPassword.length > 0 && signUpPassword !== confirmPassword;
 
-  // Format destination label
-  const destinationLabel =
-    redirectRoute === "/generate" || redirectRoute === "/ai-stylist"
-      ? "AI Stylist"
-      : redirectRoute === "/closet"
-        ? "Digital Closet"
-        : redirectRoute === "/studio"
-          ? "Fitting Studio"
-          : redirectRoute;
-
-  // Requirement prompt text
-  const displayPrompt =
-    gateReason || "Please log in or create an account to access the AI Stylist and digital closet.";
-
   return (
     <div
       role="dialog"
@@ -311,24 +289,13 @@ export function AuthModal() {
           <X className="size-4" />
         </button>
 
-        {/* Contextual banner: only when a gated feature or prompt sent the user here */}
-        {(gateReason || destinationLabel) && (
-          <div className="mb-5 rounded-xl border border-gold/30 bg-gold/10 p-3.5 text-xs text-gold-ink shadow-2xs">
-            <div className="flex items-start gap-2.5">
-              <ShieldCheck className="size-4.5 shrink-0 text-gold-ink mt-0.5" />
-              <div className="space-y-1">
-                <p className="font-semibold text-xs leading-snug">{displayPrompt}</p>
-                {destinationLabel && (
-                  <div className="flex items-center gap-1.5 pt-0.5">
-                    <span className="text-[11px] text-muted-foreground">Target feature:</span>
-                    <span className="inline-flex items-center gap-1 rounded bg-gold/10 px-1.5 py-0.5 font-medium text-[11px] text-gold-ink">
-                      <Sparkles className="size-2.5 text-gold-ink" />
-                      {destinationLabel}
-                    </span>
-                  </div>
-                )}
-              </div>
-            </div>
+        {/* Slim notice when a gated feature sent the user here (the redirect back to it is
+            handled by the auth context; no target label is shown). Stops short of the close
+            button in the corner. */}
+        {(gateReason || redirectRoute) && (
+          <div className="mb-5 mr-9 flex items-center gap-2.5 rounded-lg border border-gold/30 bg-gold/10 px-3 py-2 text-[14px] leading-snug text-gold-ink">
+            <ShieldCheck className="size-4 shrink-0" />
+            <p>Log in or create an account to continue.</p>
           </div>
         )}
 
@@ -338,10 +305,10 @@ export function AuthModal() {
         {(modalView === "login" || modalView === "email2fa") && (
           <div className="space-y-4">
             <div className="space-y-1 text-left">
-              <h2 id="auth-modal-title" className="font-display text-2xl">
+              <h2 id="auth-modal-title" className="font-display text-[32px] leading-tight">
                 Welcome back
               </h2>
-              <p className="text-[13px] leading-relaxed text-muted-foreground">
+              <p className="text-[15px] leading-relaxed text-muted-foreground">
                 Sign in using your preferred method to unlock your personal wardrobe and AI stylist.
               </p>
             </div>
@@ -503,17 +470,6 @@ export function AuthModal() {
                     "Log in"
                   )}
                 </Button>
-
-                {/* Development only: never shown in the production build */}
-                {import.meta.env.DEV ? (
-                  <button
-                    type="button"
-                    onClick={handleAutofillDemo}
-                    className="w-full text-center text-xs text-muted-foreground hover:text-foreground hover:underline transition-colors py-1 cursor-pointer"
-                  >
-                    Fill demo credentials (demo@atelierora.com)
-                  </button>
-                ) : null}
               </form>
             )}
 
@@ -706,7 +662,7 @@ export function AuthModal() {
                   Step 1 of 2
                 </span>
               </div>
-              <h2 id="auth-modal-title" className="font-display text-2xl sm:text-3xl font-semibold">
+              <h2 id="auth-modal-title" className="font-display text-[32px] leading-tight">
                 Create Account
               </h2>
               <p className="text-xs text-muted-foreground">
@@ -910,7 +866,7 @@ export function AuthModal() {
                 </span>
                 <span className="eyebrow">Email Verification</span>
               </div>
-              <h2 id="auth-modal-title" className="font-display text-2xl sm:text-3xl font-semibold">
+              <h2 id="auth-modal-title" className="font-display text-[32px] leading-tight">
                 Verify Your Email
               </h2>
               <p className="text-xs text-muted-foreground leading-relaxed">
