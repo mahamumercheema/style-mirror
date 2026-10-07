@@ -1179,7 +1179,6 @@ export function TryOnCanvas({
                     : "text-muted-foreground hover:text-foreground"
                 }`}
               >
-                <Sparkles className="size-3 text-gold" />
                 <span>
                   Look B:{" "}
                   {comparisonType === "size"

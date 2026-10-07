@@ -14,6 +14,7 @@ import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { AuthProvider } from "@/context/AuthContext";
 import { AuthModal } from "@/components/AuthModal";
+import { AnimatedBackground } from "@/components/AnimatedBackground";
 import { SiteFooter } from "@/components/SiteFooter";
 import { SiteHeader } from "@/components/SiteHeader";
 import { Toaster } from "@/components/ui/sonner";
@@ -120,12 +121,14 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 });
 
 function RootShell({ children }: { children: ReactNode }) {
+  const pathname = useRouterState({ select: (state) => state.location.pathname });
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
         <HeadContent />
       </head>
-      <body suppressHydrationWarning>
+      {/* Inner pages: glass panels over the animated background (set server-side, no flash) */}
+      <body className={pathname !== "/" ? "glass-scope" : undefined} suppressHydrationWarning>
         {children}
         <Scripts />
       </body>
@@ -143,6 +146,8 @@ function RootComponent() {
         {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
         {/* Page area fills at least the screen height, so the footer sits at the bottom
             edge on short pages instead of floating up under the content */}
+        {/* Slow studio-light background behind every page except the landing page */}
+        {pathname !== "/" ? <AnimatedBackground /> : null}
         <div className="flex min-h-svh flex-col">
           {/* The landing page has its own hero header; every other page shares this one */}
           {pathname !== "/" ? <SiteHeader /> : null}

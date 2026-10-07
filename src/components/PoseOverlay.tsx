@@ -117,11 +117,12 @@ export function PoseOverlay({
   const confidencePct = Math.round(confidence * 100);
 
   return (
-    <div className="surface flex flex-col overflow-hidden">
-      <div className="relative w-full overflow-hidden bg-muted/30">
+    // Fills its parent: the photo (with skeleton) scales to fit, the bars stay at the bottom
+    <div className="surface flex h-full flex-col overflow-hidden">
+      <div className="relative min-h-0 w-full flex-1 overflow-hidden bg-muted/30">
         <canvas
           ref={canvasRef}
-          className="checkerboard block h-auto max-h-[32rem] w-full object-contain"
+          className="checkerboard absolute inset-0 block size-full object-contain"
         />
 
         {/* Floating status pill */}

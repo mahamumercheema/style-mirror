@@ -32,7 +32,7 @@ export function SiteHeader() {
         "sticky top-0 z-50 text-foreground transition-[background-color,backdrop-filter,border-color] duration-300",
         variant === "a"
           ? scrolled
-            ? "border-b border-black/15 bg-background/80 backdrop-blur-[8px]"
+            ? "border-b border-white/10 bg-[rgb(20_20_20/0.45)] backdrop-blur-[12px]"
             : "border-b border-transparent bg-transparent"
           : cn(
               // Option B: darker shade of the page grey, softened by a short gradient below
@@ -42,10 +42,11 @@ export function SiteHeader() {
       )}
       style={{ "--glow-base": "var(--color-foreground)" } as React.CSSProperties}
     >
-      <nav className="mx-auto flex w-full max-w-6xl items-center justify-between gap-x-6 gap-y-3 px-6 py-4 md:flex-wrap md:items-baseline md:py-6">
+      {/* Full-bleed: wordmark pinned top-left, links and account pinned top-right */}
+      <nav className="page-gutter flex h-16 w-full items-center justify-between gap-x-6">
         <AtelierOraLogo tone="light" />
         {/* Desktop: inline links and auth buttons. Mobile: collapsed into MobileNav. */}
-        <div className="hidden md:flex md:flex-wrap md:items-center md:gap-x-8 md:gap-y-3">
+        <div className="hidden md:flex md:items-center md:gap-x-4 lg:gap-x-8">
           <Link to="/closet" className="nav-link text-foreground/90">
             My Closet
           </Link>

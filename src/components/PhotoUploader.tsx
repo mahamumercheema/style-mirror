@@ -6,8 +6,10 @@ import {
   CheckCircle2,
   ImageUp,
   Loader2,
+  Lock,
   RefreshCw,
   Trash2,
+  X,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -119,10 +121,11 @@ export function PhotoUploader({
   );
 
   return (
-    <div className="grid gap-8 md:grid-cols-[1.4fr_1fr] md:items-start">
+    // The upload panel only; it fills the height its parent gives it
+    <div className="h-full">
       {photoUrl ? (
         /* Image Preview State inside Step 01 Area */
-        <div className="surface overflow-hidden p-6 space-y-5">
+        <div className="surface flex h-full flex-col gap-4 overflow-hidden p-4 sm:p-6">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <p className="eyebrow">Photo selected</p>
@@ -147,11 +150,11 @@ export function PhotoUploader({
             </div>
           </div>
 
-          <div className="relative mx-auto flex max-h-[26rem] w-full items-center justify-center overflow-hidden rounded-md bg-muted/40 p-2">
+          <div className="relative min-h-0 w-full flex-1 overflow-hidden rounded-md bg-muted/40">
             <img
               src={photoUrl}
               alt="Uploaded full-body preview"
-              className="max-h-[24rem] w-auto rounded object-contain"
+              className="absolute inset-0 size-full object-contain p-2"
             />
           </div>
 
@@ -172,10 +175,7 @@ export function PhotoUploader({
             </div>
           ) : null}
 
-          <div className="flex flex-wrap items-center justify-between gap-4 pt-2">
-            <p className="text-xs text-muted-foreground">
-              Your photo is processed in this browser and is not stored.
-            </p>
+          <div className="flex flex-wrap items-center justify-end gap-4">
             {onContinue ? (
               <Button onClick={onContinue} disabled={busy} size="lg" className="gap-2">
                 {busy ? <Loader2 className="size-4 animate-spin" /> : null}
@@ -208,8 +208,10 @@ export function PhotoUploader({
             handleFile(event.dataTransfer.files?.[0]);
           }}
           className={cn(
-            "flex min-h-[22rem] cursor-pointer flex-col items-center justify-center gap-5 rounded-md border border-dashed px-8 py-14 text-center transition-colors duration-300",
-            dragging ? "border-gold bg-gold/5" : "border-white/30 bg-card hover:border-gold",
+            "flex h-full cursor-pointer flex-col items-center justify-center rounded-md border border-dashed px-6 py-8 text-center transition-colors duration-300 sm:px-8",
+            dragging
+              ? "border-gold bg-foreground/[0.06]"
+              : "border-white/30 bg-card hover:border-gold",
           )}
         >
           {busy ? (
@@ -219,12 +221,10 @@ export function PhotoUploader({
               <ImageUp className="size-6 text-secondary-foreground" />
             </span>
           )}
-          <div className="space-y-1.5">
-            <h2 className="text-2xl">Drop your full-body photo</h2>
-            <p className="mx-auto max-w-sm text-sm text-muted-foreground">
-              Click anywhere to browse or drop an image file. Accepts JPG, PNG or WebP.
-            </p>
-          </div>
+          <h2 className="mt-5 text-2xl">Drop your full-body photo</h2>
+          <p className="mt-2 mx-auto max-w-sm text-sm text-muted-foreground">
+            Click anywhere to browse or drop an image file. Accepts JPG, PNG or WebP.
+          </p>
           <input
             ref={inputRef}
             type="file"
@@ -240,37 +240,115 @@ export function PhotoUploader({
             }}
             disabled={busy}
             size="lg"
+            className="mt-6"
           >
             <Camera className="size-4" />
             Choose a photo
           </Button>
 
-          <p className="text-xs text-muted-foreground">
-            Your photo is processed in this browser and is not stored.
-          </p>
-
           {error ? (
-            <p className="flex items-center gap-1.5 text-sm text-destructive">
+            <p className="mt-4 flex items-center gap-1.5 text-sm text-destructive">
               <AlertCircle className="size-4 shrink-0" />
               {error}
             </p>
           ) : null}
         </div>
       )}
-
-      <aside className="surface p-6">
-        <p className="eyebrow">For the best read</p>
-        <ul className="mt-4 space-y-3">
-          {GUIDELINES.map((line, index) => (
-            <li key={line} className="flex gap-3 text-sm text-muted-foreground">
-              <span className="font-display text-base text-gold-ink">
-                {String(index + 1).padStart(2, "0")}
-              </span>
-              <span>{line}</span>
-            </li>
-          ))}
-        </ul>
-      </aside>
     </div>
+  );
+}
+
+/** "For the best read" checklist, good/avoid examples and the privacy note (no card) */
+export function PhotoGuidance() {
+  return (
+    <div className="flex flex-col">
+      <p className="eyebrow">For the best read</p>
+      <ul className="mt-4 space-y-3">
+        {GUIDELINES.map((line, index) => (
+          <li key={line} className="flex gap-3 text-[13px] text-muted-foreground">
+            <span className="font-display text-base text-gold-ink">
+              {String(index + 1).padStart(2, "0")}
+            </span>
+            <span>{line}</span>
+          </li>
+        ))}
+      </ul>
+
+      {/* Good / avoid examples */}
+      <div className="mt-8 grid max-w-sm grid-cols-2 gap-3">
+        <PoseExample good />
+        <PoseExample good={false} />
+      </div>
+
+      <p className="mt-8 flex items-center gap-2 text-xs text-muted-foreground">
+        <Lock className="size-3.5 shrink-0 text-gold-ink" />
+        Your photo is processed in this browser and never stored
+      </p>
+    </div>
+  );
+}
+
+/**
+ * Illustrated example photo: a full-length, front-facing figure with arms slightly out
+ * ("Good"), or one turned side-on, arms against the body and cropped at the shins ("Avoid").
+ */
+function PoseExample({ good }: { good: boolean }) {
+  return (
+    <figure className="space-y-2">
+      <div
+        className={cn(
+          "overflow-hidden rounded-md border bg-foreground/[0.04]",
+          good ? "border-gold/50" : "border-border",
+        )}
+      >
+        <svg
+          viewBox="0 0 80 110"
+          role="img"
+          aria-label={
+            good
+              ? "Front-facing, full body, arms slightly away from the body"
+              : "Side-on, arms against the body, cropped below the knees"
+          }
+          className="mx-auto block h-24 w-auto text-muted-foreground min-[900px]:h-28"
+          fill="currentColor"
+        >
+          {good ? (
+            <>
+              <circle cx="40" cy="15" r="8" />
+              <rect x="31" y="26" width="18" height="34" rx="5" />
+              <rect x="20" y="28" width="6" height="30" rx="3" transform="rotate(14 23 28)" />
+              <rect x="54" y="28" width="6" height="30" rx="3" transform="rotate(-14 57 28)" />
+              <rect x="32" y="58" width="7" height="40" rx="3" />
+              <rect x="41" y="58" width="7" height="40" rx="3" />
+              <rect x="28" y="98" width="11" height="4" rx="2" />
+              <rect x="41" y="98" width="11" height="4" rx="2" />
+              <line x1="10" y1="104" x2="70" y2="104" stroke="currentColor" strokeOpacity=".3" />
+            </>
+          ) : (
+            <>
+              {/* Cropped: the frame cuts the figure off at the shins */}
+              <circle cx="42" cy="22" r="9" />
+              <rect x="34" y="34" width="13" height="40" rx="5" />
+              <rect x="38" y="36" width="6" height="34" rx="3" opacity=".75" />
+              <rect x="35" y="72" width="7" height="40" rx="3" />
+              <rect x="41" y="72" width="7" height="40" rx="3" transform="rotate(6 44 72)" />
+            </>
+          )}
+        </svg>
+      </div>
+      <figcaption className="flex items-center gap-1.5 text-xs">
+        {good ? (
+          <>
+            <CheckCircle2 className="size-3.5 text-gold-ink" />
+            <span className="text-foreground">Good</span>
+          </>
+        ) : (
+          <>
+            <X className="size-3.5 text-destructive" />
+            <span className="text-muted-foreground">Avoid</span>
+          </>
+        )}
+      </figcaption>
+    </figure>
   );
 }

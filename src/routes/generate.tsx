@@ -40,6 +40,7 @@ import {
   ExternalLink,
   ChevronRight,
   Info,
+  Loader2,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
@@ -281,7 +282,7 @@ function GeneratePage() {
   }, [currentOption, wardrobe]);
 
   return (
-    <main className="min-h-screen bg-background text-foreground pb-24 selection:bg-gold/30">
+    <main className="min-h-screen text-foreground pb-24 selection:bg-gold/30">
       <div className="mx-auto w-full max-w-6xl px-6 pt-8 sm:pt-10 space-y-10">
         {/* Page Header */}
         <div className="space-y-2 border-b border-border pb-6">
@@ -306,7 +307,7 @@ function GeneratePage() {
 
         {/* Phase 4: Personalized Profile Indicator Banner */}
         {profile && (
-          <div className="rounded-md border border-gold/40 bg-gradient-to-r from-amber-50/80 via-stone-50 to-orange-50/60 p-4 flex flex-wrap items-center justify-between gap-3 text-xs">
+          <div className="surface border-gold/40 bg-gradient-to-r from-gold/10 to-transparent p-4 flex flex-wrap items-center justify-between gap-3 text-xs">
             <div className="flex items-center gap-3">
               <div className="flex size-9 items-center justify-center rounded-full border border-gold/40 text-gold-ink shrink-0">
                 <Sparkles className="size-4 text-gold-ink" />
@@ -540,12 +541,11 @@ function GeneratePage() {
                 >
                   {isCurating ? (
                     <>
-                      <Sparkles className="size-4 animate-spin text-gold-ink" />
+                      <Loader2 className="size-4 animate-spin text-gold-ink" />
                       <span>Styling your closet...</span>
                     </>
                   ) : (
                     <>
-                      <Sparkles className="size-4 text-gold-ink" />
                       <span>Generate AI Outfit Recommendations</span>
                     </>
                   )}
@@ -825,7 +825,6 @@ function GeneratePage() {
                     onClick={handleCurateOutfit}
                     className="gap-2 border border-gold bg-transparent text-gold-ink hover:bg-gold/10 cursor-pointer text-xs"
                   >
-                    <Sparkles className="size-3.5 text-gold-ink" />
                     <span>Curate Sample Look for Tonight</span>
                   </Button>
                 </div>

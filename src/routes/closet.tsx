@@ -337,7 +337,7 @@ function ClosetPage() {
   const favoriteCount = items.filter((i) => i.is_favorite).length;
 
   return (
-    <main className="min-h-screen bg-background pb-20">
+    <main className="min-h-screen pb-20">
       <div className="mx-auto w-full max-w-6xl px-6 pt-8 sm:pt-10 space-y-8">
         {/* ========================================================================= */}
         {/* 1. Top Header: Page Title "My Wardrobe" & "Add New Item" Button */}
@@ -367,7 +367,6 @@ function ClosetPage() {
               className="gap-2 font-medium border-gold/40 border border-gold/40 hover:bg-gold/10 text-gold-ink cursor-pointer"
             >
               <Link to="/generate">
-                <Sparkles className="size-4 text-gold-ink" />
                 <span>AI Stylist</span>
               </Link>
             </Button>
@@ -522,7 +521,6 @@ function ClosetPage() {
                         : "border border-border/80 bg-background text-muted-foreground hover:text-foreground hover:border-foreground/40"
                     }`}
                   >
-                    {tag === "Wedding" && <Sparkles className="size-3 text-gold-ink" />}
                     <span>{tag}</span>
                   </button>
                 );
@@ -581,7 +579,6 @@ function ClosetPage() {
                 size="sm"
                 className="gap-1.5 cursor-pointer text-xs"
               >
-                <Sparkles className="size-3.5 text-gold-ink" />
                 <span>Restore Sample Outfits</span>
               </Button>
               <Button

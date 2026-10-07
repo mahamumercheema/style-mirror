@@ -8,7 +8,7 @@ import type { CategoryEntity, OccasionEntity, ParentCategoryType } from "@/types
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Heart, RotateCcw, Search, Sparkles } from "lucide-react";
+import { Heart, RotateCcw, Search } from "lucide-react";
 
 interface CategoryOccasionFilterBarProps {
   categories: CategoryEntity[];
@@ -233,7 +233,6 @@ export function CategoryOccasionFilterBar({
                     : "border border-border/80 bg-background text-muted-foreground hover:text-foreground hover:border-foreground/40"
                 }`}
               >
-                {occ.name?.includes("Wedding") && <Sparkles className="size-3 text-gold-ink" />}
                 <span>{occ.name}</span>
               </button>
             );

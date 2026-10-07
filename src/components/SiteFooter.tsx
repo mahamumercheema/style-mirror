@@ -33,12 +33,13 @@ export function SiteFooter() {
         onLanding
           ? "theme-dark border-t border-border bg-background"
           : variant === "a"
-            ? "border-t border-black/15 bg-transparent"
+            ? "border-t border-white/10 bg-transparent"
             : "bg-[#3e3e3e] before:pointer-events-none before:absolute before:inset-x-0 before:bottom-full before:h-6 before:bg-gradient-to-t before:from-[#3e3e3e] before:to-transparent",
       )}
       style={{ "--glow-base": "var(--color-foreground)" } as React.CSSProperties}
     >
-      <div className="mx-auto flex w-full max-w-6xl flex-col items-center gap-3 px-6 py-5 md:flex-row md:py-6 md:justify-between md:gap-6">
+      {/* Full-bleed, slim: wordmark, links and credit spread to the edges */}
+      <div className="page-gutter flex w-full flex-col items-center gap-3 py-5 md:flex-row md:justify-between md:gap-6 md:py-4">
         <AtelierOraLogo tone="light" className="text-base md:text-base" />
 
         <nav aria-label="Footer">

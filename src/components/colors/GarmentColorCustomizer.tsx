@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import {
   Shirt,
-  Sparkles,
+  Spool,
   Layers,
   CircleDot,
   Pipette,
@@ -522,7 +522,7 @@ export function GarmentColorCustomizer({
       label: "Top-Stitching",
       description: "Edge seams, needle thread & embroidery",
       currentColor: theme.stitching,
-      icon: Sparkles,
+      icon: Spool,
     },
   ];
 

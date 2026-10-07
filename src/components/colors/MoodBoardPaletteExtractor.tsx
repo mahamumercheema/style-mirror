@@ -1,13 +1,5 @@
 import { useState, useRef } from "react";
-import {
-  Upload,
-  Image as ImageIcon,
-  Sparkles,
-  Layers,
-  Wand2,
-  Check,
-  RefreshCw,
-} from "lucide-react";
+import { Upload, Image as ImageIcon, Sparkles, Layers, Check, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   extractColorPaletteFromImage,
@@ -227,7 +219,6 @@ export function MoodBoardPaletteExtractor({
             onClick={handleAutoApplyMoodBoard}
             className="text-xs h-7 gap-1.5 cursor-pointer border border-gold bg-transparent text-gold-ink hover:bg-gold/10"
           >
-            <Wand2 className="size-3" />
             <span>Auto-Harmonize Garment</span>
           </Button>
         </div>

@@ -13,10 +13,19 @@ import {
   ShieldCheck,
   X,
 } from "lucide-react";
+import { useNavigate, useRouterState } from "@tanstack/react-router";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { cn } from "@/lib/utils";
+
+/** Modal buttons: readable size, label always fits (it never overflows the button) */
+const MODAL_BUTTON =
+  "h-11 w-full min-w-0 px-4 text-[13px] tracking-[0.12em] whitespace-nowrap cursor-pointer";
+/** Email/password fields: 44px tall, 15px text */
+const MODAL_INPUT = "h-11 text-[15px] md:text-[15px]";
+const MODAL_LABEL = "text-[13px] font-medium";
 
 export function AuthModal() {
   const {
@@ -57,6 +66,17 @@ export function AuthModal() {
   const [verificationError, setVerificationError] = useState<string | null>(null);
 
   const modalRef = useRef<HTMLDivElement>(null);
+  const navigate = useNavigate();
+  const pathname = useRouterState({ select: (state) => state.location.pathname });
+  const [guestLoading, setGuestLoading] = useState(false);
+
+  // Each time the modal opens, start from an empty form (no stale or autofilled values)
+  useEffect(() => {
+    if (!isModalOpen) return;
+    setLoginEmail("");
+    setLoginPassword("");
+    setGuestLoading(false);
+  }, [isModalOpen]);
 
   // Keyboard accessibility: ESC key to close
   useEffect(() => {
@@ -85,15 +105,36 @@ export function AuthModal() {
     e.preventDefault();
     setLoginError(null);
 
-    const result = await login(loginEmail, loginPassword);
-    if (!result.success && result.error) {
-      setLoginError(result.error);
+    try {
+      const result = await login(loginEmail, loginPassword);
+      if (!result.success && result.error) {
+        setLoginError(result.error);
+      }
+    } catch (error) {
+      console.error("Log in failed", error);
+      setLoginError("Couldn't log in. Please try again.");
+    }
+  };
+
+  /**
+   * Guest session, then back to where the user came from: opened on the studio (e.g. from the
+   * Step 02 measurements gate) it stays there and that step unlocks; anywhere else, the studio.
+   */
+  const handleContinueAsGuest = async () => {
+    setGuestLoading(true);
+    try {
+      if (pathname !== "/studio") await navigate({ to: "/studio" });
+      loginAsGuest();
+    } catch (error) {
+      console.error("Guest session failed", error);
+      setLoginError("Couldn't start a guest session. Please try again.");
+      setGuestLoading(false);
     }
   };
 
   // Auto-fill demo account for rapid evaluation
   const handleAutofillDemo = () => {
-    setLoginEmail("demo@stylemirror.com");
+    setLoginEmail("demo@atelierora.com");
     setLoginPassword("password123");
     setLoginError(null);
   };
@@ -150,7 +191,7 @@ export function AuthModal() {
       <div
         ref={modalRef}
         id="auth-modal-dialog"
-        className="relative w-full max-w-md border border-border bg-card text-card-foreground p-6 sm:p-8 rounded-md my-auto transition-all"
+        className="relative w-full max-w-[440px] border border-border bg-card text-card-foreground p-6 sm:p-8 rounded-md my-auto transition-all"
       >
         {/* Close Button */}
         <button
@@ -180,10 +221,10 @@ export function AuthModal() {
                 </span>
                 <span className="eyebrow">Account Access</span>
               </div>
-              <h2 id="auth-modal-title" className="font-display text-3xl">
-                Welcome Back
+              <h2 id="auth-modal-title" className="font-display text-2xl">
+                Welcome back
               </h2>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-[13px] leading-relaxed text-muted-foreground">
                 Enter your email and password to access your body measurements and fitting room.
               </p>
             </div>
@@ -200,21 +241,21 @@ export function AuthModal() {
 
             <form onSubmit={handleLoginSubmit} className="space-y-4">
               <div className="space-y-1.5">
-                <Label htmlFor="login-email" className="text-xs font-medium">
-                  Email Address
+                <Label htmlFor="login-email" className={MODAL_LABEL}>
+                  Email address
                 </Label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
                   <Input
                     id="login-email"
                     type="email"
-                    placeholder="name@example.com"
+                    placeholder="Enter your email"
                     value={loginEmail}
                     onChange={(e) => {
                       setLoginEmail(e.target.value);
                       if (loginError) setLoginError(null);
                     }}
-                    className="pl-9 text-sm"
+                    className={cn(MODAL_INPUT, "pl-9")}
                     autoComplete="email"
                     autoFocus
                     required
@@ -224,7 +265,7 @@ export function AuthModal() {
 
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
-                  <Label htmlFor="login-password" className="text-xs font-medium">
+                  <Label htmlFor="login-password" className={MODAL_LABEL}>
                     Password
                   </Label>
                 </div>
@@ -239,7 +280,7 @@ export function AuthModal() {
                       setLoginPassword(e.target.value);
                       if (loginError) setLoginError(null);
                     }}
-                    className="pl-9 pr-10 text-sm"
+                    className={cn(MODAL_INPUT, "pl-9 pr-10")}
                     autoComplete="current-password"
                     required
                   />
@@ -257,41 +298,47 @@ export function AuthModal() {
               <Button
                 id="login-submit-button"
                 type="submit"
-                disabled={isSubmitting}
-                className="w-full h-10 mt-1 font-medium cursor-pointer"
+                disabled={isSubmitting || guestLoading}
+                className={cn(MODAL_BUTTON, "mt-1")}
               >
                 {isSubmitting ? (
                   <>
-                    <Loader2 className="size-4 animate-spin mr-2" />
+                    <Loader2 className="size-4 animate-spin" />
                     Logging in...
                   </>
                 ) : (
-                  "Log In"
+                  "Log in"
                 )}
               </Button>
 
-              {/* Instant Guest / Demo Helpers */}
-              <div className="flex flex-col gap-2 pt-1">
+              <div className="space-y-1.5">
                 <Button
+                  id="continue-as-guest-button"
                   type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={loginAsGuest}
-                  className="w-full text-xs font-medium cursor-pointer"
+                  variant="secondary"
+                  onClick={() => void handleContinueAsGuest()}
+                  disabled={guestLoading || isSubmitting}
+                  className={MODAL_BUTTON}
                 >
-                  Continue as Guest (No Password Required)
+                  {guestLoading ? <Loader2 className="size-4 animate-spin" /> : null}
+                  Continue as guest
                 </Button>
+                <p className="text-center text-xs text-muted-foreground">No password required</p>
+              </div>
+
+              {/* Development only: never shown in the production build */}
+              {import.meta.env.DEV ? (
                 <button
                   type="button"
                   onClick={handleAutofillDemo}
-                  className="w-full text-center text-xs text-muted-foreground hover:text-foreground hover:underline transition-colors py-1 cursor-pointer"
+                  className="w-full py-1 text-center text-xs text-muted-foreground transition-colors hover:text-foreground hover:underline cursor-pointer"
                 >
-                  Fill demo credentials (demo@stylemirror.com)
+                  Fill demo credentials (demo@atelierora.com)
                 </button>
-              </div>
+              ) : null}
             </form>
 
-            <div className="border-t border-border pt-4 text-center text-xs text-muted-foreground">
+            <div className="border-t border-border pt-4 text-center text-[13px] text-muted-foreground">
               Don&apos;t have an account yet?{" "}
               <button
                 type="button"
@@ -299,7 +346,7 @@ export function AuthModal() {
                 onClick={() => setModalView("signup")}
                 className="font-medium text-foreground underline hover:text-accent transition-colors cursor-pointer"
               >
-                Sign up with Email Verification
+                Sign up
               </button>
             </div>
           </div>

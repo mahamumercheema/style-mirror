@@ -252,7 +252,8 @@ export function MeasurementsCard({
   const hasAnyValue = Boolean(calibrated) || (manualEnabled && Object.keys(manual).length > 0);
 
   return (
-    <section className="surface p-6 space-y-5">
+    // Unboxed; columns follow the width it's given (a narrow side column or full width)
+    <section className="@container space-y-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="eyebrow">Step 02 — Body read</p>
@@ -297,7 +298,7 @@ export function MeasurementsCard({
       )}
 
       {hasAnyValue ? (
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-3 @sm:grid-cols-2 @3xl:grid-cols-3">
           <Stat
             label="Height"
             value={fmt(resolved.height)}
@@ -446,7 +447,7 @@ export function MeasurementsCard({
 
         {manualEnabled ? (
           <div className="space-y-4 border-t border-border/70 pt-4">
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-4 @sm:grid-cols-2">
               {MANUAL_FIELDS.map((field) => {
                 const draft = drafts[field.key] ?? "";
                 const applied = manual[field.key] !== undefined;

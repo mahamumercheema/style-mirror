@@ -60,9 +60,9 @@ const users = new Map<string, UserRecord>();
 // Pre-seed demo users (password: password123)
 (async () => {
   const demoHash = await bcrypt.hash("password123", 10);
-  users.set("demo@stylemirror.com", {
+  users.set("demo@atelierora.com", {
     id: "usr_demo",
-    email: "demo@stylemirror.com",
+    email: "demo@atelierora.com",
     password_hash: demoHash,
     name: "Demo User",
     is_verified: true,

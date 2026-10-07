@@ -395,7 +395,7 @@ function ProfilePage() {
   const wardrobeItems = getStoredWardrobeItems(activeUserId);
 
   return (
-    <main className="min-h-screen bg-background pb-20">
+    <main className="min-h-screen pb-20">
       {/* Main Container */}
       <div className="mx-auto w-full max-w-6xl px-6 pt-8 space-y-8">
         {/* Header Banner */}
@@ -437,7 +437,6 @@ function ProfilePage() {
               className="gap-1.5 text-xs font-medium cursor-pointer"
             >
               <Link to="/generate">
-                <Sparkles className="size-3.5 text-gold-ink" />
                 <span>AI Stylist</span>
               </Link>
             </Button>
@@ -604,9 +603,7 @@ function ProfilePage() {
                       >
                         {isDetectingPose ? (
                           <RefreshCw className="size-3 animate-spin text-gold-ink" />
-                        ) : (
-                          <Sparkles className="size-3 text-gold-ink" />
-                        )}
+                        ) : null}
                         <span>Scan Proportions</span>
                       </Button>
 
@@ -685,7 +682,6 @@ function ProfilePage() {
                               void handleAutoDetectFromPhoto();
                             }}
                           >
-                            <Sparkles className="size-3 text-gold-ink" />
                             <span>Auto-Detect Shape</span>
                           </Button>
                         </div>

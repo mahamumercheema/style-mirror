@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { Sparkles, Check, ArrowRight, Wand2 } from "lucide-react";
+import { Sparkles, Check, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   calculateColorHarmonies,
@@ -70,9 +70,8 @@ export function HarmoniesSuggester({
           type="button"
           size="sm"
           onClick={() => handleApplyHarmony(activeHarmonyData)}
-          className="gap-1.5 text-xs cursor-pointer border border-gold bg-transparent text-gold-ink hover:bg-gold/10 self-start sm:self-auto"
+          className="h-auto max-w-full gap-1.5 whitespace-normal py-2 text-xs cursor-pointer border border-gold bg-transparent text-gold-ink hover:bg-gold/10 self-start sm:self-auto sm:whitespace-nowrap"
         >
-          <Wand2 className="size-3.5" />
           <span>Apply Active Scheme to Garment</span>
         </Button>
       </div>

@@ -15,7 +15,7 @@ import type {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Check, Heart, Image as ImageIcon, Loader2, Sparkles, UploadCloud, X } from "lucide-react";
+import { Check, Heart, Image as ImageIcon, Loader2, UploadCloud, X } from "lucide-react";
 import { toast } from "sonner";
 
 interface AddItemModalProps {
@@ -544,7 +544,6 @@ export function AddItemModal({
                 </>
               ) : (
                 <>
-                  <Sparkles className="size-3.5" />
                   <span>Save to Closet</span>
                 </>
               )}

@@ -3,7 +3,6 @@ import {
   Palette,
   Sparkles,
   Layers,
-  Wand2,
   CheckCircle2,
   SlidersHorizontal,
   Shirt,
@@ -111,7 +110,6 @@ export function ColorStudioPanel({
               : "bg-secondary/40 text-muted-foreground hover:bg-secondary hover:text-foreground",
           )}
         >
-          <Sparkles className="size-3.5 text-gold-ink" />
           <span>Color Wheel & Harmonies (Complementary / Triadic / Analogous)</span>
         </button>
 
@@ -125,7 +123,6 @@ export function ColorStudioPanel({
               : "bg-secondary/40 text-muted-foreground hover:bg-secondary hover:text-foreground",
           )}
         >
-          <Wand2 className="size-3.5" />
           <span>Mood Board & Image Extraction</span>
         </button>
       </div>
