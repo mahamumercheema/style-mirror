@@ -81,7 +81,10 @@ export const Route = createFileRoute("/studio")({
 type WorkflowStep = 1 | 2 | 3;
 
 function Studio() {
-  const { isAuthenticated, user, openLogin, openSignUp, loginAsGuest } = useAuth();
+  const { user, openLogin, openSignUp, loginAsGuest } = useAuth();
+  // The studio opens to any session, guests included ("Continue as guest" unlocks it);
+  // the auth context's stricter isAuthenticated (no guests) still gates the AI Stylist/closet
+  const hasStudioAccess = Boolean(user);
 
   const [photo, setPhoto] = useState<string | null>(null);
   const [currentStep, setCurrentStep] = useState<WorkflowStep>(1);
@@ -443,7 +446,7 @@ function Studio() {
     </div>
   );
 
-  const locked = !isAuthenticated;
+  const locked = !hasStudioAccess;
 
   return (
     <main className="page-gutter w-full overflow-x-clip pt-6 pb-6">
@@ -693,8 +696,8 @@ function Studio() {
                   {status === "done" ? (
                     <Button
                       size="sm"
-                      onClick={isAuthenticated ? handleProceedToFittingRoom : openGateSignUp}
-                      title={isAuthenticated ? undefined : "Sign up or log in to try on clothes"}
+                      onClick={hasStudioAccess ? handleProceedToFittingRoom : openGateSignUp}
+                      title={hasStudioAccess ? undefined : "Sign up or log in to try on clothes"}
                       className="gap-1.5 cursor-pointer"
                     >
                       {locked && <Lock className="size-3.5" />}

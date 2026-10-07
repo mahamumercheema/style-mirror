@@ -68,16 +68,18 @@ export async function generateOutfitRecommendationsWithGemini(
     category: it.category?.name || "Apparel",
     color: it.primary_color || "Unspecified",
     season: it.season || "All Season",
+    occasions: it.occasions?.map((o) => o.name).join(", ") || undefined,
   }));
 
   const systemPrompt = `You are "Style Mirror", an elite fashion stylist specializing in contemporary and South Asian/Ethnic traditional attire.
-You curate outfit combinations strictly using items from the user's wardrobe inventory.
+You curate outfit combinations exclusively from the user's uploaded wardrobe inventory for a specific occasion.
 
 CRITICAL INSTRUCTIONS:
-1. You MUST pick real item IDs from the provided wardrobe inventory for "selected_item_ids".
-2. Provide exactly 2 distinct outfit options. Keep each description concise and punchy (1-2 sentences).
-3. Include actionable advice for hair styling and makeup inspiration matching the chosen outfit.
-4. Output must be strictly valid JSON matching the exact schema requested.`;
+1. Occasion Alignment: The outfit MUST be strictly appropriate for the user's specified occasion ("${payload.occasionName || "Special Event"}").
+2. Exclusivity: You MUST pick real item IDs ONLY from the provided wardrobe inventory for "selected_item_ids". Never invent IDs.
+3. Provide exactly 2 distinct outfit options. Keep each description concise and punchy (1-2 sentences).
+4. Include actionable advice for hair styling and makeup inspiration matching the chosen outfit.
+5. Output must be strictly valid JSON matching the exact schema requested.`;
 
   const userPrompt = `USER STYLING REQUEST:
 - Target Occasion: ${payload.occasionName || "Special Event"}
@@ -89,7 +91,7 @@ ${userProfile?.bodyType ? `- Body Silhouette: ${userProfile.bodyType} shape (Hei
 ${userProfile?.preferences?.modestyPreference ? `- Modesty Preference: ${userProfile.preferences.modestyPreference}` : ""}
 ${userProfile?.body_type_notes ? `- User Fit & Silhouette Notes: "${userProfile.body_type_notes}"` : ""}
 
-AVAILABLE WARDROBE INVENTORY:
+AVAILABLE USER WARDROBE GALLERY:
 ${JSON.stringify(itemsSummary)}
 
 Produce a JSON object with this exact shape:
@@ -97,7 +99,7 @@ Produce a JSON object with this exact shape:
   "recommendations": [
     {
       "option_name": "Option 1: [Creative Title]",
-      "style_reasoning": "Crisp 1-2 sentence explanation of why this outfit works harmoniously",
+      "style_reasoning": "Crisp 1-2 sentence explanation of why this outfit works harmoniously for this occasion",
       "selected_item_ids": ["item_id_1", "item_id_2"],
       "outfit_breakdown": {
         "top_or_full_body": "Title of garment",
@@ -146,10 +148,22 @@ Produce a JSON object with this exact shape:
         Array.isArray(parsed.recommendations) &&
         parsed.recommendations.length > 0
       ) {
+        const validIds = new Set(items.map((i) => i.id));
+        const sanitized = parsed.recommendations.map((rec) => {
+          let ids = (rec.selected_item_ids || []).filter((id) => validIds.has(id));
+          if (ids.length === 0 && items.length > 0) {
+            ids = [items[0]!.id];
+          }
+          return {
+            ...rec,
+            selected_item_ids: ids,
+          };
+        });
+
         return {
-          recommendations: parsed.recommendations,
+          recommendations: sanitized,
           fallbackUsed: false,
-          message: `Curated live with Google Gemini (${model}).`,
+          message: `Curated live with Google Gemini (${model}) using your uploaded wardrobe gallery.`,
         };
       }
     } catch (err: unknown) {

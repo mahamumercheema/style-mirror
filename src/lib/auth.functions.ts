@@ -288,3 +288,67 @@ export async function apiLogin(payload: { email: string; password: string }): Pr
     }
   }
 }
+
+export async function apiRequestEmailOtp(payload: {
+  email: string;
+}): Promise<RegisterIntentResult> {
+  try {
+    const res = await fetch("/api/auth/request-otp", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      return {
+        success: false,
+        error: data.error || "Failed to send 2FA verification code.",
+        retryAfter: data.retryAfter,
+      };
+    }
+    return {
+      success: true,
+      message: data.message || "2FA code sent to your email",
+      devOtpCode: data.devOtpCode,
+      isSandbox: data.isSandbox,
+    };
+  } catch (e) {
+    return {
+      success: false,
+      error: (e as Error).message || "Network error. Please try again.",
+    };
+  }
+}
+
+export async function apiVerifyEmailOtp(payload: {
+  email: string;
+  code: string;
+}): Promise<VerifyCodeResult> {
+  try {
+    const res = await fetch("/api/auth/verify-otp", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      return {
+        success: false,
+        error: data.error || "Invalid 2FA code. Please check and try again.",
+        expired: data.expired,
+        locked: data.locked,
+      };
+    }
+    return {
+      success: true,
+      message: data.message,
+      token: data.token,
+      user: data.user,
+    };
+  } catch (e) {
+    return {
+      success: false,
+      error: (e as Error).message || "Network error. Please try again.",
+    };
+  }
+}

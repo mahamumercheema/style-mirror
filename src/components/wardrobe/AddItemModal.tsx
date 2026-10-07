@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import {
   FASHION_COLORS,
   FASHION_FABRICS,
@@ -6,6 +6,7 @@ import {
   type DEFAULT_CATEGORIES,
   type DEFAULT_OCCASIONS,
 } from "@/lib/wardrobe-service";
+import { removeClothingBackground } from "@/lib/clothing-background-removal";
 import type {
   CategoryEntity,
   OccasionEntity,
@@ -15,7 +16,8 @@ import type {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Check, Heart, Image as ImageIcon, Loader2, UploadCloud, X } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Check, Heart, Loader2, Sparkles, UploadCloud, X } from "lucide-react";
 import { toast } from "sonner";
 
 interface AddItemModalProps {
@@ -82,6 +84,9 @@ export function AddItemModal({
   const [categoryId, setCategoryId] = useState<number | "">("");
   const [selectedOccasions, setSelectedOccasions] = useState<number[]>([]);
   const [imageUrl, setImageUrl] = useState("");
+  const [bgRemovedUrl, setBgRemovedUrl] = useState<string | null>(null);
+  const [isRemovingBg, setIsRemovingBg] = useState(false);
+  const [showOriginal, setShowOriginal] = useState(false);
   const [primaryColor, setPrimaryColor] = useState("");
   const [secondaryColor, setSecondaryColor] = useState("");
   const [fabricType, setFabricType] = useState("");
@@ -92,6 +97,37 @@ export function AddItemModal({
   const [dragActive, setDragActive] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Automatically remove background when a new photo is provided
+  useEffect(() => {
+    if (!imageUrl) {
+      setBgRemovedUrl(null);
+      setIsRemovingBg(false);
+      return;
+    }
+
+    let isMounted = true;
+    setIsRemovingBg(true);
+
+    removeClothingBackground(imageUrl)
+      .then((cleanedUrl) => {
+        if (isMounted) {
+          setBgRemovedUrl(cleanedUrl);
+          setIsRemovingBg(false);
+        }
+      })
+      .catch((err) => {
+        console.warn("Auto-remove background failed:", err);
+        if (isMounted) {
+          setBgRemovedUrl(imageUrl);
+          setIsRemovingBg(false);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [imageUrl]);
 
   if (!isOpen) return null;
 
@@ -145,12 +181,15 @@ export function AddItemModal({
     setIsSubmitting(true);
     try {
       const selectedCategory = categories.find((c) => c.id === categoryId);
+      const finalImage = bgRemovedUrl || imageUrl;
 
       const input: CreateWardrobeItemInput = {
         title: title.trim() || selectedCategory?.name || "Wardrobe Item",
         category_id: typeof categoryId === "number" ? categoryId : null,
-        image_url: imageUrl,
-        thumbnail_url: imageUrl,
+        image_url: finalImage,
+        thumbnail_url: finalImage,
+        bg_removed_url: finalImage,
+        is_uploaded: true,
         primary_color: primaryColor.trim() || undefined,
         secondary_color: secondaryColor.trim() || undefined,
         fabric_type: fabricType.trim() || undefined,
@@ -160,6 +199,7 @@ export function AddItemModal({
       };
 
       await onSave(input);
+      toast.success("Clothing item saved with background automatically removed!");
       onClose();
     } catch (err) {
       toast.error((err as Error).message || "Failed to save item");
@@ -177,11 +217,11 @@ export function AddItemModal({
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="relative w-full max-w-xl border border-border bg-card text-card-foreground p-6 rounded-md my-auto transition-all max-h-[90vh] overflow-y-auto">
+      <div className="relative w-full max-w-xl border border-border bg-card text-card-foreground p-6 rounded-2xl shadow-2xl my-auto transition-all max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between pb-4 border-b border-border">
           <div className="flex items-center gap-2">
-            <span className="flex size-7 items-center justify-center rounded-full border border-gold/60 bg-transparent text-gold-ink">
+            <span className="flex size-7 items-center justify-center rounded-full bg-primary text-primary-foreground">
               <UploadCloud className="size-4" />
             </span>
             <div>
@@ -251,12 +291,12 @@ export function AddItemModal({
                 onDragOver={handleDrag}
                 onDrop={handleDrop}
                 onClick={() => fileInputRef.current?.click()}
-                className={`relative flex min-h-[140px] cursor-pointer flex-col items-center justify-center rounded-md border border-dashed p-4 text-center transition-colors ${
+                className={`relative flex min-h-[140px] cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed p-4 text-center transition-colors ${
                   dragActive
-                    ? "border-gold bg-gold/5"
+                    ? "border-primary bg-primary/5"
                     : imageUrl
                       ? "border-border bg-secondary/20"
-                      : "border-white/30 hover:border-gold"
+                      : "border-border hover:border-primary/50 hover:bg-muted/40"
                 }`}
               >
                 <input
@@ -268,27 +308,72 @@ export function AddItemModal({
                 />
 
                 {imageUrl ? (
-                  <div className="flex items-center gap-4 w-full">
-                    <img
-                      src={imageUrl}
-                      alt="Uploaded preview"
-                      className="size-24 rounded-lg object-cover border border-border shrink-0"
-                    />
-                    <div className="text-left text-xs">
-                      <p className="font-medium text-foreground">Photo ready for wardrobe</p>
-                      <p className="text-muted-foreground text-[11px] mt-0.5">
-                        Click or drag new photo to replace
+                  <div className="flex flex-col sm:flex-row items-center gap-4 w-full p-2 bg-card rounded-lg border border-border/80">
+                    <div className="relative size-28 rounded-lg overflow-hidden border border-border shadow-xs shrink-0 checkerboard flex items-center justify-center p-1.5">
+                      <img
+                        src={showOriginal ? imageUrl : bgRemovedUrl || imageUrl}
+                        alt="Uploaded preview"
+                        className="h-full w-full object-contain drop-shadow-md transition-all"
+                      />
+                      {isRemovingBg && (
+                        <div className="absolute inset-0 bg-black/40 backdrop-blur-xs flex flex-col items-center justify-center text-white text-[10px] gap-1">
+                          <Loader2 className="size-4 animate-spin text-gold-ink" />
+                          <span>Removing bg...</span>
+                        </div>
+                      )}
+                    </div>
+                    <div className="text-left text-xs flex-1 space-y-1.5">
+                      <div className="flex items-center gap-2">
+                        {isRemovingBg ? (
+                          <Badge
+                            variant="outline"
+                            className="text-[10px] bg-gold/10 text-gold-ink border-gold/20 gap-1"
+                          >
+                            <Loader2 className="size-2.5 animate-spin" />
+                            <span>Auto-Removing Background</span>
+                          </Badge>
+                        ) : bgRemovedUrl ? (
+                          <Badge
+                            variant="outline"
+                            className="text-[10px] bg-emerald-500/10 text-emerald-300 border-emerald-500/30 gap-1"
+                          >
+                            <Sparkles className="size-2.5 text-emerald-300" />
+                            <span>Background Automatically Removed</span>
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="text-[10px]">
+                            Photo Ready
+                          </Badge>
+                        )}
+                      </div>
+                      <p className="font-medium text-foreground">
+                        Clean cutout ready for AI styling & fitting
                       </p>
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setImageUrl("");
-                        }}
-                        className="text-destructive text-[11px] hover:underline mt-2 inline-block cursor-pointer"
-                      >
-                        Remove photo
-                      </button>
+                      <div className="flex items-center gap-3 text-[11px] pt-0.5">
+                        {bgRemovedUrl && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setShowOriginal(!showOriginal);
+                            }}
+                            className="text-primary hover:underline font-medium cursor-pointer"
+                          >
+                            {showOriginal ? "Show Clean Cutout" : "Compare Original"}
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setImageUrl("");
+                            setBgRemovedUrl(null);
+                          }}
+                          className="text-destructive hover:underline cursor-pointer"
+                        >
+                          Remove photo
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ) : (
@@ -485,7 +570,7 @@ export function AddItemModal({
                     onClick={() => toggleOccasion(occ.id)}
                     className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs transition-all cursor-pointer ${
                       isSelected
-                        ? "border border-gold bg-gold/10 text-gold-ink font-medium "
+                        ? "bg-primary text-primary-foreground font-medium shadow-xs"
                         : "border border-border/80 bg-background text-muted-foreground hover:text-foreground hover:border-foreground/30"
                     }`}
                   >
@@ -501,7 +586,7 @@ export function AddItemModal({
           <div className="flex items-center justify-between rounded-lg border border-border bg-secondary/30 p-3">
             <div className="flex items-center gap-2">
               <Heart
-                className={`size-4 ${isFavorite ? "fill-gold text-gold-ink" : "text-muted-foreground"}`}
+                className={`size-4 ${isFavorite ? "fill-rose-500 text-rose-500" : "text-muted-foreground"}`}
               />
               <div>
                 <p className="text-xs font-medium text-foreground">Mark as Favorite Item</p>
@@ -515,7 +600,7 @@ export function AddItemModal({
               id="modal-favorite-toggle"
               checked={isFavorite}
               onChange={(e) => setIsFavorite(e.target.checked)}
-              className="size-4 rounded-sm border-border text-gold-ink cursor-pointer"
+              className="size-4 rounded-sm border-border text-primary cursor-pointer"
             />
           </div>
 
@@ -535,7 +620,7 @@ export function AddItemModal({
               type="submit"
               size="sm"
               disabled={isSubmitting || !imageUrl}
-              className="text-xs font-medium cursor-pointer gap-1.5"
+              className="text-xs font-medium cursor-pointer shadow-xs gap-1.5"
             >
               {isSubmitting ? (
                 <>

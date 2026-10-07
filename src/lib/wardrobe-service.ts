@@ -392,6 +392,7 @@ const inMemoryProfileStore: Record<string, UserProfile> = {};
 
 const WARDROBE_STORAGE_PREFIX = "vtr_wardrobe_items_";
 const USER_PROFILE_PREFIX = "vtr_user_profile_";
+export const GUEST_SESSION_STORAGE_KEY = "vtr_guest_wardrobe_session";
 
 function safeGetLocalStorage(key: string): string | null {
   try {
@@ -412,6 +413,278 @@ function safeSetLocalStorage(key: string, value: string): void {
   } catch (err) {
     // Storage write restricted or quota exceeded - gracefully ignore
   }
+}
+
+function safeGetSessionStorage(key: string): string | null {
+  try {
+    if (typeof window !== "undefined" && window.sessionStorage) {
+      return window.sessionStorage.getItem(key);
+    }
+  } catch (err) {
+    // SessionStorage restricted - gracefully ignore
+  }
+  return null;
+}
+
+function safeSetSessionStorage(key: string, value: string): void {
+  try {
+    if (typeof window !== "undefined" && window.sessionStorage) {
+      window.sessionStorage.setItem(key, value);
+    }
+  } catch (err) {
+    // SessionStorage write restricted or quota exceeded - gracefully ignore
+  }
+}
+
+function safeRemoveSessionStorage(key: string): void {
+  try {
+    if (typeof window !== "undefined" && window.sessionStorage) {
+      window.sessionStorage.removeItem(key);
+    }
+  } catch (err) {
+    // SessionStorage remove restricted - gracefully ignore
+  }
+}
+
+/**
+ * Checks whether the given user ID represents an unauthenticated guest.
+ */
+export function isGuestUser(userId: string | null | undefined): boolean {
+  return !userId || userId === "guest_user" || userId === "guest";
+}
+
+let inMemoryGuestSessionStore: WardrobeItemWithDetails[] = [];
+
+/**
+ * Retrieves temporary wardrobe items stored in browser sessionStorage for unauthenticated guests.
+ * Automatically empties when browser tab is closed or explicitly cleared.
+ */
+export function getGuestSessionWardrobe(
+  filters?: WardrobeFilterOptions,
+): WardrobeItemWithDetails[] {
+  let items: WardrobeItemWithDetails[] = [];
+  const raw = safeGetSessionStorage(GUEST_SESSION_STORAGE_KEY);
+  if (raw) {
+    try {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        items = parsed;
+      }
+    } catch {
+      items = inMemoryGuestSessionStore;
+    }
+  } else {
+    items = inMemoryGuestSessionStore;
+  }
+
+  if (filters) {
+    return applyItemFilters(items, filters);
+  }
+  return items;
+}
+
+/**
+ * Saves an uploaded clothing item to the guest's sessionStorage.
+ * Caches the isolated garment PNG directly to guarantee clean cutouts.
+ */
+export function saveGuestWardrobeItem(input: CreateWardrobeItemInput): WardrobeItemWithDetails {
+  const currentItems = getGuestSessionWardrobe();
+  const now = new Date().toISOString();
+
+  const category = input.category_id
+    ? DEFAULT_CATEGORIES.find((c) => c.id === input.category_id) || null
+    : null;
+
+  const occasions = input.occasion_ids
+    ? DEFAULT_OCCASIONS.filter((o) => input.occasion_ids?.includes(o.id))
+    : [];
+
+  const finalIsolatedImage = input.bg_removed_url || input.image_url;
+
+  const newItem: WardrobeItemWithDetails = {
+    id: "guest_" + Math.random().toString(36).substring(2, 11),
+    user_id: "guest_user",
+    category_id: input.category_id ?? null,
+    title: input.title || category?.name || "Guest Clothing Item",
+    image_url: finalIsolatedImage,
+    thumbnail_url: input.thumbnail_url || finalIsolatedImage,
+    bg_removed_url: finalIsolatedImage,
+    is_uploaded: true,
+    primary_color: input.primary_color || null,
+    secondary_color: input.secondary_color || null,
+    fabric_type: input.fabric_type || null,
+    season: input.season || "All Season",
+    is_favorite: input.is_favorite || false,
+    created_at: now,
+    updated_at: now,
+    category,
+    occasions,
+  };
+
+  const updated = [newItem, ...currentItems];
+  inMemoryGuestSessionStore = updated;
+  safeSetSessionStorage(GUEST_SESSION_STORAGE_KEY, JSON.stringify(updated));
+
+  return newItem;
+}
+
+/**
+ * Updates a guest item stored in sessionStorage.
+ */
+export function updateGuestWardrobeItem(
+  itemId: string,
+  updates: UpdateWardrobeItemInput,
+): WardrobeItemWithDetails | null {
+  const items = getGuestSessionWardrobe();
+  const index = items.findIndex((i) => i.id === itemId);
+  if (index === -1) return null;
+
+  const item = items[index];
+  if (!item) return null;
+
+  const category =
+    updates.category_id !== undefined
+      ? DEFAULT_CATEGORIES.find((c) => c.id === updates.category_id) || null
+      : item.category;
+
+  const occasions =
+    updates.occasion_ids !== undefined
+      ? DEFAULT_OCCASIONS.filter((o) => updates.occasion_ids?.includes(o.id))
+      : item.occasions;
+
+  const orCleared = <T>(field: keyof UpdateWardrobeItemInput, next: T | undefined, current: T) =>
+    field in updates ? (next ?? null) : current;
+
+  const updatedItem: WardrobeItemWithDetails = {
+    ...item,
+    title: orCleared("title", updates.title, item.title),
+    category_id: orCleared("category_id", updates.category_id, item.category_id),
+    thumbnail_url: orCleared("thumbnail_url", updates.thumbnail_url, item.thumbnail_url),
+    primary_color: orCleared("primary_color", updates.primary_color, item.primary_color),
+    secondary_color: orCleared("secondary_color", updates.secondary_color, item.secondary_color),
+    fabric_type: orCleared("fabric_type", updates.fabric_type, item.fabric_type),
+    season: orCleared("season", updates.season, item.season),
+    image_url: updates.image_url ?? item.image_url,
+    bg_removed_url: orCleared("bg_removed_url", updates.bg_removed_url, item.bg_removed_url),
+    is_uploaded: updates.is_uploaded !== undefined ? updates.is_uploaded : item.is_uploaded,
+    is_favorite: updates.is_favorite ?? item.is_favorite,
+    category: category ?? null,
+    occasions: occasions ?? [],
+    updated_at: new Date().toISOString(),
+  };
+
+  items[index] = updatedItem;
+  inMemoryGuestSessionStore = items;
+  safeSetSessionStorage(GUEST_SESSION_STORAGE_KEY, JSON.stringify(items));
+  return updatedItem;
+}
+
+/**
+ * Deletes a guest item from sessionStorage.
+ */
+export function deleteGuestWardrobeItem(itemId: string): boolean {
+  const items = getGuestSessionWardrobe();
+  const filtered = items.filter((i) => i.id !== itemId);
+  if (filtered.length === items.length) return false;
+
+  inMemoryGuestSessionStore = filtered;
+  safeSetSessionStorage(GUEST_SESSION_STORAGE_KEY, JSON.stringify(filtered));
+  return true;
+}
+
+/**
+ * Clears all temporary guest data from browser sessionStorage and memory.
+ */
+export function clearGuestSessionWardrobe(): void {
+  inMemoryGuestSessionStore = [];
+  safeRemoveSessionStorage(GUEST_SESSION_STORAGE_KEY);
+}
+
+/**
+ * Conversion Trigger:
+ * Transfers guest temporary session storage items into a permanent account database/store upon sign-up or login.
+ */
+export function transferGuestWardrobeToAccount(targetUserId: string): WardrobeItemWithDetails[] {
+  if (!targetUserId || isGuestUser(targetUserId)) return [];
+
+  const guestItems = getGuestSessionWardrobe();
+  if (guestItems.length === 0) return [];
+
+  const persistentItems = getStoredWardrobeItems(targetUserId);
+  const now = new Date().toISOString();
+
+  const migratedItems: WardrobeItemWithDetails[] = guestItems.map((item) => ({
+    ...item,
+    id: item.id.startsWith("guest_")
+      ? "item_" + Math.random().toString(36).substring(2, 11)
+      : item.id,
+    user_id: targetUserId,
+    is_uploaded: true,
+    updated_at: now,
+  }));
+
+  const merged = [...migratedItems, ...persistentItems];
+  const key = WARDROBE_STORAGE_PREFIX + targetUserId;
+  inMemoryWardrobeStore[key] = merged;
+  safeSetLocalStorage(key, JSON.stringify(merged));
+
+  // Clear guest temporary session data
+  clearGuestSessionWardrobe();
+
+  return migratedItems;
+}
+
+/**
+ * Seeds guest session with 3 sample apparel items (flat-lay cutouts) for quick AI Stylist testing.
+ */
+export function seedGuestSessionWithDemoGarments(): WardrobeItemWithDetails[] {
+  const demoSelection = MOCK_WARDROBE_ITEMS.slice(0, 4).map((it) => ({
+    ...it,
+    id: "guest_" + it.id,
+    user_id: "guest_user",
+    is_uploaded: true,
+    bg_removed_url: it.image_url,
+    title: it.title + " (Sample)",
+  }));
+
+  inMemoryGuestSessionStore = demoSelection;
+  safeSetSessionStorage(GUEST_SESSION_STORAGE_KEY, JSON.stringify(demoSelection));
+  return demoSelection;
+}
+
+function applyItemFilters(
+  items: WardrobeItemWithDetails[],
+  filters: WardrobeFilterOptions,
+): WardrobeItemWithDetails[] {
+  let filtered = [...items];
+  if (filters.category_id) {
+    filtered = filtered.filter((i) => i.category_id === filters.category_id);
+  }
+  if (filters.parent_type && filters.parent_type !== "All") {
+    filtered = filtered.filter((i) => i.category?.parent_type === filters.parent_type);
+  }
+  if (filters.season && filters.season !== "All Season") {
+    filtered = filtered.filter((i) => i.season === filters.season || i.season === "All Season");
+  }
+  if (filters.is_favorite !== undefined && filters.is_favorite) {
+    filtered = filtered.filter((i) => i.is_favorite === true);
+  }
+  if (filters.occasion_id) {
+    filtered = filtered.filter((i) => i.occasions?.some((o) => o.id === filters.occasion_id));
+  }
+  if (filters.search_query) {
+    const q = filters.search_query.toLowerCase().trim();
+    filtered = filtered.filter(
+      (i) =>
+        i.title?.toLowerCase().includes(q) ||
+        i.primary_color?.toLowerCase().includes(q) ||
+        i.secondary_color?.toLowerCase().includes(q) ||
+        i.fabric_type?.toLowerCase().includes(q) ||
+        i.category?.name?.toLowerCase().includes(q) ||
+        i.occasions?.some((o) => o?.name?.toLowerCase().includes(q)),
+    );
+  }
+  return filtered;
 }
 
 // Copy each sample item so toggling favorites never mutates the shared mock objects
@@ -504,6 +777,10 @@ export function saveWardrobeItem(
   userId: string,
   input: CreateWardrobeItemInput,
 ): WardrobeItemWithDetails {
+  if (isGuestUser(userId)) {
+    return saveGuestWardrobeItem(input);
+  }
+
   const currentItems = getStoredWardrobeItems(userId);
   const now = new Date().toISOString();
 
@@ -522,6 +799,8 @@ export function saveWardrobeItem(
     title: input.title || category?.name || "Wardrobe Item",
     image_url: input.image_url,
     thumbnail_url: input.thumbnail_url || input.image_url,
+    bg_removed_url: input.bg_removed_url || null,
+    is_uploaded: input.is_uploaded !== undefined ? input.is_uploaded : true,
     primary_color: input.primary_color || null,
     secondary_color: input.secondary_color || null,
     fabric_type: input.fabric_type || null,
@@ -546,6 +825,10 @@ export function updateWardrobeItem(
   itemId: string,
   updates: UpdateWardrobeItemInput,
 ): WardrobeItemWithDetails | null {
+  if (isGuestUser(userId)) {
+    return updateGuestWardrobeItem(itemId, updates);
+  }
+
   const currentItems = getStoredWardrobeItems(userId);
   const index = currentItems.findIndex((i) => i.id === itemId);
   if (index === -1) return null;
@@ -576,6 +859,8 @@ export function updateWardrobeItem(
     fabric_type: orCleared("fabric_type", updates.fabric_type, item.fabric_type),
     season: orCleared("season", updates.season, item.season),
     image_url: updates.image_url ?? item.image_url,
+    bg_removed_url: orCleared("bg_removed_url", updates.bg_removed_url, item.bg_removed_url),
+    is_uploaded: updates.is_uploaded !== undefined ? updates.is_uploaded : item.is_uploaded,
     is_favorite: updates.is_favorite ?? item.is_favorite,
     category: category ?? null,
     occasions: occasions ?? [],
@@ -591,6 +876,10 @@ export function updateWardrobeItem(
 }
 
 export function deleteWardrobeItem(userId: string, itemId: string): boolean {
+  if (isGuestUser(userId)) {
+    return deleteGuestWardrobeItem(itemId);
+  }
+
   const currentItems = getStoredWardrobeItems(userId);
   const filtered = currentItems.filter((i) => i.id !== itemId);
   if (filtered.length === currentItems.length) return false;
@@ -602,6 +891,16 @@ export function deleteWardrobeItem(userId: string, itemId: string): boolean {
 }
 
 export function toggleFavoriteWardrobeItem(userId: string, itemId: string): boolean {
+  if (isGuestUser(userId)) {
+    const items = getGuestSessionWardrobe();
+    const item = items.find((i) => i.id === itemId);
+    if (!item) return false;
+    item.is_favorite = !item.is_favorite;
+    item.updated_at = new Date().toISOString();
+    safeSetSessionStorage(GUEST_SESSION_STORAGE_KEY, JSON.stringify(items));
+    return item.is_favorite;
+  }
+
   const currentItems = getStoredWardrobeItems(userId);
   const item = currentItems.find((i) => i.id === itemId);
   if (!item) return false;

@@ -68,8 +68,8 @@
   /*
    * Atelier Ora inner pages: #4A4A4A dark grey ground, one-shade-lighter panels,
    * off-white text. Every text colour here measures at least 4.5:1 on the page, the
-   * panels and the chips; gold borders/rings (#C9A961) at least 3:1. --gold-ink is a
-   * lighter gold used only for gold *text*.
+   * panels and the chips; gold borders/rings (#c79d84) at least 3:1. --gold-ink is a
+   * lighter amber used only for amber *text*.
    */
   --radius: 0.375rem;
   --background: #4a4a4a;
@@ -78,36 +78,36 @@
   --card-foreground: #f5f2ec;
   --popover: #565656;
   --popover-foreground: #f5f2ec;
-  --primary: #c9a961;
+  --primary: #c79d84;
   --primary-foreground: #1a1a1a;
   --secondary: #5a5a5a;
   --secondary-foreground: #f5f2ec;
   --muted: #5a5a5a;
   --muted-foreground: #dcd8d1;
-  --accent: rgb(201 169 97 / 0.18);
+  --accent: rgb(199 157 132 / 0.18);
   --accent-foreground: #f5f2ec;
   --destructive: #ffc4bd;
   --destructive-foreground: #1a1a1a;
   --border: rgb(0 0 0 / 0.12);
   --input: rgb(255 255 255 / 0.22);
-  --ring: #c9a961;
+  --ring: #c79d84;
   --canvas: #525252;
-  --gold: #c9a961;
-  --gold-ink: #e8d19c;
+  --gold: #c79d84;
+  --gold-ink: #ecc0a6;
   --silver: #b9b7b1;
-  --chart-1: #c9a961;
+  --chart-1: #c79d84;
   --chart-2: #b9b7b1;
   --chart-3: #f5f2ec;
-  --chart-4: #e8d19c;
+  --chart-4: #ecc0a6;
   --chart-5: #dcd8d1;
   --sidebar: #565656;
   --sidebar-foreground: #f5f2ec;
-  --sidebar-primary: #c9a961;
+  --sidebar-primary: #c79d84;
   --sidebar-primary-foreground: #1a1a1a;
   --sidebar-accent: #5a5a5a;
   --sidebar-accent-foreground: #f5f2ec;
   --sidebar-border: rgb(0 0 0 / 0.12);
-  --sidebar-ring: #c9a961;
+  --sidebar-ring: #c79d84;
   color-scheme: dark;
 }
 
@@ -119,36 +119,36 @@
   --card-foreground: #f5f2ec;
   --popover: #1a1a1a;
   --popover-foreground: #f5f2ec;
-  --primary: #c9a961;
+  --primary: #c79d84;
   --primary-foreground: #0e0e0e;
   --secondary: #1a1a1a;
   --secondary-foreground: #f5f2ec;
   --muted: #1a1a1a;
   --muted-foreground: rgb(245 242 236 / 0.6);
-  --accent: rgb(201 169 97 / 0.14);
+  --accent: rgb(199 157 132 / 0.14);
   --accent-foreground: #f5f2ec;
   --destructive: #e5534b;
   --destructive-foreground: #f5f2ec;
   --border: rgb(255 255 255 / 0.1);
   --input: rgb(255 255 255 / 0.14);
-  --ring: #c9a961;
+  --ring: #c79d84;
   --canvas: #161616;
-  --gold: #c9a961;
-  --gold-ink: #c9a961;
+  --gold: #c79d84;
+  --gold-ink: #c79d84;
   --silver: #8f8d88;
-  --chart-1: #c9a961;
+  --chart-1: #c79d84;
   --chart-2: #8f8d88;
   --chart-3: #f5f2ec;
   --chart-4: #a88a45;
   --chart-5: #5c5a55;
   --sidebar: #161616;
   --sidebar-foreground: #f5f2ec;
-  --sidebar-primary: #c9a961;
+  --sidebar-primary: #c79d84;
   --sidebar-primary-foreground: #0e0e0e;
   --sidebar-accent: #1a1a1a;
   --sidebar-accent-foreground: #f5f2ec;
   --sidebar-border: rgb(255 255 255 / 0.1);
-  --sidebar-ring: #c9a961;
+  --sidebar-ring: #c79d84;
   color-scheme: dark;
 }
 
@@ -214,7 +214,7 @@
   --input: oklch(1 0 0 / 16%);
   --ring: oklch(0.728 0.062 52);
   --canvas: oklch(0.26 0.01 60);
-  --gold: #c9a961;
+  --gold: #c79d84;
   --silver: #8f8d88;
   --chart-1: oklch(0.728 0.062 52);
   --chart-2: oklch(0.7 0.06 160);
@@ -244,13 +244,13 @@
   }
 
   :where(a, button):not(:disabled):hover {
-    text-shadow: 0 0 8px rgb(201 169 97 / 0.6);
+    text-shadow: 0 0 8px rgb(199 157 132 / 0.6);
   }
   :where(a, button):not(:disabled):active {
-    text-shadow: 0 0 12px rgb(201 169 97 / 0.8);
+    text-shadow: 0 0 12px rgb(199 157 132 / 0.8);
   }
   :where(a, button):not(:disabled):hover svg {
-    filter: drop-shadow(0 0 4px rgb(201 169 97 / 0.55));
+    filter: drop-shadow(0 0 4px rgb(199 157 132 / 0.55));
   }
 
   h1,
@@ -341,17 +341,17 @@
   &:focus-visible {
     /* Set --glow-base to the link's resting colour on dark backgrounds */
     color: color-mix(in oklab, var(--glow-base, var(--color-foreground)) 55%, var(--color-gold));
-    text-shadow: 0 0 8px rgb(201 169 97 / 0.6);
+    text-shadow: 0 0 8px rgb(199 157 132 / 0.6);
   }
   &:hover svg,
   &:focus-visible svg {
-    filter: drop-shadow(0 0 4px rgb(201 169 97 / 0.6));
+    filter: drop-shadow(0 0 4px rgb(199 157 132 / 0.6));
   }
   &:active {
-    text-shadow: 0 0 12px rgb(201 169 97 / 0.8);
+    text-shadow: 0 0 12px rgb(199 157 132 / 0.8);
   }
   &:active svg {
-    filter: drop-shadow(0 0 6px rgb(201 169 97 / 0.8));
+    filter: drop-shadow(0 0 6px rgb(199 157 132 / 0.8));
   }
 }
 
@@ -458,7 +458,7 @@ body.glass-scope [role="dialog"] {
   left: 30%;
   width: 40vmax;
   height: 40vmax;
-  background: radial-gradient(circle, rgb(201 169 97 / 0.05), transparent 70%);
+  background: radial-gradient(circle, rgb(199 157 132 / 0.05), transparent 70%);
   animation: bg-drift-a 22s ease-in-out infinite reverse;
 }
 @keyframes bg-drift-a {

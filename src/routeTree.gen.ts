@@ -10,14 +10,21 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AiStylistRouteImport } from './routes/ai-stylist'
 import { Route as ClosetRouteImport } from './routes/closet'
 import { Route as GenerateRouteImport } from './routes/generate'
+import { Route as LoginRouteImport } from './routes/login'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as StudioRouteImport } from './routes/studio'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AiStylistRoute = AiStylistRouteImport.update({
+  id: '/ai-stylist',
+  path: '/ai-stylist',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ClosetRoute = ClosetRouteImport.update({
@@ -28,6 +35,11 @@ const ClosetRoute = ClosetRouteImport.update({
 const GenerateRoute = GenerateRouteImport.update({
   id: '/generate',
   path: '/generate',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ProfileRoute = ProfileRouteImport.update({
@@ -43,38 +55,68 @@ const StudioRoute = StudioRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/ai-stylist': typeof AiStylistRoute
   '/closet': typeof ClosetRoute
   '/generate': typeof GenerateRoute
+  '/login': typeof LoginRoute
   '/profile': typeof ProfileRoute
   '/studio': typeof StudioRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/ai-stylist': typeof AiStylistRoute
   '/closet': typeof ClosetRoute
   '/generate': typeof GenerateRoute
+  '/login': typeof LoginRoute
   '/profile': typeof ProfileRoute
   '/studio': typeof StudioRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/ai-stylist': typeof AiStylistRoute
   '/closet': typeof ClosetRoute
   '/generate': typeof GenerateRoute
+  '/login': typeof LoginRoute
   '/profile': typeof ProfileRoute
   '/studio': typeof StudioRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/closet' | '/generate' | '/profile' | '/studio'
+  fullPaths:
+    | '/'
+    | '/ai-stylist'
+    | '/closet'
+    | '/generate'
+    | '/login'
+    | '/profile'
+    | '/studio'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/closet' | '/generate' | '/profile' | '/studio'
-  id: '__root__' | '/' | '/closet' | '/generate' | '/profile' | '/studio'
+  to:
+    | '/'
+    | '/ai-stylist'
+    | '/closet'
+    | '/generate'
+    | '/login'
+    | '/profile'
+    | '/studio'
+  id:
+    | '__root__'
+    | '/'
+    | '/ai-stylist'
+    | '/closet'
+    | '/generate'
+    | '/login'
+    | '/profile'
+    | '/studio'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AiStylistRoute: typeof AiStylistRoute
   ClosetRoute: typeof ClosetRoute
   GenerateRoute: typeof GenerateRoute
+  LoginRoute: typeof LoginRoute
   ProfileRoute: typeof ProfileRoute
   StudioRoute: typeof StudioRoute
 }
@@ -86,6 +128,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ai-stylist': {
+      id: '/ai-stylist'
+      path: '/ai-stylist'
+      fullPath: '/ai-stylist'
+      preLoaderRoute: typeof AiStylistRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/closet': {
@@ -100,6 +149,13 @@ declare module '@tanstack/react-router' {
       path: '/generate'
       fullPath: '/generate'
       preLoaderRoute: typeof GenerateRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/profile': {
@@ -121,8 +177,10 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AiStylistRoute: AiStylistRoute,
   ClosetRoute: ClosetRoute,
   GenerateRoute: GenerateRoute,
+  LoginRoute: LoginRoute,
   ProfileRoute: ProfileRoute,
   StudioRoute: StudioRoute,
 }

@@ -18,7 +18,7 @@ void main() { gl_Position = vec4(a_position, 0.0, 1.0); }
 /*
  * Monochrome studio light: layered 3D simplex noise plus a soft key light, all driven by one
  * angle that turns once per loop, so the motion repeats seamlessly. Greys stay between
- * #0a0a0a and ~#545454, with at most a 5% warm gold tint where the light is brightest.
+ * #0a0a0a and ~#545454, with at most a 5% warm amber tint where the light is brightest.
  */
 const FRAGMENT_SHADER = `
 precision mediump float;
@@ -92,7 +92,7 @@ void main() {
   float lum = 0.055 + 0.13 * (n * 0.5 + 0.5) + 0.15 * light;
   lum = clamp(lum, 0.039, 0.33);
   vec3 col = vec3(lum);
-  col = mix(col, vec3(0.788, 0.663, 0.380) * lum * 1.35, 0.05 * light);
+  col = mix(col, vec3(0.780, 0.616, 0.518) * lum * 1.35, 0.05 * light);
 
   // Dither to avoid banding in the dark gradients
   float noise = fract(sin(dot(gl_FragCoord.xy, vec2(12.9898, 78.233))) * 43758.5453);
