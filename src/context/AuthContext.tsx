@@ -5,7 +5,6 @@ import {
   apiRegisterIntent,
   apiVerifyCode,
   apiResendCode,
-  apiLogin,
   apiRequestEmailOtp,
   apiVerifyEmailOtp,
 } from "@/lib/auth.functions";
@@ -48,16 +47,12 @@ interface AuthContextType {
   closeModal: () => void;
   setModalView: (view: AuthModalView) => void;
   setRedirectRoute: (route: string | null) => void;
-  login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   loginWithGoogle: () => Promise<{ success: boolean; error?: string }>;
   loginAsGuest: () => void;
   requestEmail2FA: (email: string) => Promise<{ success: boolean; error?: string }>;
   verifyEmail2FA: (code: string) => Promise<{ success: boolean; error?: string }>;
-  startSignUp: (
-    email: string,
-    password: string,
-    confirmPassword: string,
-  ) => Promise<{ success: boolean; error?: string }>;
+  /** Sign-up step 1: email plus an optional name; the account is verified by an emailed code */
+  startSignUp: (email: string, name?: string) => Promise<{ success: boolean; error?: string }>;
   verifyTwoStepCode: (code: string) => Promise<{ success: boolean; error?: string }>;
   resendCode: () => Promise<void>;
   backToStep1: () => void;
@@ -69,6 +64,8 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 const USER_STORAGE_KEY = "vtr_auth_user";
 const TOKEN_STORAGE_KEY = "vtr_auth_token";
 const REDIRECT_STORAGE_KEY = "vtr_auth_redirect_target";
+/** Matches the server's gap between two emailed codes */
+const RESEND_COOLDOWN_SECONDS = 30;
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
@@ -274,54 +271,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const login = async (
-    email: string,
-    password: string,
-  ): Promise<{ success: boolean; error?: string }> => {
-    setIsSubmitting(true);
-    try {
-      const result = await apiLogin({ email, password });
-      if (!result.success || !result.user) {
-        return { success: false, error: result.error || "Login failed" };
-      }
-
-      setUser(result.user);
-      if (result.token) {
-        localStorage.setItem(TOKEN_STORAGE_KEY, result.token);
-      }
-      localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(result.user));
-
-      // Transfer temporary guest items into newly authenticated account
-      try {
-        const transferred = transferGuestWardrobeToAccount(result.user.id);
-        if (transferred.length > 0) {
-          toast.success("Guest Wardrobe Saved!", {
-            description: `${transferred.length} temporary clothing item${transferred.length > 1 ? "s" : ""} transferred to your account!`,
-          });
-        }
-      } catch (err) {
-        console.warn("Failed to transfer guest wardrobe on login:", err);
-      }
-
-      closeModal();
-      handlePostAuthRedirect();
-      return { success: true };
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
   const startSignUp = async (
     email: string,
-    password: string,
-    confirmPassword: string,
+    name?: string,
   ): Promise<{ success: boolean; error?: string }> => {
     setIsSubmitting(true);
     try {
       const result = await apiRegisterIntent({
         email,
-        password,
-        confirmPassword,
+        name: name?.trim() || undefined,
       });
 
       if (!result.success) {
@@ -336,7 +294,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       setPendingEmail(email.trim().toLowerCase());
       setSignUpStep(2);
-      setResendCooldown(60);
+      setResendCooldown(RESEND_COOLDOWN_SECONDS);
       if (result.devOtpCode) {
         setDevOtpCode(result.devOtpCode);
       }
@@ -408,13 +366,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
         return {
           success: false,
-          error: result.error || "Failed to send 2FA verification code.",
+          error: result.error || "Couldn't send the code. Please try again.",
         };
       }
 
       setPendingEmail(email.trim().toLowerCase());
       setSignUpStep(2);
-      setResendCooldown(60);
+      setResendCooldown(RESEND_COOLDOWN_SECONDS);
       if (result.devOtpCode) {
         setDevOtpCode(result.devOtpCode);
       }
@@ -428,7 +386,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!pendingEmail) {
       return {
         success: false,
-        error: "Verification email is missing. Please restart 2FA.",
+        error: "Email address is missing. Please enter it again.",
       };
     }
 
@@ -442,7 +400,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!result.success || !result.user) {
         return {
           success: false,
-          error: result.error || "Invalid 2FA code. Please check your email.",
+          error: result.error || "Invalid code. Please check your email.",
         };
       }
 
@@ -493,7 +451,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      setResendCooldown(60);
+      setResendCooldown(RESEND_COOLDOWN_SECONDS);
       if (result.devOtpCode) {
         setDevOtpCode(result.devOtpCode);
       }
@@ -553,7 +511,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         closeModal,
         setModalView,
         setRedirectRoute,
-        login,
         loginWithGoogle,
         loginAsGuest,
         requestEmail2FA,

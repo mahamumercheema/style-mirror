@@ -408,7 +408,10 @@ export const fetchProductPreview = createServerFn({ method: "POST" })
         headers,
         redirect: "follow",
         signal: AbortSignal.timeout(20_000),
-      }).catch(() => null),
+      }).catch((error: unknown) => {
+        console.error(`Fetching ${target.toString()} failed`, error);
+        return null;
+      }),
       fetchShopifyProduct(target, headers),
     ]);
     const pageType = pageResponse?.headers.get("content-type") ?? "";

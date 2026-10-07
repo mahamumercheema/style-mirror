@@ -7,6 +7,16 @@
 import type { GarmentCategory } from "./garment-category";
 
 const MODEL_ID = "Xenova/clip-vit-base-patch32";
+
+/**
+ * transformers.js is loaded from the CDN in the browser rather than bundled: bundling it adds
+ * onnxruntime's 25 MB+ WebAssembly file to the build, over Cloudflare's 25 MiB per-file limit,
+ * so the hosted (Lovable) site can't deploy. Keep the version in step with package.json, which
+ * still provides the types.
+ */
+const TRANSFORMERS_CDN_URL =
+  "https://cdn.jsdelivr.net/npm/@huggingface/transformers@4.3.0/dist/transformers.min.js";
+type Transformers = typeof import("@huggingface/transformers");
 /** CLIP's learned temperature: cosine similarity × 100 gives the zero-shot logits */
 const LOGIT_SCALE = 100;
 
@@ -66,7 +76,7 @@ function getEmbedder() {
         CLIPTextModelWithProjection,
         CLIPVisionModelWithProjection,
         RawImage,
-      } = await import("@huggingface/transformers");
+      } = (await import(/* @vite-ignore */ TRANSFORMERS_CDN_URL)) as Transformers;
       const [tokenizer, textModel, processor, visionModel] = await Promise.all([
         AutoTokenizer.from_pretrained(MODEL_ID),
         CLIPTextModelWithProjection.from_pretrained(MODEL_ID, { dtype: "q8" }),

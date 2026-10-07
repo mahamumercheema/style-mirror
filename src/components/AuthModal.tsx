@@ -1,17 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import {
-  AlertCircle,
-  ArrowLeft,
-  Check,
-  Eye,
-  EyeOff,
-  Loader2,
-  Lock,
-  Mail,
-  RefreshCw,
-  ShieldCheck,
-  X,
-} from "lucide-react";
+import { AlertCircle, Loader2, Mail, ShieldCheck, User, X } from "lucide-react";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -22,7 +10,7 @@ import { cn } from "@/lib/utils";
 /** Modal buttons: readable size, label always fits (it never overflows the button) */
 const MODAL_BUTTON =
   "h-11 w-full min-w-0 px-4 text-[13px] tracking-[0.12em] whitespace-nowrap cursor-pointer";
-/** Email/password fields: 44px tall, 15px text */
+/** Text fields: 44px tall, 15px text */
 const MODAL_INPUT = "h-11 text-[15px] md:text-[15px]";
 const MODAL_LABEL = "text-[13px] font-medium";
 
@@ -49,6 +37,10 @@ function GoogleIcon({ className = "size-4" }: { className?: string }) {
   );
 }
 
+/**
+ * Sign in / sign up. Passwordless: Google, or a 6-digit code emailed to the user. Guests can
+ * continue without an account; after any sign-in the user returns to where they came from.
+ */
 export function AuthModal() {
   const {
     isModalOpen,
@@ -62,7 +54,6 @@ export function AuthModal() {
     devOtpCode,
     closeModal,
     setModalView,
-    login,
     loginWithGoogle,
     loginAsGuest,
     requestEmail2FA,
@@ -73,34 +64,17 @@ export function AuthModal() {
     backToStep1,
   } = useAuth();
 
-  // Login Method Mode: "password" vs "2fa"
-  const [loginMethod, setLoginMethod] = useState<"password" | "2fa">(
-    modalView === "email2fa" ? "2fa" : "password",
-  );
-
-  // Email + Password Form State
+  // Log in: email, then the emailed code
   const [loginEmail, setLoginEmail] = useState("");
-  const [loginPassword, setLoginPassword] = useState("");
-  const [showLoginPassword, setShowLoginPassword] = useState(false);
+  const [loginCode, setLoginCode] = useState("");
+  const [loginCodeSent, setLoginCodeSent] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
 
-  // Email 2FA State
-  const [twoFaEmail, setTwoFaEmail] = useState("");
-  const [twoFaCode, setTwoFaCode] = useState("");
-  const [twoFaCodeSent, setTwoFaCodeSent] = useState(false);
-  const [twoFaError, setTwoFaError] = useState<string | null>(null);
-
-  // Sign Up Step 1 Form State
+  // Sign up: optional name + email, then the emailed code
+  const [signUpName, setSignUpName] = useState("");
   const [signUpEmail, setSignUpEmail] = useState("");
-  const [signUpPassword, setSignUpPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [showSignUpPassword, setShowSignUpPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [signUpCode, setSignUpCode] = useState("");
   const [signUpError, setSignUpError] = useState<string | null>(null);
-
-  // Sign Up Step 2 Verification State
-  const [verificationCode, setVerificationCode] = useState("");
-  const [verificationError, setVerificationError] = useState<string | null>(null);
 
   const modalRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
@@ -111,64 +85,44 @@ export function AuthModal() {
   useEffect(() => {
     if (!isModalOpen) return;
     setLoginEmail("");
-    setLoginPassword("");
-    setTwoFaEmail("");
+    setLoginCode("");
+    setLoginCodeSent(false);
+    setSignUpName("");
+    setSignUpEmail("");
+    setSignUpCode("");
     setGuestLoading(false);
   }, [isModalOpen]);
-
-  // Sync loginMethod with modalView
-  useEffect(() => {
-    if (modalView === "email2fa") {
-      setLoginMethod("2fa");
-    }
-  }, [modalView]);
 
   // Keyboard accessibility: ESC key to close
   useEffect(() => {
     if (!isModalOpen) return;
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        closeModal();
-      }
+      if (e.key === "Escape") closeModal();
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isModalOpen, closeModal]);
 
-  // Reset errors when switching views
+  // Clear errors when switching views or steps
   useEffect(() => {
     setLoginError(null);
     setSignUpError(null);
-    setVerificationError(null);
-    setTwoFaError(null);
-    setVerificationCode("");
-    setTwoFaCode("");
-  }, [modalView, signUpStep, loginMethod, isModalOpen]);
+  }, [modalView, signUpStep, loginCodeSent, isModalOpen]);
 
   if (!isModalOpen) return null;
 
-  // Handle Quick Google Sign-In
+  const isSignUp = modalView === "signup";
+  const signUpCodeStep = isSignUp && signUpStep === 2;
+
   const handleGoogleSignIn = async () => {
-    setLoginError(null);
-    const result = await loginWithGoogle();
-    if (!result.success && result.error) {
-      setLoginError(result.error);
-    }
-  };
-
-  // Handle Email + Password Login
-  const handleLoginSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoginError(null);
-
+    const setError = isSignUp ? setSignUpError : setLoginError;
+    setError(null);
     try {
-      const result = await login(loginEmail, loginPassword);
-      if (!result.success && result.error) {
-        setLoginError(result.error);
-      }
+      const result = await loginWithGoogle();
+      if (!result.success && result.error) setError(result.error);
     } catch (error) {
-      console.error("Log in failed", error);
-      setLoginError("Couldn't log in. Please try again.");
+      console.error("Google sign-in failed", error);
+      setError("Couldn't sign in with Google. Please try again.");
     }
   };
 
@@ -189,101 +143,224 @@ export function AuthModal() {
     }
   };
 
-  // Handle Email 2FA Code Request
-  const handleRequest2FACode = async (e: React.FormEvent) => {
+  const handleSendLoginCode = async (e: React.FormEvent) => {
     e.preventDefault();
-    setTwoFaError(null);
-
-    const emailToSend = twoFaEmail.trim().toLowerCase();
-    if (!emailToSend || !emailToSend.includes("@")) {
-      setTwoFaError("Please enter a valid email address.");
+    setLoginError(null);
+    const email = loginEmail.trim().toLowerCase();
+    if (!email.includes("@")) {
+      setLoginError("Please enter a valid email address.");
       return;
     }
-
-    const result = await requestEmail2FA(emailToSend);
-    if (!result.success && result.error) {
-      setTwoFaError(result.error);
-    } else {
-      setTwoFaCodeSent(true);
+    try {
+      const result = await requestEmail2FA(email);
+      if (!result.success) setLoginError(result.error ?? "Couldn't send the code.");
+      else setLoginCodeSent(true);
+    } catch (error) {
+      console.error("Sending sign-in code failed", error);
+      setLoginError("Couldn't send the code. Please try again.");
     }
   };
 
-  // Handle Email 2FA Code Verification
-  const handleVerify2FACode = async (e: React.FormEvent) => {
+  const handleVerifyLoginCode = async (e: React.FormEvent) => {
     e.preventDefault();
-    setTwoFaError(null);
-
-    const code = twoFaCode.trim();
-    if (code.length !== 6) {
-      setTwoFaError("Please enter the complete 6-digit verification code.");
-      return;
-    }
-
-    const result = await verifyEmail2FA(code);
-    if (!result.success && result.error) {
-      setTwoFaError(result.error);
+    setLoginError(null);
+    try {
+      const result = await verifyEmail2FA(loginCode.trim());
+      if (!result.success && result.error) setLoginError(result.error);
+    } catch (error) {
+      console.error("Verifying sign-in code failed", error);
+      setLoginError("Couldn't verify the code. Please try again.");
     }
   };
 
-  // Handle Sign Up Step 1 Submit
-  const handleSignUpStep1Submit = async (e: React.FormEvent) => {
+  const handleSendSignUpCode = async (e: React.FormEvent) => {
     e.preventDefault();
     setSignUpError(null);
-
-    const result = await startSignUp(signUpEmail, signUpPassword, confirmPassword);
-    if (!result.success && result.error) {
-      setSignUpError(result.error);
+    try {
+      const result = await startSignUp(signUpEmail, signUpName);
+      if (!result.success && result.error) setSignUpError(result.error);
+    } catch (error) {
+      console.error("Sending sign-up code failed", error);
+      setSignUpError("Couldn't send the code. Please try again.");
     }
   };
 
-  // Handle Sign Up Step 2 Verification Submit
-  const handleVerificationSubmit = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    const codeToVerify = verificationCode.trim();
-
-    if (!codeToVerify) {
-      setVerificationError("Please enter the 6-digit verification code.");
-      return;
-    }
-
-    if (codeToVerify.length !== 6) {
-      setVerificationError("Verification code must be exactly 6 digits.");
-      return;
-    }
-
-    setVerificationError(null);
-    const result = await verifyTwoStepCode(codeToVerify);
-
-    if (!result.success && result.error) {
-      setVerificationError(result.error);
+  const handleVerifySignUpCode = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSignUpError(null);
+    try {
+      const result = await verifyTwoStepCode(signUpCode.trim());
+      if (!result.success && result.error) setSignUpError(result.error);
+    } catch (error) {
+      console.error("Verifying sign-up code failed", error);
+      setSignUpError("Couldn't verify the code. Please try again.");
     }
   };
 
-  const passwordsMatch = confirmPassword.length > 0 && signUpPassword === confirmPassword;
-  const passwordsMismatch = confirmPassword.length > 0 && signUpPassword !== confirmPassword;
+  const errorAlert = (id: string, message: string | null) =>
+    message ? (
+      <div
+        id={id}
+        className="flex items-start gap-2.5 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-[13px] text-destructive animate-in fade-in duration-200"
+      >
+        <AlertCircle className="mt-0.5 size-4 shrink-0" />
+        <div className="flex-1">{message}</div>
+      </div>
+    ) : null;
+
+  const googleButton = (label: string) => (
+    <Button
+      id="quick-google-signin-btn"
+      type="button"
+      variant="outline"
+      disabled={isSubmitting || guestLoading}
+      onClick={() => void handleGoogleSignIn()}
+      className={cn(MODAL_BUTTON, "gap-2.5")}
+    >
+      <GoogleIcon className="size-4 shrink-0" />
+      <span>{label}</span>
+    </Button>
+  );
+
+  const orDivider = (
+    <div className="relative flex items-center justify-center py-0.5">
+      <div className="w-full border-t border-border" />
+      <span className="absolute bg-card px-3 text-[13px] text-muted-foreground">or</span>
+    </div>
+  );
+
+  const emailField = (id: string, value: string, onChange: (value: string) => void) => (
+    <div className="space-y-1.5 text-left">
+      <Label htmlFor={id} className={MODAL_LABEL}>
+        Email address
+      </Label>
+      <div className="relative">
+        <Mail className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+        <Input
+          id={id}
+          type="email"
+          placeholder="Enter your email"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className={cn(MODAL_INPUT, "pl-9")}
+          autoComplete="email"
+          autoFocus
+          required
+        />
+      </div>
+    </div>
+  );
+
+  const sendCodeButton = (id: string) => (
+    <Button id={id} type="submit" disabled={isSubmitting || guestLoading} className={MODAL_BUTTON}>
+      {isSubmitting ? <Loader2 className="size-4 animate-spin" /> : null}
+      {isSubmitting ? "Sending code..." : "Send code"}
+    </Button>
+  );
+
+  /** The shared second step: the 6-digit code, verify, resend (30s cooldown), change email */
+  const codeStep = (opts: {
+    email: string;
+    code: string;
+    setCode: (code: string) => void;
+    onSubmit: (e: React.FormEvent) => void;
+    onChangeEmail: () => void;
+    inputId: string;
+    submitId: string;
+  }) => (
+    <form onSubmit={opts.onSubmit} className="space-y-3.5">
+      <p className="text-[13px] text-muted-foreground">
+        We sent a 6-digit code to{" "}
+        <strong className="font-medium text-foreground">{opts.email}</strong>.
+      </p>
+
+      {/* Development only (no email service configured): show the code so it can be tested */}
+      {devOtpCode && import.meta.env.DEV ? (
+        <div className="flex items-center justify-between rounded-lg border border-gold/30 bg-gold/10 px-3 py-2 text-[13px] text-gold-ink">
+          <span>
+            Dev code: <code className="font-mono font-semibold">{devOtpCode}</code>
+          </span>
+          <button
+            type="button"
+            onClick={() => opts.setCode(devOtpCode)}
+            className="cursor-pointer underline underline-offset-4"
+          >
+            Fill
+          </button>
+        </div>
+      ) : null}
+
+      <div className="space-y-1.5 text-left">
+        <Label htmlFor={opts.inputId} className={MODAL_LABEL}>
+          6-digit code
+        </Label>
+        <Input
+          id={opts.inputId}
+          type="text"
+          inputMode="numeric"
+          pattern="[0-9]*"
+          autoComplete="one-time-code"
+          maxLength={6}
+          placeholder="······"
+          value={opts.code}
+          onChange={(e) => opts.setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+          className="h-12 text-center font-mono text-xl font-semibold tracking-[0.4em]"
+          autoFocus
+          required
+        />
+      </div>
+
+      <Button
+        id={opts.submitId}
+        type="submit"
+        disabled={isSubmitting || opts.code.length !== 6}
+        className={MODAL_BUTTON}
+      >
+        {isSubmitting ? <Loader2 className="size-4 animate-spin" /> : null}
+        {isSubmitting ? "Verifying..." : "Verify & continue"}
+      </Button>
+
+      <div className="flex items-center justify-between text-[13px] text-muted-foreground">
+        <button
+          type="button"
+          id="resend-code-btn"
+          disabled={resendCooldown > 0 || isSubmitting}
+          onClick={() => void resendCode()}
+          className="cursor-pointer font-medium text-foreground underline-offset-4 hover:underline disabled:cursor-not-allowed disabled:text-muted-foreground disabled:no-underline"
+        >
+          {resendCooldown > 0 ? `Resend code in ${resendCooldown}s` : "Resend code"}
+        </button>
+        <button
+          type="button"
+          id="use-different-email-btn"
+          onClick={opts.onChangeEmail}
+          className="cursor-pointer underline-offset-4 hover:text-foreground hover:underline"
+        >
+          Use a different email
+        </button>
+      </div>
+    </form>
+  );
 
   return (
     <div
       role="dialog"
       aria-modal="true"
       aria-labelledby="auth-modal-title"
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/75 backdrop-blur-sm p-4 overflow-y-auto"
+      className="fixed inset-0 z-[100] flex items-center justify-center overflow-y-auto bg-black/75 p-4 backdrop-blur-sm"
       onClick={(e) => {
-        if (e.target === e.currentTarget) {
-          closeModal();
-        }
+        if (e.target === e.currentTarget) closeModal();
       }}
     >
       <div
         ref={modalRef}
         id="auth-modal-dialog"
-        className="relative w-full max-w-[440px] border border-border bg-card text-card-foreground p-6 sm:p-7 shadow-[var(--shadow-lift)] rounded-2xl my-auto transition-all animate-in fade-in zoom-in-95 duration-200"
+        className="relative my-auto w-full max-w-[440px] rounded-2xl border border-border bg-card p-6 text-card-foreground shadow-[var(--shadow-lift)] transition-all animate-in fade-in zoom-in-95 duration-200 sm:p-7"
       >
-        {/* Close Button */}
         <button
           type="button"
           onClick={closeModal}
-          className="absolute right-4 top-4 p-1.5 rounded-full text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer"
+          className="absolute right-4 top-4 cursor-pointer rounded-full p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
           aria-label="Close modal"
         >
           <X className="size-4" />
@@ -299,322 +376,49 @@ export function AuthModal() {
           </div>
         )}
 
-        {/* ========================================================================= */}
-        {/* LOG IN / QUICK SIGN-IN VIEW */}
-        {/* ========================================================================= */}
-        {(modalView === "login" || modalView === "email2fa") && (
+        {/* ============================== LOG IN ============================== */}
+        {!isSignUp && (
           <div className="space-y-4">
             <div className="space-y-1 text-left">
               <h2 id="auth-modal-title" className="font-display text-[32px] leading-tight">
                 Welcome back
               </h2>
               <p className="text-[15px] leading-relaxed text-muted-foreground">
-                Sign in using your preferred method to unlock your personal wardrobe and AI stylist.
+                Sign in with Google or a code sent to your email.
               </p>
             </div>
 
-            {/* Quick Sign-In Option 1: Google OAuth */}
-            <div className="pt-1">
-              <Button
-                id="quick-google-signin-btn"
-                type="button"
-                variant="outline"
-                disabled={isSubmitting}
-                onClick={handleGoogleSignIn}
-                className={cn(MODAL_BUTTON, "gap-2.5")}
-              >
-                {isSubmitting ? (
-                  <Loader2 className="size-4 animate-spin text-muted-foreground" />
-                ) : (
-                  <GoogleIcon className="size-4 shrink-0" />
-                )}
-                <span>Continue with Google</span>
-              </Button>
-            </div>
+            {googleButton("Continue with Google")}
+            {orDivider}
+            {errorAlert("login-error-alert", loginError)}
 
-            {/* Or Divider */}
-            <div className="relative flex items-center justify-center py-0.5">
-              <div className="w-full border-t border-border"></div>
-              <span className="absolute bg-card px-2.5 text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
-                or choose sign-in
-              </span>
-            </div>
-
-            {/* Quick Sign-In Methods Toggle: Email + Password vs. Email 2FA */}
-            <div className="grid grid-cols-2 p-1 bg-muted/60 rounded-lg text-xs font-medium border border-border">
-              <button
-                type="button"
-                id="toggle-email-password-tab"
-                onClick={() => setLoginMethod("password")}
-                className={`py-1.5 px-3 rounded-md transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
-                  loginMethod === "password"
-                    ? "bg-card text-foreground shadow-xs font-semibold"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                <Lock className="size-3" />
-                <span>Email + Password</span>
-              </button>
-              <button
-                type="button"
-                id="toggle-email-2fa-tab"
-                onClick={() => setLoginMethod("2fa")}
-                className={`py-1.5 px-3 rounded-md transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
-                  loginMethod === "2fa"
-                    ? "bg-card text-foreground shadow-xs font-semibold"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                <Mail className="size-3" />
-                <span>Email 2FA Code</span>
-              </button>
-            </div>
-
-            {/* Error Banners */}
-            {loginError && loginMethod === "password" && (
-              <div
-                id="login-error-alert"
-                className="flex items-start gap-2.5 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-xs text-destructive animate-in fade-in duration-200"
-              >
-                <AlertCircle className="size-4 shrink-0 mt-0.5" />
-                <div className="flex-1">{loginError}</div>
-              </div>
-            )}
-
-            {twoFaError && loginMethod === "2fa" && (
-              <div
-                id="2fa-error-alert"
-                className="flex items-start gap-2.5 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-xs text-destructive animate-in fade-in duration-200"
-              >
-                <AlertCircle className="size-4 shrink-0 mt-0.5" />
-                <div className="flex-1">{twoFaError}</div>
-              </div>
-            )}
-
-            {/* ------------------------------------------------------------- */}
-            {/* SUB-OPTION A: Email + Password Form */}
-            {/* ------------------------------------------------------------- */}
-            {loginMethod === "password" && (
-              <form onSubmit={handleLoginSubmit} className="space-y-3.5">
-                <div className="space-y-1.5 text-left">
-                  <Label htmlFor="login-email" className={MODAL_LABEL}>
-                    Email address
-                  </Label>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-                    <Input
-                      id="login-email"
-                      type="email"
-                      placeholder="Enter your email"
-                      value={loginEmail}
-                      onChange={(e) => {
-                        setLoginEmail(e.target.value);
-                        if (loginError) setLoginError(null);
-                      }}
-                      className={cn(MODAL_INPUT, "pl-9")}
-                      autoComplete="email"
-                      autoFocus
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-1.5 text-left">
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="login-password" className={MODAL_LABEL}>
-                      Password
-                    </Label>
-                  </div>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-                    <Input
-                      id="login-password"
-                      type={showLoginPassword ? "text" : "password"}
-                      placeholder="Enter your password"
-                      value={loginPassword}
-                      onChange={(e) => {
-                        setLoginPassword(e.target.value);
-                        if (loginError) setLoginError(null);
-                      }}
-                      className={cn(MODAL_INPUT, "pl-9 pr-10")}
-                      autoComplete="current-password"
-                      required
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowLoginPassword(!showLoginPassword)}
-                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-1 transition-colors cursor-pointer"
-                      aria-label={showLoginPassword ? "Hide password" : "Show password"}
-                    >
-                      {showLoginPassword ? (
-                        <EyeOff className="size-4" />
-                      ) : (
-                        <Eye className="size-4" />
-                      )}
-                    </button>
-                  </div>
-                </div>
-
-                <Button
-                  id="login-submit-button"
-                  type="submit"
-                  disabled={isSubmitting || guestLoading}
-                  className={cn(MODAL_BUTTON, "mt-1")}
-                >
-                  {isSubmitting ? (
-                    <>
-                      <Loader2 className="size-4 animate-spin" />
-                      Logging in...
-                    </>
-                  ) : (
-                    "Log in"
-                  )}
-                </Button>
+            {!loginCodeSent ? (
+              <form onSubmit={handleSendLoginCode} className="space-y-3.5">
+                {emailField("login-email", loginEmail, (value) => {
+                  setLoginEmail(value);
+                  if (loginError) setLoginError(null);
+                })}
+                {sendCodeButton("login-send-code-button")}
               </form>
+            ) : (
+              codeStep({
+                email: loginEmail.trim().toLowerCase(),
+                code: loginCode,
+                setCode: (code) => {
+                  setLoginCode(code);
+                  if (loginError) setLoginError(null);
+                },
+                onSubmit: (e) => void handleVerifyLoginCode(e),
+                onChangeEmail: () => {
+                  setLoginCode("");
+                  setLoginCodeSent(false);
+                },
+                inputId: "login-code-input",
+                submitId: "login-verify-button",
+              })
             )}
 
-            {/* ------------------------------------------------------------- */}
-            {/* SUB-OPTION B: Email 2FA (Instant 6-Digit Code Login) */}
-            {/* ------------------------------------------------------------- */}
-            {loginMethod === "2fa" && !twoFaCodeSent && (
-              <form onSubmit={handleRequest2FACode} className="space-y-3.5">
-                <div className="space-y-1.5 text-left">
-                  <Label htmlFor="2fa-email-input" className={MODAL_LABEL}>
-                    Email address
-                  </Label>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-                    <Input
-                      id="2fa-email-input"
-                      type="email"
-                      placeholder="Enter your email"
-                      value={twoFaEmail}
-                      onChange={(e) => {
-                        setTwoFaEmail(e.target.value);
-                        if (twoFaError) setTwoFaError(null);
-                      }}
-                      className={cn(MODAL_INPUT, "pl-9")}
-                      autoComplete="email"
-                      autoFocus
-                      required
-                    />
-                  </div>
-                  <p className="text-[11px] text-muted-foreground">
-                    We will send a one-time 6-digit verification code to sign in securely without a
-                    password.
-                  </p>
-                </div>
-
-                <Button
-                  id="request-2fa-code-btn"
-                  type="submit"
-                  disabled={isSubmitting}
-                  className={cn(MODAL_BUTTON, "mt-1")}
-                >
-                  {isSubmitting ? (
-                    <>
-                      <Loader2 className="size-4 animate-spin" />
-                      Sending 2FA Code...
-                    </>
-                  ) : (
-                    "Send 6-Digit 2FA Code"
-                  )}
-                </Button>
-              </form>
-            )}
-
-            {loginMethod === "2fa" && twoFaCodeSent && (
-              <form onSubmit={handleVerify2FACode} className="space-y-4">
-                <div className="text-left space-y-1">
-                  <div className="flex items-center justify-between text-xs text-muted-foreground">
-                    <span>
-                      Code sent to <strong className="text-foreground">{twoFaEmail}</strong>
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => setTwoFaCodeSent(false)}
-                      className="text-primary hover:underline cursor-pointer"
-                    >
-                      Change
-                    </button>
-                  </div>
-
-                  {devOtpCode && (
-                    <div className="flex items-center justify-between rounded-lg border border-gold/30 bg-gold/10 p-2.5 text-xs text-gold-ink mt-2">
-                      <span>
-                        Preview Code:{" "}
-                        <code className="font-mono font-bold bg-background text-foreground px-1.5 py-0.5 rounded border border-border">
-                          {devOtpCode}
-                        </code>
-                      </span>
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="outline"
-                        onClick={() => setTwoFaCode(devOtpCode)}
-                        className="text-xs h-6 px-2 cursor-pointer bg-background"
-                      >
-                        Auto-fill
-                      </Button>
-                    </div>
-                  )}
-
-                  <div className="pt-2">
-                    <Label htmlFor="2fa-code-input" className={cn(MODAL_LABEL, "block")}>
-                      Enter 6-Digit Code
-                    </Label>
-                    <Input
-                      id="2fa-code-input"
-                      type="text"
-                      inputMode="numeric"
-                      pattern="[0-9]*"
-                      maxLength={6}
-                      placeholder="······"
-                      value={twoFaCode}
-                      onChange={(e) => {
-                        const val = e.target.value.replace(/\D/g, "").slice(0, 6);
-                        setTwoFaCode(val);
-                        if (twoFaError) setTwoFaError(null);
-                      }}
-                      className="h-11 text-center font-mono text-xl tracking-[0.4em] font-bold mt-1"
-                      autoFocus
-                      required
-                    />
-                  </div>
-                </div>
-
-                <Button
-                  id="verify-2fa-code-btn"
-                  type="submit"
-                  disabled={isSubmitting || twoFaCode.length !== 6}
-                  className={MODAL_BUTTON}
-                >
-                  {isSubmitting ? (
-                    <>
-                      <Loader2 className="size-4 animate-spin" />
-                      Verifying...
-                    </>
-                  ) : (
-                    "Verify & Sign In"
-                  )}
-                </Button>
-
-                <div className="flex items-center justify-between text-xs text-muted-foreground pt-0.5">
-                  <span>Didn&apos;t receive it?</span>
-                  <button
-                    type="button"
-                    disabled={resendCooldown > 0 || isSubmitting}
-                    onClick={() => void resendCode()}
-                    className="font-medium text-foreground hover:text-accent disabled:opacity-50 cursor-pointer"
-                  >
-                    {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : "Resend Code"}
-                  </button>
-                </div>
-              </form>
-            )}
-
-            {/* Instant Guest Mode Action */}
-            <div className="border-t border-border pt-3.5 space-y-2.5">
+            <div className="space-y-2.5 border-t border-border pt-3.5">
               <div className="space-y-1.5">
                 <Button
                   id="continue-as-guest-button"
@@ -627,7 +431,7 @@ export function AuthModal() {
                   {guestLoading ? <Loader2 className="size-4 animate-spin" /> : null}
                   Continue as guest
                 </Button>
-                <p className="text-center text-xs text-muted-foreground">No password required</p>
+                <p className="text-center text-xs text-muted-foreground">No account needed</p>
               </div>
 
               <div className="text-center text-[13px] text-muted-foreground">
@@ -636,7 +440,7 @@ export function AuthModal() {
                   type="button"
                   id="switch-to-signup-btn"
                   onClick={() => setModalView("signup")}
-                  className="font-medium text-foreground underline hover:text-accent transition-colors cursor-pointer"
+                  className="cursor-pointer font-medium text-foreground underline transition-colors hover:text-accent"
                 >
                   Sign up
                 </button>
@@ -645,355 +449,81 @@ export function AuthModal() {
           </div>
         )}
 
-        {/* ========================================================================= */}
-        {/* SIGN UP: STEP 1 (REGISTRATION DETAILS) */}
-        {/* ========================================================================= */}
-        {modalView === "signup" && signUpStep === 1 && (
-          <div className="space-y-5">
+        {/* ============================== SIGN UP ============================== */}
+        {isSignUp && (
+          <div className="space-y-4">
             <div className="space-y-1 text-left">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="flex size-7 items-center justify-center rounded-full bg-secondary text-secondary-foreground">
-                    <Mail className="size-3.5" />
-                  </span>
-                  <span className="eyebrow">Sign-Up Step 1</span>
-                </div>
-                <span className="rounded-full bg-secondary px-2.5 py-0.5 text-[11px] font-medium text-secondary-foreground">
-                  Step 1 of 2
-                </span>
-              </div>
               <h2 id="auth-modal-title" className="font-display text-[32px] leading-tight">
-                Create Account
+                {signUpCodeStep ? "Check your email" : "Create account"}
               </h2>
-              <p className="text-xs text-muted-foreground">
-                Register with email. A secure 6-digit verification code will be sent to confirm your
-                identity.
+              <p className="text-[15px] leading-relaxed text-muted-foreground">
+                {signUpCodeStep
+                  ? "Enter the code to finish creating your account."
+                  : "Sign up with Google, or with your email and a code we send you."}
               </p>
             </div>
 
-            {/* Quick Google Sign Up Option */}
-            <Button
-              type="button"
-              variant="outline"
-              disabled={isSubmitting}
-              onClick={handleGoogleSignIn}
-              className="w-full h-10 border-border bg-card hover:bg-muted/80 font-medium text-xs sm:text-sm gap-2.5 cursor-pointer shadow-xs"
-            >
-              <GoogleIcon className="size-4 shrink-0" />
-              <span>Sign Up with Google</span>
-            </Button>
+            {!signUpCodeStep ? (
+              <>
+                {googleButton("Sign up with Google")}
+                {orDivider}
+              </>
+            ) : null}
+            {errorAlert("signup-error-alert", signUpError)}
 
-            <div className="relative flex items-center justify-center py-0.5">
-              <div className="w-full border-t border-border"></div>
-              <span className="absolute bg-card px-2.5 text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
-                or with email
-              </span>
-            </div>
-
-            {signUpError && (
-              <div
-                id="signup-error-alert"
-                className="flex items-start gap-2.5 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-xs text-destructive animate-in fade-in duration-200"
-              >
-                <AlertCircle className="size-4 shrink-0 mt-0.5" />
-                <div className="flex-1">{signUpError}</div>
-              </div>
+            {!signUpCodeStep ? (
+              <form onSubmit={handleSendSignUpCode} className="space-y-3.5">
+                <div className="space-y-1.5 text-left">
+                  <Label htmlFor="signup-name" className={MODAL_LABEL}>
+                    Name <span className="font-normal text-muted-foreground">(optional)</span>
+                  </Label>
+                  <div className="relative">
+                    <User className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      id="signup-name"
+                      type="text"
+                      placeholder="Your name"
+                      value={signUpName}
+                      onChange={(e) => setSignUpName(e.target.value)}
+                      className={cn(MODAL_INPUT, "pl-9")}
+                      autoComplete="name"
+                      maxLength={80}
+                    />
+                  </div>
+                </div>
+                {emailField("signup-email", signUpEmail, (value) => {
+                  setSignUpEmail(value);
+                  if (signUpError) setSignUpError(null);
+                })}
+                {sendCodeButton("signup-send-code-button")}
+              </form>
+            ) : (
+              codeStep({
+                email: pendingEmail,
+                code: signUpCode,
+                setCode: (code) => {
+                  setSignUpCode(code);
+                  if (signUpError) setSignUpError(null);
+                },
+                onSubmit: (e) => void handleVerifySignUpCode(e),
+                onChangeEmail: () => {
+                  setSignUpCode("");
+                  backToStep1();
+                },
+                inputId: "signup-code-input",
+                submitId: "signup-verify-button",
+              })
             )}
 
-            <form onSubmit={handleSignUpStep1Submit} className="space-y-3.5">
-              <div className="space-y-1.5 text-left">
-                <Label htmlFor="signup-email" className="text-xs font-medium">
-                  Email Address
-                </Label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-                  <Input
-                    id="signup-email"
-                    type="email"
-                    placeholder="name@example.com"
-                    value={signUpEmail}
-                    onChange={(e) => {
-                      setSignUpEmail(e.target.value);
-                      if (signUpError) setSignUpError(null);
-                    }}
-                    className="pl-9 text-xs sm:text-sm h-10"
-                    autoComplete="email"
-                    autoFocus
-                    required
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-1.5 text-left">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="signup-password" className="text-xs font-medium">
-                    Password
-                  </Label>
-                  <span className="text-[11px] text-muted-foreground">Min. 6 chars</span>
-                </div>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-                  <Input
-                    id="signup-password"
-                    type={showSignUpPassword ? "text" : "password"}
-                    placeholder="Create a password"
-                    value={signUpPassword}
-                    onChange={(e) => {
-                      setSignUpPassword(e.target.value);
-                      if (signUpError) setSignUpError(null);
-                    }}
-                    className="pl-9 pr-10 text-xs sm:text-sm h-10"
-                    autoComplete="new-password"
-                    required
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowSignUpPassword(!showSignUpPassword)}
-                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-1 cursor-pointer"
-                    aria-label={showSignUpPassword ? "Hide password" : "Show password"}
-                  >
-                    {showSignUpPassword ? (
-                      <EyeOff className="size-4" />
-                    ) : (
-                      <Eye className="size-4" />
-                    )}
-                  </button>
-                </div>
-              </div>
-
-              <div className="space-y-1.5 text-left">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="signup-confirm-password" className="text-xs font-medium">
-                    Confirm Password
-                  </Label>
-                  {passwordsMismatch && (
-                    <span className="text-[11px] text-destructive font-medium">
-                      Passwords do not match
-                    </span>
-                  )}
-                  {passwordsMatch && (
-                    <span className="text-[11px] text-emerald-300 font-medium flex items-center gap-0.5">
-                      <Check className="size-3" /> Match
-                    </span>
-                  )}
-                </div>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-                  <Input
-                    id="signup-confirm-password"
-                    type={showConfirmPassword ? "text" : "password"}
-                    placeholder="Confirm your password"
-                    value={confirmPassword}
-                    onChange={(e) => {
-                      setConfirmPassword(e.target.value);
-                      if (signUpError) setSignUpError(null);
-                    }}
-                    className={`pl-9 pr-10 text-xs sm:text-sm h-10 ${
-                      passwordsMismatch ? "border-destructive focus-visible:ring-destructive" : ""
-                    }`}
-                    autoComplete="new-password"
-                    required
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-1 cursor-pointer"
-                    aria-label={showConfirmPassword ? "Hide password" : "Show password"}
-                  >
-                    {showConfirmPassword ? (
-                      <EyeOff className="size-4" />
-                    ) : (
-                      <Eye className="size-4" />
-                    )}
-                  </button>
-                </div>
-              </div>
-
-              <Button
-                id="signup-continue-step1-button"
-                type="submit"
-                disabled={isSubmitting}
-                className="w-full h-10 font-medium text-xs sm:text-sm cursor-pointer shadow-xs mt-1"
-              >
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="size-4 animate-spin mr-2" />
-                    Sending 2FA Verification Code...
-                  </>
-                ) : (
-                  "Continue to Email 2FA Verification"
-                )}
-              </Button>
-            </form>
-
-            <div className="border-t border-border pt-3.5 text-center text-xs text-muted-foreground">
+            <div className="border-t border-border pt-3.5 text-center text-[13px] text-muted-foreground">
               Already have an account?{" "}
               <button
                 type="button"
                 id="switch-to-login-btn"
                 onClick={() => setModalView("login")}
-                className="font-medium text-foreground underline hover:text-accent transition-colors cursor-pointer"
+                className="cursor-pointer font-medium text-foreground underline transition-colors hover:text-accent"
               >
-                Log In
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* ========================================================================= */}
-        {/* SIGN UP: STEP 2 (SECURE EMAIL VERIFICATION CODE FLOW) */}
-        {/* ========================================================================= */}
-        {modalView === "signup" && signUpStep === 2 && (
-          <div className="space-y-5">
-            <div className="space-y-1 text-left">
-              <div className="flex items-center justify-between">
-                <button
-                  type="button"
-                  id="back-to-step-1-button"
-                  onClick={backToStep1}
-                  className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
-                >
-                  <ArrowLeft className="size-3.5" />
-                  Back to Step 1
-                </button>
-                <span className="rounded-full bg-secondary px-2.5 py-0.5 text-[11px] font-medium text-secondary-foreground">
-                  Step 2 of 2
-                </span>
-              </div>
-              <div className="flex items-center gap-2 pt-1">
-                <span className="flex size-7 items-center justify-center rounded-full bg-primary text-primary-foreground">
-                  <ShieldCheck className="size-3.5" />
-                </span>
-                <span className="eyebrow">Email Verification</span>
-              </div>
-              <h2 id="auth-modal-title" className="font-display text-[32px] leading-tight">
-                Verify Your Email
-              </h2>
-              <p className="text-xs text-muted-foreground leading-relaxed">
-                We sent a 6-digit verification code to{" "}
-                <strong className="text-foreground font-medium">{pendingEmail}</strong>. Enter the
-                code below to complete your sign-up.
-              </p>
-            </div>
-
-            {verificationError && (
-              <div
-                id="verification-error-alert"
-                className="flex items-start gap-2.5 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-xs text-destructive animate-in fade-in duration-200"
-              >
-                <AlertCircle className="size-4 shrink-0 mt-0.5" />
-                <div className="flex-1">{verificationError}</div>
-              </div>
-            )}
-
-            {devOtpCode && (
-              <div className="flex items-center justify-between rounded-lg border border-gold/30 bg-gold/10 p-3 text-xs text-gold-ink animate-in fade-in duration-200">
-                <div className="space-y-0.5">
-                  <span className="font-semibold block">Preview Verification Code:</span>
-                  <span>
-                    Use code{" "}
-                    <code className="font-mono font-bold bg-background text-foreground px-1.5 py-0.5 rounded border border-border">
-                      {devOtpCode}
-                    </code>
-                  </span>
-                </div>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  onClick={() => setVerificationCode(devOtpCode)}
-                  className="text-xs h-7 px-2.5 cursor-pointer bg-background"
-                >
-                  Auto-fill
-                </Button>
-              </div>
-            )}
-
-            <form onSubmit={handleVerificationSubmit} className="space-y-4">
-              <div className="space-y-1.5 text-left">
-                <Label
-                  htmlFor="verification-code-input"
-                  className="text-xs font-medium text-foreground block"
-                >
-                  6-Digit Verification Code
-                </Label>
-                <div className="relative">
-                  <Input
-                    id="verification-code-input"
-                    type="text"
-                    inputMode="numeric"
-                    pattern="[0-9]*"
-                    maxLength={6}
-                    placeholder="······"
-                    value={verificationCode}
-                    onChange={(e) => {
-                      const val = e.target.value.replace(/\D/g, "").slice(0, 6);
-                      setVerificationCode(val);
-                      if (verificationError) setVerificationError(null);
-                    }}
-                    className="h-12 text-center font-mono text-2xl tracking-[0.4em] font-bold"
-                    autoFocus
-                    required
-                  />
-                </div>
-                <div className="flex items-center justify-between text-[11px] text-muted-foreground pt-1">
-                  <span>Code valid for 10 minutes</span>
-                  <span>Max 5 attempts allowed</span>
-                </div>
-              </div>
-
-              {/* Resend Code Option with Countdown */}
-              <div className="flex items-center justify-between text-xs text-muted-foreground pt-1">
-                <span>Didn&apos;t receive the email?</span>
-                <button
-                  type="button"
-                  id="resend-code-btn"
-                  disabled={resendCooldown > 0 || isSubmitting}
-                  onClick={() => void resendCode()}
-                  className="font-medium text-foreground hover:text-accent disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer inline-flex items-center gap-1"
-                >
-                  {isSubmitting ? (
-                    <>
-                      <Loader2 className="size-3 animate-spin" />
-                      <span>Sending...</span>
-                    </>
-                  ) : resendCooldown > 0 ? (
-                    `Resend Code in ${resendCooldown}s`
-                  ) : (
-                    <>
-                      <RefreshCw className="size-3" />
-                      <span>Resend Code</span>
-                    </>
-                  )}
-                </button>
-              </div>
-
-              {/* Verify & Complete Sign Up Button */}
-              <Button
-                id="verify-complete-signup-button"
-                type="submit"
-                disabled={isSubmitting || verificationCode.length !== 6}
-                className="w-full h-11 font-medium text-xs sm:text-sm cursor-pointer shadow-sm mt-2"
-              >
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="size-4 animate-spin mr-2" />
-                    Verifying & Activating Account...
-                  </>
-                ) : (
-                  "Verify & Complete Sign Up"
-                )}
-              </Button>
-            </form>
-
-            <div className="border-t border-border pt-3 text-center text-xs text-muted-foreground">
-              Need to use a different email?{" "}
-              <button
-                type="button"
-                onClick={backToStep1}
-                className="font-medium text-foreground underline hover:text-accent cursor-pointer"
-              >
-                Change email
+                Log in
               </button>
             </div>
           </div>

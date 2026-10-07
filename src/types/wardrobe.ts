@@ -47,7 +47,6 @@ export interface UserStylingPreferences {
 export interface UserEntity {
   id: string; // UUID
   email: string;
-  password_hash: string;
   full_name: string | null;
   user_photo_url: string | null;
   bodyPhotoUrl?: string | null;

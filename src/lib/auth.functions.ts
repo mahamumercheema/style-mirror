@@ -4,7 +4,6 @@ import {
   handleRegisterIntent,
   handleVerifyCode,
   handleResendCode,
-  handleLogin,
   type AuthUser,
 } from "./server-auth";
 
@@ -22,8 +21,6 @@ export const registerIntentServerFn = createServerFn({ method: "POST" })
     z
       .object({
         email: z.string(),
-        password: z.string(),
-        confirmPassword: z.string().optional(),
         name: z.string().optional(),
       })
       .parse(data),
@@ -57,19 +54,6 @@ export const resendCodeServerFn = createServerFn({ method: "POST" })
     return handleResendCode(data);
   });
 
-export const loginServerFn = createServerFn({ method: "POST" })
-  .validator((data) =>
-    z
-      .object({
-        email: z.string(),
-        password: z.string(),
-      })
-      .parse(data),
-  )
-  .handler(async ({ data }) => {
-    return handleLogin(data);
-  });
-
 // Client-side API fetchers calling POST /api/auth/* with serverFn fallback
 export type RegisterIntentResult = {
   success: boolean;
@@ -90,17 +74,8 @@ export type VerifyCodeResult = {
   locked?: boolean | undefined;
 };
 
-export type LoginResult = {
-  success: boolean;
-  error?: string | undefined;
-  token?: string | undefined;
-  user?: AuthUser | undefined;
-};
-
 export async function apiRegisterIntent(payload: {
   email: string;
-  password: string;
-  confirmPassword?: string | undefined;
   name?: string | undefined;
 }): Promise<RegisterIntentResult> {
   try {
@@ -237,48 +212,6 @@ export async function apiResendCode(payload: { email: string }): Promise<Registe
         message: res.body.message || "Verification code sent to your email",
         devOtpCode: res.body.devOtpCode,
         isSandbox: res.body.isSandbox,
-      };
-    } catch (e) {
-      return {
-        success: false,
-        error: (e as Error).message || "Network error. Please try again.",
-      };
-    }
-  }
-}
-
-export async function apiLogin(payload: { email: string; password: string }): Promise<LoginResult> {
-  try {
-    const res = await fetch("/api/auth/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-    const data = await res.json();
-    if (!res.ok) {
-      return {
-        success: false,
-        error: data.error || "Login failed. Please check your credentials.",
-      };
-    }
-    return {
-      success: true,
-      token: data.token,
-      user: data.user,
-    };
-  } catch {
-    try {
-      const res = await loginServerFn({ data: payload });
-      if (res.status >= 400) {
-        return {
-          success: false,
-          error: res.body.error || "Login failed.",
-        };
-      }
-      return {
-        success: true,
-        token: res.body.token,
-        user: res.body.user,
       };
     } catch (e) {
       return {

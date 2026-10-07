@@ -5,18 +5,17 @@ import nodemailer from "nodemailer";
 export interface EmailVerificationRecord {
   email: string;
   code_hash: string;
-  pending_password_hash: string;
   name: string;
   expires_at: number; // 10-minute validity
   attempts: number; // max 5 allowed
   created_at: number;
-  last_sent_at: number; // 60-second rate limiting
+  last_sent_at: number; // 30-second resend cooldown
 }
 
+/** Accounts are passwordless: users sign in with Google or a code emailed to them */
 export interface UserRecord {
   id: string;
   email: string;
-  password_hash: string;
   name: string;
   is_verified: boolean;
   created_at: string;
@@ -53,8 +52,27 @@ export interface AuthResult {
   body: AuthResponseBody;
 }
 
-/** One message for unknown email and wrong password, so logins don't reveal which emails exist */
-const INVALID_CREDENTIALS = "Incorrect email or password.";
+/** Minimum gap between two emailed codes to the same address */
+const RESEND_COOLDOWN_MS = 30_000;
+
+/**
+ * Development only: without an email service the code is shown in the dev server log and
+ * returned to the page so sign-in can be tested. Never in a production build, where it would
+ * let anyone sign in as any address.
+ */
+const IS_DEV = import.meta.env.DEV;
+
+/** Production with no email service: codes can't be delivered, so refuse instead of pretending */
+function emailUnavailable(): AuthResult | null {
+  if (IS_DEV || getTransporter()) return null;
+  return {
+    status: 503,
+    body: {
+      success: false,
+      error: "Email sign-in isn't set up yet. Please use Google or continue as a guest.",
+    },
+  };
+}
 
 // In-memory persistent database collections
 const emailVerifications = new Map<string, EmailVerificationRecord>();
@@ -126,7 +144,7 @@ export async function sendOtpEmail(toEmail: string, otpCode: string): Promise<bo
 
   console.log(`\n============================================================`);
   console.log(`[EMAIL DISPATCH] Destination: <${toEmail}>`);
-  console.log(`[EMAIL DISPATCH] 6-Digit OTP Code: [${otpCode}]`);
+  if (IS_DEV) console.log(`[EMAIL DISPATCH] 6-Digit OTP Code: [${otpCode}]`);
   console.log(`[EMAIL DISPATCH] Sent At: ${new Date().toISOString()}`);
   console.log(`============================================================\n`);
 
@@ -152,21 +170,21 @@ export async function sendOtpEmail(toEmail: string, otpCode: string): Promise<bo
 }
 
 /**
- * Endpoint 1: Register Intent
- * Triggered on Step 1 submit
+ * Endpoint 1: Register Intent (sign-up step 1): email plus an optional name; the account is
+ * created once the emailed code is verified. Passwords are not used.
  */
 export async function handleRegisterIntent(body: {
   email?: string | undefined;
-  password?: string | undefined;
-  confirmPassword?: string | undefined;
   name?: string | undefined;
 }): Promise<AuthResult> {
+  const unavailable = emailUnavailable();
+  if (unavailable) return unavailable;
+
   const email = sanitizeEmail(body.email);
-  const password = typeof body.password === "string" ? body.password : "";
-  const confirmPassword =
-    typeof body.confirmPassword === "string" ? body.confirmPassword : password;
   const name =
-    typeof body.name === "string" && body.name ? body.name : email.split("@")[0] || "User";
+    typeof body.name === "string" && body.name.trim()
+      ? body.name.trim().slice(0, 80)
+      : email.split("@")[0] || "User";
 
   // 1. Validate email format
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -174,27 +192,6 @@ export async function handleRegisterIntent(body: {
     return {
       status: 400,
       body: { success: false, error: "Please provide a valid email address." },
-    };
-  }
-
-  // 2. Validate password
-  if (!password || password.length < 6) {
-    return {
-      status: 400,
-      body: {
-        success: false,
-        error: "Password must be at least 6 characters long.",
-      },
-    };
-  }
-
-  if (password !== confirmPassword) {
-    return {
-      status: 400,
-      body: {
-        success: false,
-        error: "Passwords do not match. Please verify and try again.",
-      },
     };
   }
 
@@ -210,11 +207,13 @@ export async function handleRegisterIntent(body: {
     };
   }
 
-  // 4. Check rate limit on existing verification attempts (60s limit)
+  // 4. Check the resend cooldown on existing verification attempts
   const existingVerification = emailVerifications.get(email);
   const now = Date.now();
-  if (existingVerification && now - existingVerification.last_sent_at < 60000) {
-    const waitSec = Math.ceil((60000 - (now - existingVerification.last_sent_at)) / 1000);
+  if (existingVerification && now - existingVerification.last_sent_at < RESEND_COOLDOWN_MS) {
+    const waitSec = Math.ceil(
+      (RESEND_COOLDOWN_MS - (now - existingVerification.last_sent_at)) / 1000,
+    );
     return {
       status: 429,
       body: {
@@ -228,15 +227,13 @@ export async function handleRegisterIntent(body: {
   // 5. Generate cryptographically secure 6-digit OTP code using crypto.randomInt(100000, 1000000)
   const otpCode = crypto.randomInt(100000, 1000000).toString();
 
-  // 6. Hash code and password before storing
+  // 6. Hash the code before storing
   const codeHash = await bcrypt.hash(otpCode, 10);
-  const passwordHash = await bcrypt.hash(password, 10);
 
   // 7. Store in email_verifications table/map
   emailVerifications.set(email, {
     email,
     code_hash: codeHash,
-    pending_password_hash: passwordHash,
     name,
     expires_at: now + 10 * 60 * 1000, // 10-minute validity
     attempts: 0,
@@ -259,7 +256,7 @@ export async function handleRegisterIntent(body: {
         : "Verification code ready (preview mode)",
       email,
       isSandbox: !hasSmtp,
-      devOtpCode: !hasSmtp ? otpCode : undefined,
+      devOtpCode: !hasSmtp && IS_DEV ? otpCode : undefined,
     },
   };
 }
@@ -348,7 +345,6 @@ export async function handleVerifyCode(body: {
   const newUser: UserRecord = {
     id: userId,
     email: record.email,
-    password_hash: record.pending_password_hash,
     name: record.name,
     is_verified: true,
     created_at: new Date().toISOString(),
@@ -386,6 +382,9 @@ export async function handleVerifyCode(body: {
  * Triggered by "Resend Code" button
  */
 export async function handleResendCode(body: { email?: string | undefined }): Promise<AuthResult> {
+  const unavailable = emailUnavailable();
+  if (unavailable) return unavailable;
+
   const email = sanitizeEmail(body.email);
 
   if (!email) {
@@ -406,11 +405,11 @@ export async function handleResendCode(body: { email?: string | undefined }): Pr
     };
   }
 
-  // Enforce 60-second rate limit
+  // Enforce the resend cooldown
   const now = Date.now();
   const timeElapsed = now - record.last_sent_at;
-  if (timeElapsed < 60000) {
-    const secondsLeft = Math.ceil((60000 - timeElapsed) / 1000);
+  if (timeElapsed < RESEND_COOLDOWN_MS) {
+    const secondsLeft = Math.ceil((RESEND_COOLDOWN_MS - timeElapsed) / 1000);
     return {
       status: 429,
       body: {
@@ -445,76 +444,7 @@ export async function handleResendCode(body: { email?: string | undefined }): Pr
         : "Verification code ready (preview mode)",
       email,
       isSandbox: !hasSmtp,
-      devOtpCode: !hasSmtp ? newOtpCode : undefined,
-    },
-  };
-}
-
-/**
- * Login Handler (Password verification against hashed credentials)
- */
-export async function handleLogin(body: {
-  email?: string | undefined;
-  password?: string | undefined;
-}): Promise<AuthResult> {
-  const email = sanitizeEmail(body.email);
-  const password = typeof body.password === "string" ? body.password : "";
-
-  if (!email || !password) {
-    return {
-      status: 400,
-      body: { success: false, error: "Please provide both email and password." },
-    };
-  }
-
-  const user = users.get(email);
-  if (!user) {
-    return {
-      status: 401,
-      body: {
-        success: false,
-        error: INVALID_CREDENTIALS,
-      },
-    };
-  }
-
-  if (!user.is_verified) {
-    return {
-      status: 403,
-      body: {
-        success: false,
-        error: "This account has not been verified yet. Please complete verification.",
-      },
-    };
-  }
-
-  const isPasswordValid = await bcrypt.compare(password, user.password_hash);
-  if (!isPasswordValid) {
-    return {
-      status: 401,
-      body: {
-        success: false,
-        error: INVALID_CREDENTIALS,
-      },
-    };
-  }
-
-  const token = "vtr_tok_" + crypto.randomBytes(24).toString("hex");
-
-  return {
-    status: 200,
-    body: {
-      success: true,
-      token,
-      user: {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-        is_verified: true,
-        emailVerified: true,
-        twoFactorVerified: true,
-        createdAt: user.created_at,
-      },
+      devOtpCode: !hasSmtp && IS_DEV ? newOtpCode : undefined,
     },
   };
 }
@@ -525,6 +455,9 @@ export async function handleLogin(body: {
 export async function handleRequestEmailOtp(body: {
   email?: string | undefined;
 }): Promise<AuthResult> {
+  const unavailable = emailUnavailable();
+  if (unavailable) return unavailable;
+
   const email = sanitizeEmail(body.email);
   if (!email || !email.includes("@")) {
     return {
@@ -535,8 +468,10 @@ export async function handleRequestEmailOtp(body: {
 
   const existingVerification = emailVerifications.get(email);
   const now = Date.now();
-  if (existingVerification && now - existingVerification.last_sent_at < 60000) {
-    const waitSec = Math.ceil((60000 - (now - existingVerification.last_sent_at)) / 1000);
+  if (existingVerification && now - existingVerification.last_sent_at < RESEND_COOLDOWN_MS) {
+    const waitSec = Math.ceil(
+      (RESEND_COOLDOWN_MS - (now - existingVerification.last_sent_at)) / 1000,
+    );
     return {
       status: 429,
       body: {
@@ -554,7 +489,6 @@ export async function handleRequestEmailOtp(body: {
   emailVerifications.set(email, {
     email,
     code_hash: codeHash,
-    pending_password_hash: existingUser ? existingUser.password_hash : "",
     name: existingUser ? existingUser.name : (email.split("@")[0] ?? email),
     expires_at: now + 10 * 60 * 1000,
     attempts: 0,
@@ -572,7 +506,7 @@ export async function handleRequestEmailOtp(body: {
       message: hasSmtp ? "2FA code sent to your email" : "2FA code ready (preview mode)",
       email,
       isSandbox: !hasSmtp,
-      devOtpCode: !hasSmtp ? otpCode : undefined,
+      devOtpCode: !hasSmtp && IS_DEV ? otpCode : undefined,
     },
   };
 }
@@ -650,7 +584,6 @@ export async function handleVerifyEmailOtp(body: {
     user = {
       id: userId,
       email,
-      password_hash: "",
       name: record.name || (email.split("@")[0] ?? email),
       is_verified: true,
       created_at: new Date().toISOString(),
