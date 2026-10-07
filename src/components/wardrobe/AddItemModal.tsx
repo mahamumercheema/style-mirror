@@ -3,8 +3,8 @@ import {
   FASHION_COLORS,
   FASHION_FABRICS,
   FASHION_SEASONS,
-  type DEFAULT_CATEGORIES,
-  type DEFAULT_OCCASIONS,
+  DEFAULT_CATEGORIES,
+  DEFAULT_OCCASIONS,
 } from "@/lib/wardrobe-service";
 import { removeClothingBackground } from "@/lib/clothing-background-removal";
 import type {
@@ -129,7 +129,37 @@ export function AddItemModal({
     };
   }, [imageUrl]);
 
-  if (!isOpen) return null;
+  const effectiveCategories = categories && categories.length > 0 ? categories : DEFAULT_CATEGORIES;
+  const effectiveOccasions = occasions && occasions.length > 0 ? occasions : DEFAULT_OCCASIONS;
+
+  const quickCategoryNames = [
+    "Shalwar Kameez",
+    "Shirt",
+    "Pants / Trousers",
+    "Joggers / Sneakers",
+    "Jhumkas / Earrings",
+  ];
+
+  const quickColors = [
+    "Emerald Green",
+    "Black",
+    "White / Ivory",
+    "Navy Blue",
+    "Royal Blue",
+    "Crimson Red",
+    "Gold",
+  ];
+
+  const quickFabrics = [
+    "Raw Silk",
+    "Cotton",
+    "Lawn",
+    "Silk",
+    "Chiffon",
+    "Velvet",
+    "Denim",
+    "Linen",
+  ];
 
   const handleFileUpload = (file: File) => {
     if (!file.type.startsWith("image/")) {
@@ -180,7 +210,7 @@ export function AddItemModal({
 
     setIsSubmitting(true);
     try {
-      const selectedCategory = categories.find((c) => c.id === categoryId);
+      const selectedCategory = effectiveCategories.find((c) => c.id === categoryId);
       const finalImage = bgRemovedUrl || imageUrl;
 
       const input: CreateWardrobeItemInput = {
@@ -207,6 +237,8 @@ export function AddItemModal({
       setIsSubmitting(false);
     }
   };
+
+  if (!isOpen) return null;
 
   return (
     <div
@@ -460,12 +492,15 @@ export function AddItemModal({
             />
           </div>
 
-          {/* Category Dropdown (Grouped by Parent Type) */}
+          {/* Category Dropdown & Quick Pick Tags */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label htmlFor="item-category" className="text-xs font-medium">
-                Category *
-              </Label>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="item-category" className="text-xs font-medium">
+                  Category *
+                </Label>
+                <span className="text-[10px] text-muted-foreground">Select or click tag below</span>
+              </div>
               <select
                 id="item-category"
                 value={categoryId}
@@ -475,11 +510,15 @@ export function AddItemModal({
               >
                 <option value="">Select Category...</option>
                 {/* Group by parent_type */}
-                {["Tops", "Bottoms", "Full Body / Ethnic Set", "Footwear", "Accessories"].map(
+                {["Full-Body / Ethnic", "Tops", "Bottoms", "Footwear", "Jewelry & Accessories"].map(
                   (parent) => (
                     <optgroup key={parent} label={parent}>
-                      {categories
-                        .filter((c) => c.parent_type === parent)
+                      {effectiveCategories
+                        .filter(
+                          (c) =>
+                            c.parent_type === parent ||
+                            (parent === "Jewelry & Accessories" && c.parent_type === "Accessories"),
+                        )
                         .map((cat) => (
                           <option key={cat.id} value={cat.id}>
                             {cat.name}
@@ -489,6 +528,40 @@ export function AddItemModal({
                   ),
                 )}
               </select>
+
+              {/* Quick Category Pick Tags */}
+              <div className="flex items-center gap-1 flex-wrap pt-1">
+                {[
+                  { name: "Shalwar Kameez", id: 13 },
+                  { name: "Shirt", id: 1 },
+                  { name: "Pants / Trousers", id: 7 },
+                  { name: "Footwear", id: 20 },
+                  { name: "Accessories", id: 25 },
+                ].map((quick) => (
+                  <button
+                    key={quick.name}
+                    type="button"
+                    onClick={() => {
+                      const found = effectiveCategories.find(
+                        (c) =>
+                          c.name.toLowerCase().includes(quick.name.toLowerCase()) ||
+                          c.id === quick.id,
+                      );
+                      if (found) setCategoryId(found.id);
+                    }}
+                    className={`rounded-full px-2 py-0.5 text-[10px] transition-colors cursor-pointer border ${
+                      categoryId === quick.id ||
+                      effectiveCategories
+                        .find((c) => c.id === categoryId)
+                        ?.name.includes(quick.name)
+                        ? "bg-primary text-primary-foreground border-primary font-medium"
+                        : "border-border/70 bg-secondary/50 text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    {quick.name}
+                  </button>
+                ))}
+              </div>
             </div>
 
             {/* Season Selector */}
@@ -511,57 +584,111 @@ export function AddItemModal({
             </div>
           </div>
 
-          {/* Color & Fabric Type */}
+          {/* Color & Fabric Type (Text + Dropdown Tags: Emerald Green, Raw Silk, Cotton) */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {/* Color Input & Tags */}
             <div className="space-y-1.5">
-              <Label htmlFor="item-color" className="text-xs font-medium">
-                Primary Color
-              </Label>
-              <select
-                id="item-color"
-                value={primaryColor}
-                onChange={(e) => setPrimaryColor(e.target.value)}
-                className="w-full h-9 rounded-md border border-border bg-background px-3 text-xs text-foreground cursor-pointer focus:outline-hidden focus:ring-2 focus:ring-ring"
-              >
-                <option value="">Select Color...</option>
-                {FASHION_COLORS.map((col) => (
-                  <option key={col} value={col}>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="item-color" className="text-xs font-medium">
+                  Primary Color
+                </Label>
+                {primaryColor && (
+                  <span className="text-[10px] text-muted-foreground">{primaryColor}</span>
+                )}
+              </div>
+              <div className="relative">
+                <Input
+                  id="item-color"
+                  list="color-datalist"
+                  placeholder="e.g., Emerald Green, Navy Blue..."
+                  value={primaryColor}
+                  onChange={(e) => setPrimaryColor(e.target.value)}
+                  className="text-xs h-9"
+                />
+                <datalist id="color-datalist">
+                  {FASHION_COLORS.map((col) => (
+                    <option key={col} value={col} />
+                  ))}
+                </datalist>
+              </div>
+
+              {/* Quick Color Tags */}
+              <div className="flex items-center gap-1 flex-wrap pt-0.5">
+                {quickColors.map((col) => (
+                  <button
+                    key={col}
+                    type="button"
+                    onClick={() => setPrimaryColor(col)}
+                    className={`rounded-full px-2 py-0.5 text-[10px] transition-colors cursor-pointer border ${
+                      primaryColor === col
+                        ? "bg-primary text-primary-foreground border-primary font-medium"
+                        : "border-border/70 bg-secondary/50 text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
                     {col}
-                  </option>
+                  </button>
                 ))}
-              </select>
+              </div>
             </div>
 
+            {/* Fabric Input & Tags */}
             <div className="space-y-1.5">
-              <Label htmlFor="item-fabric" className="text-xs font-medium">
-                Fabric Type
-              </Label>
-              <select
-                id="item-fabric"
-                value={fabricType}
-                onChange={(e) => setFabricType(e.target.value)}
-                className="w-full h-9 rounded-md border border-border bg-background px-3 text-xs text-foreground cursor-pointer focus:outline-hidden focus:ring-2 focus:ring-ring"
-              >
-                <option value="">Select Fabric...</option>
-                {FASHION_FABRICS.map((fab) => (
-                  <option key={fab} value={fab}>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="item-fabric" className="text-xs font-medium">
+                  Fabric Type
+                </Label>
+                {fabricType && (
+                  <span className="text-[10px] text-muted-foreground">{fabricType}</span>
+                )}
+              </div>
+              <div className="relative">
+                <Input
+                  id="item-fabric"
+                  list="fabric-datalist"
+                  placeholder="e.g., Raw Silk, Cotton, Chiffon..."
+                  value={fabricType}
+                  onChange={(e) => setFabricType(e.target.value)}
+                  className="text-xs h-9"
+                />
+                <datalist id="fabric-datalist">
+                  {FASHION_FABRICS.map((fab) => (
+                    <option key={fab} value={fab} />
+                  ))}
+                </datalist>
+              </div>
+
+              {/* Quick Fabric Tags */}
+              <div className="flex items-center gap-1 flex-wrap pt-0.5">
+                {quickFabrics.map((fab) => (
+                  <button
+                    key={fab}
+                    type="button"
+                    onClick={() => setFabricType(fab)}
+                    className={`rounded-full px-2 py-0.5 text-[10px] transition-colors cursor-pointer border ${
+                      fabricType === fab
+                        ? "bg-primary text-primary-foreground border-primary font-medium"
+                        : "border-border/70 bg-secondary/50 text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
                     {fab}
-                  </option>
+                  </button>
                 ))}
-              </select>
+              </div>
             </div>
           </div>
 
-          {/* Occasion Tags (Multi-select pills) */}
+          {/* Occasion Tags (Multi-select pills: Casual, Office, Dinner, Wedding) */}
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
-              <Label className="text-xs font-medium">Suitable Occasions (Multi-Select)</Label>
+              <Label className="text-xs font-medium">
+                Occasion Tags (e.g., Casual, Office, Dinner, Wedding)
+              </Label>
               <span className="text-[11px] text-muted-foreground">
                 {selectedOccasions.length} selected
               </span>
             </div>
             <div className="flex flex-wrap gap-1.5 pt-1">
-              {occasions.map((occ) => {
+              {effectiveOccasions.map((occ) => {
                 const isSelected = selectedOccasions.includes(occ.id);
                 return (
                   <button
