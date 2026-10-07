@@ -168,7 +168,7 @@ const OCCASION_OPTIONS = [
 ];
 
 function ProfilePage() {
-  const { user } = useAuth();
+  const { user, isAuthenticated, openLogin } = useAuth();
   const activeUserId = user?.id || "guest_user";
 
   const [profile, setProfile] = useState<UserProfile | null>(null);

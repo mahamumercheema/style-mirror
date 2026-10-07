@@ -6,7 +6,7 @@ import {
   DEFAULT_CATEGORIES,
   DEFAULT_OCCASIONS,
 } from "@/lib/wardrobe-service";
-import { removeClothingBackground } from "@/lib/clothing-background-removal";
+import { removeGarmentBackground } from "@/lib/ai-background-removal";
 import type {
   CategoryEntity,
   OccasionEntity,
@@ -86,7 +86,6 @@ export function AddItemModal({
   const [imageUrl, setImageUrl] = useState("");
   const [bgRemovedUrl, setBgRemovedUrl] = useState<string | null>(null);
   const [isRemovingBg, setIsRemovingBg] = useState(false);
-  const [showOriginal, setShowOriginal] = useState(false);
   const [primaryColor, setPrimaryColor] = useState("");
   const [secondaryColor, setSecondaryColor] = useState("");
   const [fabricType, setFabricType] = useState("");
@@ -109,7 +108,7 @@ export function AddItemModal({
     let isMounted = true;
     setIsRemovingBg(true);
 
-    removeClothingBackground(imageUrl)
+    removeGarmentBackground(imageUrl)
       .then((cleanedUrl) => {
         if (isMounted) {
           setBgRemovedUrl(cleanedUrl);
@@ -341,18 +340,31 @@ export function AddItemModal({
 
                 {imageUrl ? (
                   <div className="flex flex-col sm:flex-row items-center gap-4 w-full p-2 bg-card rounded-lg border border-border/80">
-                    <div className="relative size-28 rounded-lg overflow-hidden border border-border shadow-xs shrink-0 checkerboard flex items-center justify-center p-1.5">
-                      <img
-                        src={showOriginal ? imageUrl : bgRemovedUrl || imageUrl}
-                        alt="Uploaded preview"
-                        className="h-full w-full object-contain drop-shadow-md transition-all"
-                      />
-                      {isRemovingBg && (
-                        <div className="absolute inset-0 bg-black/40 backdrop-blur-xs flex flex-col items-center justify-center text-white text-[10px] gap-1">
-                          <Loader2 className="size-4 animate-spin text-gold-ink" />
-                          <span>Removing bg...</span>
+                    <div className="flex gap-2 shrink-0">
+                      <figure className="flex flex-col items-center gap-1">
+                        <div className="size-24 rounded-lg overflow-hidden border border-border bg-muted">
+                          <img src={imageUrl} alt="Before" className="h-full w-full object-contain" />
                         </div>
-                      )}
+                        <figcaption className="text-[10px] text-muted-foreground">Before</figcaption>
+                      </figure>
+                      <figure className="flex flex-col items-center gap-1">
+                        <div className="relative size-24 rounded-lg overflow-hidden border border-border checkerboard flex items-center justify-center p-1">
+                          {bgRemovedUrl && !isRemovingBg && (
+                            <img
+                              src={bgRemovedUrl}
+                              alt="After"
+                              className="h-full w-full object-contain drop-shadow-md"
+                            />
+                          )}
+                          {isRemovingBg && (
+                            <div className="absolute inset-0 flex flex-col items-center justify-center text-[10px] gap-1 text-muted-foreground">
+                              <Loader2 className="size-4 animate-spin" />
+                              <span>Removing…</span>
+                            </div>
+                          )}
+                        </div>
+                        <figcaption className="text-[10px] text-muted-foreground">After</figcaption>
+                      </figure>
                     </div>
                     <div className="text-left text-xs flex-1 space-y-1.5">
                       <div className="flex items-center gap-2">
@@ -382,18 +394,6 @@ export function AddItemModal({
                         Clean cutout ready for AI styling & fitting
                       </p>
                       <div className="flex items-center gap-3 text-[11px] pt-0.5">
-                        {bgRemovedUrl && (
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setShowOriginal(!showOriginal);
-                            }}
-                            className="text-primary hover:underline font-medium cursor-pointer"
-                          >
-                            {showOriginal ? "Show Clean Cutout" : "Compare Original"}
-                          </button>
-                        )}
                         <button
                           type="button"
                           onClick={(e) => {

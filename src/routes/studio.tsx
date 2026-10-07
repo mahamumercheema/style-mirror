@@ -93,7 +93,8 @@ export const Route = createFileRoute("/studio")({
 type WorkflowStep = 1 | 2 | 3;
 
 function Studio() {
-  const { user } = useAuth();
+  const { user, isAuthenticated, isGuest, openLogin, openSignUp, loginAsGuest } = useAuth();
+  const hasStudioAccess = isAuthenticated || isGuest;
   const [photo, setPhoto] = useState<string | null>(null);
   const [currentStep, setCurrentStep] = useState<WorkflowStep>(1);
   const [status, setStatus] = useState<"idle" | "measuring" | "done" | "failed">("idle");

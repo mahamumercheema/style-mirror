@@ -12,10 +12,12 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AiStylistRouteImport } from './routes/ai-stylist'
 import { Route as ClosetRouteImport } from './routes/closet'
+import { Route as FittingRoomRouteImport } from './routes/fitting-room'
 import { Route as GenerateRouteImport } from './routes/generate'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as StudioRouteImport } from './routes/studio'
+import { Route as StylistRouteImport } from './routes/stylist'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -30,6 +32,11 @@ const AiStylistRoute = AiStylistRouteImport.update({
 const ClosetRoute = ClosetRouteImport.update({
   id: '/closet',
   path: '/closet',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FittingRoomRoute = FittingRoomRouteImport.update({
+  id: '/fitting-room',
+  path: '/fitting-room',
   getParentRoute: () => rootRouteImport,
 } as any)
 const GenerateRoute = GenerateRouteImport.update({
@@ -52,34 +59,45 @@ const StudioRoute = StudioRouteImport.update({
   path: '/studio',
   getParentRoute: () => rootRouteImport,
 } as any)
+const StylistRoute = StylistRouteImport.update({
+  id: '/stylist',
+  path: '/stylist',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/ai-stylist': typeof AiStylistRoute
   '/closet': typeof ClosetRoute
+  '/fitting-room': typeof FittingRoomRoute
   '/generate': typeof GenerateRoute
   '/login': typeof LoginRoute
   '/profile': typeof ProfileRoute
   '/studio': typeof StudioRoute
+  '/stylist': typeof StylistRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/ai-stylist': typeof AiStylistRoute
   '/closet': typeof ClosetRoute
+  '/fitting-room': typeof FittingRoomRoute
   '/generate': typeof GenerateRoute
   '/login': typeof LoginRoute
   '/profile': typeof ProfileRoute
   '/studio': typeof StudioRoute
+  '/stylist': typeof StylistRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/ai-stylist': typeof AiStylistRoute
   '/closet': typeof ClosetRoute
+  '/fitting-room': typeof FittingRoomRoute
   '/generate': typeof GenerateRoute
   '/login': typeof LoginRoute
   '/profile': typeof ProfileRoute
   '/studio': typeof StudioRoute
+  '/stylist': typeof StylistRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -87,38 +105,46 @@ export interface FileRouteTypes {
     | '/'
     | '/ai-stylist'
     | '/closet'
+    | '/fitting-room'
     | '/generate'
     | '/login'
     | '/profile'
     | '/studio'
+    | '/stylist'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/ai-stylist'
     | '/closet'
+    | '/fitting-room'
     | '/generate'
     | '/login'
     | '/profile'
     | '/studio'
+    | '/stylist'
   id:
     | '__root__'
     | '/'
     | '/ai-stylist'
     | '/closet'
+    | '/fitting-room'
     | '/generate'
     | '/login'
     | '/profile'
     | '/studio'
+    | '/stylist'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AiStylistRoute: typeof AiStylistRoute
   ClosetRoute: typeof ClosetRoute
+  FittingRoomRoute: typeof FittingRoomRoute
   GenerateRoute: typeof GenerateRoute
   LoginRoute: typeof LoginRoute
   ProfileRoute: typeof ProfileRoute
   StudioRoute: typeof StudioRoute
+  StylistRoute: typeof StylistRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -142,6 +168,13 @@ declare module '@tanstack/react-router' {
       path: '/closet'
       fullPath: '/closet'
       preLoaderRoute: typeof ClosetRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/fitting-room': {
+      id: '/fitting-room'
+      path: '/fitting-room'
+      fullPath: '/fitting-room'
+      preLoaderRoute: typeof FittingRoomRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/generate': {
@@ -172,6 +205,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof StudioRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/stylist': {
+      id: '/stylist'
+      path: '/stylist'
+      fullPath: '/stylist'
+      preLoaderRoute: typeof StylistRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -179,10 +219,12 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AiStylistRoute: AiStylistRoute,
   ClosetRoute: ClosetRoute,
+  FittingRoomRoute: FittingRoomRoute,
   GenerateRoute: GenerateRoute,
   LoginRoute: LoginRoute,
   ProfileRoute: ProfileRoute,
   StudioRoute: StudioRoute,
+  StylistRoute: StylistRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -211,7 +211,7 @@ function GenerateRouteWrapper() {
 }
 
 function GeneratePage() {
-  const { user } = useAuth();
+  const { user, promptSaveGuestWardrobe } = useAuth();
   const activeUserId = user?.id || "guest_user";
   const isGuest = isGuestUser(activeUserId);
 
