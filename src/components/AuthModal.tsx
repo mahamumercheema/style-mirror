@@ -1,45 +1,23 @@
 import { useState, useEffect, useRef } from "react";
-import { AlertCircle, Loader2, Mail, ShieldCheck, User, X } from "lucide-react";
-import { useNavigate, useRouterState } from "@tanstack/react-router";
+import { AlertCircle, Eye, EyeOff, Loader2, Lock, Mail, ShieldCheck, User, X } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 
-/** Modal buttons: readable size, label always fits (it never overflows the button) */
+/** Modal buttons: readable size, label always fits */
 const MODAL_BUTTON =
-  "h-11 w-full min-w-0 px-4 text-[13px] tracking-[0.12em] whitespace-nowrap cursor-pointer";
+  "h-11 w-full min-w-0 px-4 text-[13px] tracking-[0.08em] uppercase font-semibold whitespace-nowrap cursor-pointer";
 /** Text fields: 44px tall, 15px text */
-const MODAL_INPUT = "h-11 text-[15px] md:text-[15px]";
-const MODAL_LABEL = "text-[13px] font-medium";
-
-function GoogleIcon({ className = "size-4" }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" aria-hidden="true">
-      <path
-        fill="#4285F4"
-        d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.8-2.4 3.65v3.03h3.88c2.27-2.09 3.665-5.17 3.665-9.12z"
-      />
-      <path
-        fill="#34A853"
-        d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.03c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.26v3.13C3.26 21.36 7.33 24 12 24z"
-      />
-      <path
-        fill="#FBBC05"
-        d="M5.28 14.29c-.25-.72-.38-1.49-.38-2.29s.13-1.57.38-2.29V6.58H1.26C.46 8.18 0 10.03 0 12s.46 3.82 1.26 5.42l4.02-3.13z"
-      />
-      <path
-        fill="#EA4335"
-        d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.33 0 3.26 2.64 1.26 6.58l4.02 3.13c.95-2.83 3.6-4.96 6.72-4.96z"
-      />
-    </svg>
-  );
-}
+const MODAL_INPUT = "h-11 text-[14px] md:text-[14px]";
+const MODAL_LABEL = "text-[12px] font-medium text-foreground/90";
 
 /**
- * Sign in / sign up. Passwordless: Google, or a 6-digit code emailed to the user. Guests can
- * continue without an account; after any sign-in the user returns to where they came from.
+ * Traditional Email + Password Authentication Modal
+ * - Log In: Email + Password directly (no OTP during login)
+ * - Sign Up: Email + Password + 2-Step OTP Verification (6-digit code with autofill disabled)
+ * - No Google Auth, No Dev helper codes
  */
 export function AuthModal() {
   const {
@@ -51,47 +29,41 @@ export function AuthModal() {
     gateReason,
     redirectRoute,
     isSubmitting,
-    devOtpCode,
     closeModal,
     setModalView,
-    loginWithGoogle,
-    loginAsGuest,
-    requestEmail2FA,
-    verifyEmail2FA,
+    loginWithPassword,
     startSignUp,
     verifyTwoStepCode,
     resendCode,
     backToStep1,
   } = useAuth();
 
-  // Log in: email, then the emailed code
+  // Log in form state: Email + Password only
   const [loginEmail, setLoginEmail] = useState("");
-  const [loginCode, setLoginCode] = useState("");
-  const [loginCodeSent, setLoginCodeSent] = useState(false);
+  const [loginPassword, setLoginPassword] = useState("");
+  const [showLoginPassword, setShowLoginPassword] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
 
-  // Sign up: optional name + email, then the emailed code
+  // Sign up form state: Step 1 (Name, Email, Password, Confirm Password)
   const [signUpName, setSignUpName] = useState("");
   const [signUpEmail, setSignUpEmail] = useState("");
-  const [signUpCode, setSignUpCode] = useState("");
+  const [signUpPassword, setSignUpPassword] = useState("");
+  const [signUpConfirmPassword, setSignUpConfirmPassword] = useState("");
+  const [showSignUpPassword, setShowSignUpPassword] = useState(false);
   const [signUpError, setSignUpError] = useState<string | null>(null);
 
-  const modalRef = useRef<HTMLDivElement>(null);
-  const navigate = useNavigate();
-  const pathname = useRouterState({ select: (state) => state.location.pathname });
-  const [guestLoading, setGuestLoading] = useState(false);
+  // Sign up form state: Step 2 (6-digit OTP code)
+  const [signUpCode, setSignUpCode] = useState("");
 
-  // Each time the modal opens, start from an empty form (no stale or autofilled values)
+  const modalRef = useRef<HTMLDivElement>(null);
+
+  // Reset form when modal opens or view changes
   useEffect(() => {
     if (!isModalOpen) return;
-    setLoginEmail("");
-    setLoginCode("");
-    setLoginCodeSent(false);
-    setSignUpName("");
-    setSignUpEmail("");
+    setLoginError(null);
+    setSignUpError(null);
     setSignUpCode("");
-    setGuestLoading(false);
-  }, [isModalOpen]);
+  }, [isModalOpen, modalView]);
 
   // Keyboard accessibility: ESC key to close
   useEffect(() => {
@@ -103,244 +75,96 @@ export function AuthModal() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isModalOpen, closeModal]);
 
-  // Clear errors when switching views or steps
-  useEffect(() => {
-    setLoginError(null);
-    setSignUpError(null);
-  }, [modalView, signUpStep, loginCodeSent, isModalOpen]);
-
   if (!isModalOpen) return null;
 
   const isSignUp = modalView === "signup";
   const signUpCodeStep = isSignUp && signUpStep === 2;
 
-  const handleGoogleSignIn = async () => {
-    const setError = isSignUp ? setSignUpError : setLoginError;
-    setError(null);
-    try {
-      const result = await loginWithGoogle();
-      if (!result.success && result.error) setError(result.error);
-    } catch (error) {
-      console.error("Google sign-in failed", error);
-      setError("Couldn't sign in with Google. Please try again.");
-    }
-  };
-
-  /**
-   * Guest session, then back to where the user came from: a gated feature they asked for
-   * (forwarded by the auth context), else the studio; opened on the studio itself (e.g. from
-   * the Step 02 measurements gate) it stays there and that step unlocks.
-   */
-  const handleContinueAsGuest = async () => {
-    setGuestLoading(true);
-    try {
-      if (!redirectRoute && pathname !== "/studio") await navigate({ to: "/studio" });
-      loginAsGuest();
-    } catch (error) {
-      console.error("Guest session failed", error);
-      setLoginError("Couldn't start a guest session. Please try again.");
-      setGuestLoading(false);
-    }
-  };
-
-  const handleSendLoginCode = async (e: React.FormEvent) => {
+  // Handle Log In submission: Email + Password directly
+  const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoginError(null);
+
     const email = loginEmail.trim().toLowerCase();
-    if (!email.includes("@")) {
+    const password = loginPassword;
+
+    if (!email || !email.includes("@")) {
       setLoginError("Please enter a valid email address.");
       return;
     }
+
+    if (!password) {
+      setLoginError("Please enter your password.");
+      return;
+    }
+
     try {
-      const result = await requestEmail2FA(email);
-      if (!result.success) setLoginError(result.error ?? "Couldn't send the code.");
-      else setLoginCodeSent(true);
+      const result = await loginWithPassword(email, password);
+      if (!result.success && result.error) {
+        setLoginError(result.error);
+      }
     } catch (error) {
-      console.error("Sending sign-in code failed", error);
-      setLoginError("Couldn't send the code. Please try again.");
+      console.error("Login failed:", error);
+      setLoginError("Unable to log in. Please check your credentials and try again.");
     }
   };
 
-  const handleVerifyLoginCode = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoginError(null);
-    try {
-      const result = await verifyEmail2FA(loginCode.trim());
-      if (!result.success && result.error) setLoginError(result.error);
-    } catch (error) {
-      console.error("Verifying sign-in code failed", error);
-      setLoginError("Couldn't verify the code. Please try again.");
-    }
-  };
-
-  const handleSendSignUpCode = async (e: React.FormEvent) => {
+  // Handle Sign Up Step 1 submission: Email + Password registration
+  const handleSignUpStep1Submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSignUpError(null);
+
+    const email = signUpEmail.trim().toLowerCase();
+    const password = signUpPassword;
+    const confirmPassword = signUpConfirmPassword;
+
+    if (!email || !email.includes("@")) {
+      setSignUpError("Please enter a valid email address.");
+      return;
+    }
+
+    if (!password || password.length < 6) {
+      setSignUpError("Password must be at least 6 characters long.");
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setSignUpError("Passwords do not match. Please re-enter.");
+      return;
+    }
+
     try {
-      const result = await startSignUp(signUpEmail, signUpName);
-      if (!result.success && result.error) setSignUpError(result.error);
+      const result = await startSignUp(email, password, signUpName.trim() || undefined);
+      if (!result.success && result.error) {
+        setSignUpError(result.error);
+      }
     } catch (error) {
-      console.error("Sending sign-up code failed", error);
-      setSignUpError("Couldn't send the code. Please try again.");
+      console.error("Sign up request failed:", error);
+      setSignUpError("Failed to initiate registration. Please try again.");
     }
   };
 
-  const handleVerifySignUpCode = async (e: React.FormEvent) => {
+  // Handle Sign Up Step 2 submission: 6-Digit OTP verification
+  const handleVerifyOtpSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSignUpError(null);
+
+    const code = signUpCode.trim();
+    if (code.length !== 6) {
+      setSignUpError("Please enter the complete 6-digit verification code.");
+      return;
+    }
+
     try {
-      const result = await verifyTwoStepCode(signUpCode.trim());
-      if (!result.success && result.error) setSignUpError(result.error);
+      const result = await verifyTwoStepCode(code);
+      if (!result.success && result.error) {
+        setSignUpError(result.error);
+      }
     } catch (error) {
-      console.error("Verifying sign-up code failed", error);
-      setSignUpError("Couldn't verify the code. Please try again.");
+      console.error("OTP verification failed:", error);
+      setSignUpError("Failed to verify code. Please try again.");
     }
   };
-
-  const errorAlert = (id: string, message: string | null) =>
-    message ? (
-      <div
-        id={id}
-        className="flex items-start gap-2.5 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-[13px] text-destructive animate-in fade-in duration-200"
-      >
-        <AlertCircle className="mt-0.5 size-4 shrink-0" />
-        <div className="flex-1">{message}</div>
-      </div>
-    ) : null;
-
-  const googleButton = (label: string) => (
-    <Button
-      id="quick-google-signin-btn"
-      type="button"
-      variant="outline"
-      disabled={isSubmitting || guestLoading}
-      onClick={() => void handleGoogleSignIn()}
-      className={cn(MODAL_BUTTON, "gap-2.5")}
-    >
-      <GoogleIcon className="size-4 shrink-0" />
-      <span>{label}</span>
-    </Button>
-  );
-
-  const orDivider = (
-    <div className="relative flex items-center justify-center py-0.5">
-      <div className="w-full border-t border-border" />
-      <span className="absolute bg-card px-3 text-[13px] text-muted-foreground">or</span>
-    </div>
-  );
-
-  const emailField = (id: string, value: string, onChange: (value: string) => void) => (
-    <div className="space-y-1.5 text-left">
-      <Label htmlFor={id} className={MODAL_LABEL}>
-        Email address
-      </Label>
-      <div className="relative">
-        <Mail className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          id={id}
-          type="email"
-          placeholder="Enter your email"
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          className={cn(MODAL_INPUT, "pl-9")}
-          autoComplete="email"
-          autoFocus
-          required
-        />
-      </div>
-    </div>
-  );
-
-  const sendCodeButton = (id: string) => (
-    <Button id={id} type="submit" disabled={isSubmitting || guestLoading} className={MODAL_BUTTON}>
-      {isSubmitting ? <Loader2 className="size-4 animate-spin" /> : null}
-      {isSubmitting ? "Sending code..." : "Send code"}
-    </Button>
-  );
-
-  /** The shared second step: the 6-digit code, verify, resend (30s cooldown), change email */
-  const codeStep = (opts: {
-    email: string;
-    code: string;
-    setCode: (code: string) => void;
-    onSubmit: (e: React.FormEvent) => void;
-    onChangeEmail: () => void;
-    inputId: string;
-    submitId: string;
-  }) => (
-    <form onSubmit={opts.onSubmit} className="space-y-3.5">
-      <p className="text-[13px] text-muted-foreground">
-        We sent a 6-digit code to{" "}
-        <strong className="font-medium text-foreground">{opts.email}</strong>.
-      </p>
-
-      {/* Development only (no email service configured): show the code so it can be tested */}
-      {devOtpCode && import.meta.env.DEV ? (
-        <div className="flex items-center justify-between rounded-lg border border-gold/30 bg-gold/10 px-3 py-2 text-[13px] text-gold-ink">
-          <span>
-            Dev code: <code className="font-mono font-semibold">{devOtpCode}</code>
-          </span>
-          <button
-            type="button"
-            onClick={() => opts.setCode(devOtpCode)}
-            className="cursor-pointer underline underline-offset-4"
-          >
-            Fill
-          </button>
-        </div>
-      ) : null}
-
-      <div className="space-y-1.5 text-left">
-        <Label htmlFor={opts.inputId} className={MODAL_LABEL}>
-          6-digit code
-        </Label>
-        <Input
-          id={opts.inputId}
-          type="text"
-          inputMode="numeric"
-          pattern="[0-9]*"
-          autoComplete="one-time-code"
-          maxLength={6}
-          placeholder="······"
-          value={opts.code}
-          onChange={(e) => opts.setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
-          className="h-12 text-center font-mono text-xl font-semibold tracking-[0.4em]"
-          autoFocus
-          required
-        />
-      </div>
-
-      <Button
-        id={opts.submitId}
-        type="submit"
-        disabled={isSubmitting || opts.code.length !== 6}
-        className={MODAL_BUTTON}
-      >
-        {isSubmitting ? <Loader2 className="size-4 animate-spin" /> : null}
-        {isSubmitting ? "Verifying..." : "Verify & continue"}
-      </Button>
-
-      <div className="flex items-center justify-between text-[13px] text-muted-foreground">
-        <button
-          type="button"
-          id="resend-code-btn"
-          disabled={resendCooldown > 0 || isSubmitting}
-          onClick={() => void resendCode()}
-          className="cursor-pointer font-medium text-foreground underline-offset-4 hover:underline disabled:cursor-not-allowed disabled:text-muted-foreground disabled:no-underline"
-        >
-          {resendCooldown > 0 ? `Resend code in ${resendCooldown}s` : "Resend code"}
-        </button>
-        <button
-          type="button"
-          id="use-different-email-btn"
-          onClick={opts.onChangeEmail}
-          className="cursor-pointer underline-offset-4 hover:text-foreground hover:underline"
-        >
-          Use a different email
-        </button>
-      </div>
-    </form>
-  );
 
   return (
     <div
@@ -355,8 +179,9 @@ export function AuthModal() {
       <div
         ref={modalRef}
         id="auth-modal-dialog"
-        className="relative my-auto w-full max-w-[440px] rounded-2xl border border-border bg-card p-6 text-card-foreground shadow-[var(--shadow-lift)] transition-all animate-in fade-in zoom-in-95 duration-200 sm:p-7"
+        className="relative my-auto w-full max-w-[430px] rounded-2xl border border-border bg-card p-6 text-card-foreground shadow-[var(--shadow-lift)] transition-all animate-in fade-in zoom-in-95 duration-200 sm:p-7"
       >
+        {/* Modal Close Button */}
         <button
           type="button"
           onClick={closeModal}
@@ -366,162 +191,372 @@ export function AuthModal() {
           <X className="size-4" />
         </button>
 
-        {/* Slim notice when a gated feature sent the user here (the redirect back to it is
-            handled by the auth context; no target label is shown). Stops short of the close
-            button in the corner. */}
+        {/* Feature Gate Banner */}
         {(gateReason || redirectRoute) && (
-          <div className="mb-5 mr-9 flex items-center gap-2.5 rounded-lg border border-gold/30 bg-gold/10 px-3 py-2 text-[14px] leading-snug text-gold-ink">
-            <ShieldCheck className="size-4 shrink-0" />
-            <p>Log in or create an account to continue.</p>
+          <div className="mb-5 mr-8 flex items-center gap-2.5 rounded-lg border border-gold/30 bg-gold/10 px-3 py-2 text-[13px] leading-snug text-gold-ink">
+            <ShieldCheck className="size-4 shrink-0 text-gold-ink" />
+            <p>Please sign in to access your digital wardrobe & features.</p>
           </div>
         )}
 
-        {/* ============================== LOG IN ============================== */}
+        {/* ========================================================================= */}
+        {/* LOG IN VIEW (Email + Password Only, No OTP, No Google) */}
+        {/* ========================================================================= */}
         {!isSignUp && (
-          <div className="space-y-4">
+          <div className="space-y-5">
             <div className="space-y-1 text-left">
-              <h2 id="auth-modal-title" className="font-display text-[32px] leading-tight">
+              <h2
+                id="auth-modal-title"
+                className="font-display text-[28px] sm:text-[30px] leading-tight font-semibold text-foreground"
+              >
                 Welcome back
               </h2>
-              <p className="text-[15px] leading-relaxed text-muted-foreground">
-                Sign in with Google or a code sent to your email.
+              <p className="text-[13px] leading-relaxed text-muted-foreground">
+                Enter your email address and password to sign in.
               </p>
             </div>
 
-            {googleButton("Continue with Google")}
-            {orDivider}
-            {errorAlert("login-error-alert", loginError)}
-
-            {!loginCodeSent ? (
-              <form onSubmit={handleSendLoginCode} className="space-y-3.5">
-                {emailField("login-email", loginEmail, (value) => {
-                  setLoginEmail(value);
-                  if (loginError) setLoginError(null);
-                })}
-                {sendCodeButton("login-send-code-button")}
-              </form>
-            ) : (
-              codeStep({
-                email: loginEmail.trim().toLowerCase(),
-                code: loginCode,
-                setCode: (code) => {
-                  setLoginCode(code);
-                  if (loginError) setLoginError(null);
-                },
-                onSubmit: (e) => void handleVerifyLoginCode(e),
-                onChangeEmail: () => {
-                  setLoginCode("");
-                  setLoginCodeSent(false);
-                },
-                inputId: "login-code-input",
-                submitId: "login-verify-button",
-              })
+            {/* Error Alert */}
+            {loginError && (
+              <div
+                id="login-error-alert"
+                className="flex items-start gap-2.5 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-[13px] text-destructive animate-in fade-in duration-200"
+              >
+                <AlertCircle className="mt-0.5 size-4 shrink-0" />
+                <div className="flex-1 leading-snug">{loginError}</div>
+              </div>
             )}
 
-            <div className="space-y-2.5 border-t border-border pt-3.5">
-              <div className="space-y-1.5">
-                <Button
-                  id="continue-as-guest-button"
-                  type="button"
-                  variant="secondary"
-                  onClick={() => void handleContinueAsGuest()}
-                  disabled={guestLoading || isSubmitting}
-                  className={MODAL_BUTTON}
-                >
-                  {guestLoading ? <Loader2 className="size-4 animate-spin" /> : null}
-                  Continue as guest
-                </Button>
-                <p className="text-center text-xs text-muted-foreground">No account needed</p>
+            <form onSubmit={handleLoginSubmit} className="space-y-4">
+              {/* Email Address */}
+              <div className="space-y-1.5 text-left">
+                <Label htmlFor="login-email" className={MODAL_LABEL}>
+                  Email Address
+                </Label>
+                <div className="relative">
+                  <Mail className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+                  <Input
+                    id="login-email"
+                    type="email"
+                    placeholder="you@example.com"
+                    value={loginEmail}
+                    onChange={(e) => {
+                      setLoginEmail(e.target.value);
+                      if (loginError) setLoginError(null);
+                    }}
+                    className={cn(MODAL_INPUT, "pl-10")}
+                    autoComplete="email"
+                    autoFocus
+                    required
+                  />
+                </div>
               </div>
 
-              <div className="text-center text-[13px] text-muted-foreground">
-                Don&apos;t have an account yet?{" "}
-                <button
-                  type="button"
-                  id="switch-to-signup-btn"
-                  onClick={() => setModalView("signup")}
-                  className="cursor-pointer font-medium text-foreground underline transition-colors hover:text-accent"
-                >
-                  Sign up
-                </button>
+              {/* Password */}
+              <div className="space-y-1.5 text-left">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="login-password" className={MODAL_LABEL}>
+                    Password
+                  </Label>
+                </div>
+                <div className="relative">
+                  <Lock className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+                  <Input
+                    id="login-password"
+                    type={showLoginPassword ? "text" : "password"}
+                    placeholder="Enter your password"
+                    value={loginPassword}
+                    onChange={(e) => {
+                      setLoginPassword(e.target.value);
+                      if (loginError) setLoginError(null);
+                    }}
+                    className={cn(MODAL_INPUT, "pl-10 pr-10")}
+                    autoComplete="current-password"
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowLoginPassword((prev) => !prev)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer p-0.5"
+                    aria-label={showLoginPassword ? "Hide password" : "Show password"}
+                  >
+                    {showLoginPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                  </button>
+                </div>
               </div>
+
+              {/* Submit Log In */}
+              <Button
+                id="login-submit-button"
+                type="submit"
+                disabled={isSubmitting || !loginEmail || !loginPassword}
+                className={cn(
+                  MODAL_BUTTON,
+                  "bg-gold text-background hover:bg-gold/90 border border-gold mt-2",
+                )}
+              >
+                {isSubmitting ? <Loader2 className="size-4 animate-spin mr-2" /> : null}
+                <span>{isSubmitting ? "Signing in..." : "Log In"}</span>
+              </Button>
+            </form>
+
+            {/* Switch to Sign Up */}
+            <div className="border-t border-border/80 pt-4 text-center text-[13px] text-muted-foreground">
+              Don&apos;t have an account yet?{" "}
+              <button
+                type="button"
+                id="switch-to-signup-btn"
+                onClick={() => setModalView("signup")}
+                className="cursor-pointer font-semibold text-foreground underline underline-offset-4 transition-colors hover:text-gold-ink"
+              >
+                Create an account
+              </button>
             </div>
           </div>
         )}
 
-        {/* ============================== SIGN UP ============================== */}
+        {/* ========================================================================= */}
+        {/* SIGN UP VIEW (Email + Password + 2-Step OTP Verification) */}
+        {/* ========================================================================= */}
         {isSignUp && (
-          <div className="space-y-4">
+          <div className="space-y-5">
             <div className="space-y-1 text-left">
-              <h2 id="auth-modal-title" className="font-display text-[32px] leading-tight">
-                {signUpCodeStep ? "Check your email" : "Create account"}
+              <h2
+                id="auth-modal-title"
+                className="font-display text-[28px] sm:text-[30px] leading-tight font-semibold text-foreground"
+              >
+                {signUpCodeStep ? "Verify Your Email" : "Create Account"}
               </h2>
-              <p className="text-[15px] leading-relaxed text-muted-foreground">
+              <p className="text-[13px] leading-relaxed text-muted-foreground">
                 {signUpCodeStep
-                  ? "Enter the code to finish creating your account."
-                  : "Sign up with Google, or with your email and a code we send you."}
+                  ? `Enter the 6-digit code sent to ${pendingEmail}`
+                  : "Sign up with your email and password to start your digital wardrobe."}
               </p>
             </div>
 
-            {!signUpCodeStep ? (
-              <>
-                {googleButton("Sign up with Google")}
-                {orDivider}
-              </>
-            ) : null}
-            {errorAlert("signup-error-alert", signUpError)}
+            {/* Error Alert */}
+            {signUpError && (
+              <div
+                id="signup-error-alert"
+                className="flex items-start gap-2.5 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-[13px] text-destructive animate-in fade-in duration-200"
+              >
+                <AlertCircle className="mt-0.5 size-4 shrink-0" />
+                <div className="flex-1 leading-snug">{signUpError}</div>
+              </div>
+            )}
 
+            {/* STEP 1: Email + Password Registration Form */}
             {!signUpCodeStep ? (
-              <form onSubmit={handleSendSignUpCode} className="space-y-3.5">
+              <form onSubmit={handleSignUpStep1Submit} className="space-y-3.5">
+                {/* Optional Name */}
                 <div className="space-y-1.5 text-left">
                   <Label htmlFor="signup-name" className={MODAL_LABEL}>
-                    Name <span className="font-normal text-muted-foreground">(optional)</span>
+                    Full Name <span className="font-normal text-muted-foreground">(optional)</span>
                   </Label>
                   <div className="relative">
-                    <User className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                    <User className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
                     <Input
                       id="signup-name"
                       type="text"
-                      placeholder="Your name"
+                      placeholder="e.g. Amna"
                       value={signUpName}
                       onChange={(e) => setSignUpName(e.target.value)}
-                      className={cn(MODAL_INPUT, "pl-9")}
+                      className={cn(MODAL_INPUT, "pl-10")}
                       autoComplete="name"
                       maxLength={80}
                     />
                   </div>
                 </div>
-                {emailField("signup-email", signUpEmail, (value) => {
-                  setSignUpEmail(value);
-                  if (signUpError) setSignUpError(null);
-                })}
-                {sendCodeButton("signup-send-code-button")}
+
+                {/* Email Address */}
+                <div className="space-y-1.5 text-left">
+                  <Label htmlFor="signup-email" className={MODAL_LABEL}>
+                    Email Address *
+                  </Label>
+                  <div className="relative">
+                    <Mail className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+                    <Input
+                      id="signup-email"
+                      type="email"
+                      placeholder="you@example.com"
+                      value={signUpEmail}
+                      onChange={(e) => {
+                        setSignUpEmail(e.target.value);
+                        if (signUpError) setSignUpError(null);
+                      }}
+                      className={cn(MODAL_INPUT, "pl-10")}
+                      autoComplete="email"
+                      required
+                    />
+                  </div>
+                </div>
+
+                {/* Password */}
+                <div className="space-y-1.5 text-left">
+                  <Label htmlFor="signup-password" className={MODAL_LABEL}>
+                    Password *{" "}
+                    <span className="font-normal text-muted-foreground">(min. 6 characters)</span>
+                  </Label>
+                  <div className="relative">
+                    <Lock className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+                    <Input
+                      id="signup-password"
+                      type={showSignUpPassword ? "text" : "password"}
+                      placeholder="Create a strong password"
+                      value={signUpPassword}
+                      onChange={(e) => {
+                        setSignUpPassword(e.target.value);
+                        if (signUpError) setSignUpError(null);
+                      }}
+                      className={cn(MODAL_INPUT, "pl-10 pr-10")}
+                      autoComplete="new-password"
+                      minLength={6}
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowSignUpPassword((prev) => !prev)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer p-0.5"
+                      aria-label={showSignUpPassword ? "Hide password" : "Show password"}
+                    >
+                      {showSignUpPassword ? (
+                        <EyeOff className="size-4" />
+                      ) : (
+                        <Eye className="size-4" />
+                      )}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Confirm Password */}
+                <div className="space-y-1.5 text-left">
+                  <Label htmlFor="signup-confirm-password" className={MODAL_LABEL}>
+                    Confirm Password *
+                  </Label>
+                  <div className="relative">
+                    <Lock className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+                    <Input
+                      id="signup-confirm-password"
+                      type={showSignUpPassword ? "text" : "password"}
+                      placeholder="Re-type your password"
+                      value={signUpConfirmPassword}
+                      onChange={(e) => {
+                        setSignUpConfirmPassword(e.target.value);
+                        if (signUpError) setSignUpError(null);
+                      }}
+                      className={cn(MODAL_INPUT, "pl-10")}
+                      autoComplete="new-password"
+                      minLength={6}
+                      required
+                    />
+                  </div>
+                </div>
+
+                {/* Submit Sign Up Step 1 */}
+                <Button
+                  id="signup-submit-button"
+                  type="submit"
+                  disabled={
+                    isSubmitting || !signUpEmail || !signUpPassword || !signUpConfirmPassword
+                  }
+                  className={cn(
+                    MODAL_BUTTON,
+                    "bg-gold text-background hover:bg-gold/90 border border-gold mt-2",
+                  )}
+                >
+                  {isSubmitting ? <Loader2 className="size-4 animate-spin mr-2" /> : null}
+                  <span>
+                    {isSubmitting ? "Sending Verification Code..." : "Sign Up & Send Code"}
+                  </span>
+                </Button>
               </form>
             ) : (
-              codeStep({
-                email: pendingEmail,
-                code: signUpCode,
-                setCode: (code) => {
-                  setSignUpCode(code);
-                  if (signUpError) setSignUpError(null);
-                },
-                onSubmit: (e) => void handleVerifySignUpCode(e),
-                onChangeEmail: () => {
-                  setSignUpCode("");
-                  backToStep1();
-                },
-                inputId: "signup-code-input",
-                submitId: "signup-verify-button",
-              })
+              /* STEP 2: 6-Digit OTP Verification Screen */
+              <form onSubmit={handleVerifyOtpSubmit} className="space-y-4">
+                <div className="space-y-2 text-left">
+                  <Label htmlFor="signup-otp-input" className={MODAL_LABEL}>
+                    Enter 6-Digit Verification Code
+                  </Label>
+
+                  {/*
+                    CRITICAL SECURITY & UX REQUIREMENT:
+                    Disable browser and password manager autofill on the OTP code input step.
+                    autoComplete="off"
+                    data-1p-ignore="true"
+                    data-lpignore="true"
+                  */}
+                  <Input
+                    id="signup-otp-input"
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    maxLength={6}
+                    autoComplete="off"
+                    data-1p-ignore="true"
+                    data-lpignore="true"
+                    placeholder="······"
+                    value={signUpCode}
+                    onChange={(e) => {
+                      setSignUpCode(e.target.value.replace(/\D/g, "").slice(0, 6));
+                      if (signUpError) setSignUpError(null);
+                    }}
+                    className="h-14 text-center font-mono text-2xl font-bold tracking-[0.45em] bg-background border-border/90 focus:border-gold"
+                    autoFocus
+                    required
+                  />
+                  <p className="text-[11px] text-muted-foreground text-center">
+                    Check your email inbox and spam folder. Code expires in 10 minutes.
+                  </p>
+                </div>
+
+                {/* Submit Verify Code */}
+                <Button
+                  id="signup-verify-button"
+                  type="submit"
+                  disabled={isSubmitting || signUpCode.length !== 6}
+                  className={cn(
+                    MODAL_BUTTON,
+                    "bg-gold text-background hover:bg-gold/90 border border-gold",
+                  )}
+                >
+                  {isSubmitting ? <Loader2 className="size-4 animate-spin mr-2" /> : null}
+                  <span>{isSubmitting ? "Verifying..." : "Verify & Complete Registration"}</span>
+                </Button>
+
+                {/* Resend Code with 60-second cooldown timer & Change Email */}
+                <div className="flex items-center justify-between text-[12px] pt-1">
+                  <button
+                    type="button"
+                    id="resend-code-btn"
+                    disabled={resendCooldown > 0 || isSubmitting}
+                    onClick={() => void resendCode()}
+                    className="cursor-pointer font-medium text-foreground underline underline-offset-4 hover:text-gold-ink disabled:cursor-not-allowed disabled:text-muted-foreground disabled:no-underline"
+                  >
+                    {resendCooldown > 0 ? `Resend code in ${resendCooldown}s` : "Resend code"}
+                  </button>
+                  <button
+                    type="button"
+                    id="use-different-email-btn"
+                    onClick={() => {
+                      setSignUpCode("");
+                      backToStep1();
+                    }}
+                    className="cursor-pointer text-muted-foreground underline underline-offset-4 hover:text-foreground"
+                  >
+                    Change email
+                  </button>
+                </div>
+              </form>
             )}
 
-            <div className="border-t border-border pt-3.5 text-center text-[13px] text-muted-foreground">
+            {/* Switch to Log In */}
+            <div className="border-t border-border/80 pt-4 text-center text-[13px] text-muted-foreground">
               Already have an account?{" "}
               <button
                 type="button"
                 id="switch-to-login-btn"
                 onClick={() => setModalView("login")}
-                className="cursor-pointer font-medium text-foreground underline transition-colors hover:text-accent"
+                className="cursor-pointer font-semibold text-foreground underline underline-offset-4 transition-colors hover:text-gold-ink"
               >
                 Log in
               </button>

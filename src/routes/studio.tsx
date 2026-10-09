@@ -58,13 +58,7 @@ import {
 import { cn } from "@/lib/utils";
 
 function StudioRouteWrapper() {
-  const { user, isAuthenticated } = useAuth();
-
-  // Route Guard / Auth Gate: Unauthenticated guests see the preview teaser lock screen
-  if (!isAuthenticated || !user) {
-    return <GuestLockScreenPreview feature="studio" />;
-  }
-
+  // Publicly accessible fitting studio ("Try It Now")
   return <Studio />;
 }
 

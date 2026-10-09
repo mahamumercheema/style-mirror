@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import {
+  handleLogin,
   handleRegisterIntent,
   handleVerifyCode,
   handleResendCode,
@@ -16,11 +17,25 @@ export interface AuthApiResponse<T = Record<string, unknown>> {
 }
 
 // Server functions (TanStack Start RPC)
+export const loginServerFn = createServerFn({ method: "POST" })
+  .validator((data) =>
+    z
+      .object({
+        email: z.string(),
+        password: z.string(),
+      })
+      .parse(data),
+  )
+  .handler(async ({ data }) => {
+    return handleLogin(data);
+  });
+
 export const registerIntentServerFn = createServerFn({ method: "POST" })
   .validator((data) =>
     z
       .object({
         email: z.string(),
+        password: z.string(),
         name: z.string().optional(),
       })
       .parse(data),
@@ -55,13 +70,19 @@ export const resendCodeServerFn = createServerFn({ method: "POST" })
   });
 
 // Client-side API fetchers calling POST /api/auth/* with serverFn fallback
+export type LoginResult = {
+  success: boolean;
+  error?: string | undefined;
+  message?: string | undefined;
+  token?: string | undefined;
+  user?: AuthUser | undefined;
+};
+
 export type RegisterIntentResult = {
   success: boolean;
   error?: string | undefined;
   message?: string | undefined;
   retryAfter?: number | undefined;
-  devOtpCode?: string | undefined;
-  isSandbox?: boolean | undefined;
 };
 
 export type VerifyCodeResult = {
@@ -74,8 +95,53 @@ export type VerifyCodeResult = {
   locked?: boolean | undefined;
 };
 
+export async function apiLogin(payload: { email: string; password: string }): Promise<LoginResult> {
+  try {
+    const res = await fetch("/api/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      return {
+        success: false,
+        error: data.error || "Invalid email or password.",
+      };
+    }
+    return {
+      success: true,
+      message: data.message,
+      token: data.token,
+      user: data.user,
+    };
+  } catch {
+    try {
+      const res = await loginServerFn({ data: payload });
+      if (res.status >= 400) {
+        return {
+          success: false,
+          error: res.body.error || "Invalid email or password.",
+        };
+      }
+      return {
+        success: true,
+        message: res.body.message,
+        token: res.body.token,
+        user: res.body.user,
+      };
+    } catch (e) {
+      return {
+        success: false,
+        error: (e as Error).message || "Network error. Please try again.",
+      };
+    }
+  }
+}
+
 export async function apiRegisterIntent(payload: {
   email: string;
+  password: string;
   name?: string | undefined;
 }): Promise<RegisterIntentResult> {
   try {
@@ -95,8 +161,6 @@ export async function apiRegisterIntent(payload: {
     return {
       success: true,
       message: data.message || "Verification code sent to your email",
-      devOtpCode: data.devOtpCode,
-      isSandbox: data.isSandbox,
     };
   } catch {
     // Fallback to serverFn
@@ -112,8 +176,6 @@ export async function apiRegisterIntent(payload: {
       return {
         success: true,
         message: res.body.message || "Verification code sent to your email",
-        devOtpCode: res.body.devOtpCode,
-        isSandbox: res.body.isSandbox,
       };
     } catch (e) {
       return {
@@ -194,8 +256,6 @@ export async function apiResendCode(payload: { email: string }): Promise<Registe
     return {
       success: true,
       message: data.message || "Verification code sent to your email",
-      devOtpCode: data.devOtpCode,
-      isSandbox: data.isSandbox,
     };
   } catch {
     try {
@@ -210,8 +270,6 @@ export async function apiResendCode(payload: { email: string }): Promise<Registe
       return {
         success: true,
         message: res.body.message || "Verification code sent to your email",
-        devOtpCode: res.body.devOtpCode,
-        isSandbox: res.body.isSandbox,
       };
     } catch (e) {
       return {

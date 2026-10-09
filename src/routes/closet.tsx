@@ -124,10 +124,16 @@ class ClosetErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBound
 }
 
 function ClosetRouteWrapper() {
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, openLogin } = useAuth();
 
-  // Route Guard / Auth Gate: Unauthenticated guests see the preview teaser lock screen
-  if (!isAuthenticated || !user) {
+  // Route Guard / Auth Gate: Unauthenticated users are redirected to login
+  useEffect(() => {
+    if (!isAuthenticated || !user || user.id === "guest_user") {
+      openLogin(undefined, "Please log in or create an account to access My Closet.", "/closet");
+    }
+  }, [isAuthenticated, user, openLogin]);
+
+  if (!isAuthenticated || !user || user.id === "guest_user") {
     return <GuestLockScreenPreview feature="closet" />;
   }
 
