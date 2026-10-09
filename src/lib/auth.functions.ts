@@ -5,6 +5,8 @@ import {
   handleRegisterIntent,
   handleVerifyCode,
   handleResendCode,
+  handleRequestPasswordReset,
+  handleResetPassword,
   type AuthUser,
 } from "./server-auth";
 
@@ -67,6 +69,36 @@ export const resendCodeServerFn = createServerFn({ method: "POST" })
   )
   .handler(async ({ data }) => {
     return handleResendCode(data);
+  });
+
+export const forgotPasswordServerFn = createServerFn({ method: "POST" })
+  .validator((data) =>
+    z
+      .object({
+        email: z.string(),
+      })
+      .parse(data),
+  )
+  .handler(async ({ data }) => {
+    return handleRequestPasswordReset(data);
+  });
+
+export const resetPasswordServerFn = createServerFn({ method: "POST" })
+  .validator((data) =>
+    z
+      .object({
+        email: z.string(),
+        code: z.string(),
+        newPassword: z.string(),
+      })
+      .parse(data),
+  )
+  .handler(async ({ data }) => {
+    return handleResetPassword({
+      email: data.email,
+      code: data.code,
+      new_password: data.newPassword,
+    });
   });
 
 // Client-side API fetchers calling POST /api/auth/* with serverFn fallback
@@ -300,7 +332,6 @@ export async function apiRequestEmailOtp(payload: {
     return {
       success: true,
       message: data.message || "2FA code sent to your email",
-      devOtpCode: data.devOtpCode,
       isSandbox: data.isSandbox,
     };
   } catch (e) {
@@ -341,5 +372,111 @@ export async function apiVerifyEmailOtp(payload: {
       success: false,
       error: (e as Error).message || "Network error. Please try again.",
     };
+  }
+}
+
+export type ForgotPasswordResult = {
+  success: boolean;
+  error?: string | undefined;
+  message?: string | undefined;
+  retryAfter?: number | undefined;
+};
+
+export type ResetPasswordResult = {
+  success: boolean;
+  error?: string | undefined;
+  message?: string | undefined;
+};
+
+export async function apiForgotPassword(payload: { email: string }): Promise<ForgotPasswordResult> {
+  try {
+    const res = await fetch("/api/auth/forgot-password", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      return {
+        success: false,
+        error: data.error || "Failed to send reset code. Please check your email.",
+        retryAfter: data.retryAfter,
+      };
+    }
+    return {
+      success: true,
+      message: data.message || "Password reset code sent to your email",
+    };
+  } catch {
+    try {
+      const res = await forgotPasswordServerFn({ data: payload });
+      if (res.status >= 400) {
+        return {
+          success: false,
+          error: res.body.error || "Failed to send reset code.",
+          retryAfter: res.body.retryAfter,
+        };
+      }
+      return {
+        success: true,
+        message: res.body.message || "Password reset code sent to your email",
+      };
+    } catch (e) {
+      return {
+        success: false,
+        error: (e as Error).message || "Network error. Please try again.",
+      };
+    }
+  }
+}
+
+export async function apiResetPassword(payload: {
+  email: string;
+  code: string;
+  newPassword: string;
+}): Promise<ResetPasswordResult> {
+  try {
+    const res = await fetch("/api/auth/reset-password", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        email: payload.email,
+        code: payload.code,
+        new_password: payload.newPassword,
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      return {
+        success: false,
+        error: data.error || "Failed to reset password. Please check your code.",
+      };
+    }
+    return {
+      success: true,
+      message:
+        data.message || "Password updated successfully. Please log in with your new password.",
+    };
+  } catch {
+    try {
+      const res = await resetPasswordServerFn({ data: payload });
+      if (res.status >= 400) {
+        return {
+          success: false,
+          error: res.body.error || "Failed to reset password.",
+        };
+      }
+      return {
+        success: true,
+        message:
+          res.body.message ||
+          "Password updated successfully. Please log in with your new password.",
+      };
+    } catch (e) {
+      return {
+        success: false,
+        error: (e as Error).message || "Network error. Please try again.",
+      };
+    }
   }
 }

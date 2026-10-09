@@ -137,11 +137,26 @@ function Landing() {
 
   return (
     <main className="theme-cream min-h-screen bg-background text-foreground">
-      {/* Full-bleed hero: two-photo collage behind the nav and headline */}
+      {/* Full-bleed hero: two-photo collage behind the nav and headline with sapphire blue glow */}
       <div
-        className="relative isolate overflow-clip bg-[#1c1b1a] text-cream"
+        className="relative isolate overflow-clip bg-[#0b0d12] text-cream"
         style={{ "--glow-base": "var(--color-cream)" } as React.CSSProperties}
       >
+        {/* Subtle, ambient Radial Gradient glow behind the main hero images using Sapphire Blue blending into dark background (#0b0d12) */}
+        <div
+          className="pointer-events-none absolute inset-0 -z-30 overflow-hidden"
+          aria-hidden="true"
+        >
+          <div
+            className="absolute inset-0"
+            style={{
+              background:
+                "radial-gradient(circle 850px at 50% 40%, rgba(27, 77, 255, 0.35) 0%, rgba(27, 77, 255, 0.15) 35%, rgba(11, 13, 18, 0.8) 70%, #0b0d12 100%)",
+            }}
+          />
+        </div>
+
+        {/* Hero collage */}
         <div
           className="absolute inset-0 -z-20 grid animate-in fade-in duration-700 md:grid-cols-2"
           aria-hidden="true"
@@ -152,24 +167,35 @@ function Landing() {
             width={736}
             height={920}
             fetchPriority="high"
-            className="h-full w-full object-cover"
+            className="h-full w-full object-cover mix-blend-luminosity opacity-85"
           />
           <img
             src={heroCollage2}
             alt=""
             width={1000}
             height={1250}
-            className="hidden h-full w-full object-cover md:block"
+            className="hidden h-full w-full object-cover mix-blend-luminosity opacity-85 md:block"
           />
         </div>
-        {/* Contrast overlay: darker under the nav and behind the headline block */}
+
+        {/* Ambient luminous sapphire aura overlay */}
         <div
-          className="absolute inset-0 -z-10 bg-[linear-gradient(to_bottom,rgb(0_0_0/0.45)_0%,rgb(0_0_0/0.15)_14%,rgb(0_0_0/0.15)_50%,rgb(0_0_0/0.72)_78%,rgb(0_0_0/0.8)_100%)]"
+          className="pointer-events-none absolute inset-0 -z-15"
+          style={{
+            background:
+              "radial-gradient(ellipse 70% 55% at 50% 42%, rgba(27, 77, 255, 0.24) 0%, rgba(27, 77, 255, 0.08) 45%, transparent 75%)",
+          }}
+          aria-hidden="true"
+        />
+
+        {/* Contrast overlay: darker under the nav and behind the headline block blending into #0b0d12 */}
+        <div
+          className="absolute inset-0 -z-10 bg-[linear-gradient(to_bottom,rgb(11_13_18/0.45)_0%,rgb(11_13_18/0.15)_14%,rgb(11_13_18/0.15)_50%,rgb(11_13_18/0.75)_78%,rgb(11_13_18/0.95)_100%)]"
           aria-hidden="true"
         />
         {/* Desktop only: extra darkening on the left, behind the text block */}
         <div
-          className="absolute inset-0 -z-10 hidden bg-[linear-gradient(to_right,rgb(0_0_0/0.62)_0%,rgb(0_0_0/0.4)_28%,rgb(0_0_0/0)_46%)] md:block"
+          className="absolute inset-0 -z-10 hidden bg-[linear-gradient(to_right,rgb(11_13_18/0.65)_0%,rgb(11_13_18/0.4)_28%,rgb(11_13_18/0)_46%)] md:block"
           aria-hidden="true"
         />
 
@@ -201,7 +227,7 @@ function Landing() {
                 <Link
                   to="/studio"
                   onClick={(e) => handleGatedNavigation(e, "/studio")}
-                  className="nav-link text-cream/85 cursor-pointer"
+                  className="nav-link text-pop-blue cursor-pointer"
                 >
                   Fitting Studio
                 </Link>
@@ -222,11 +248,12 @@ function Landing() {
           </div>
 
           <div className="fade-rise max-w-md text-center md:w-[calc(32%+3rem)] md:max-w-none md:pl-12 md:text-left lg:w-[calc(32%+4rem)] lg:pl-16">
-            <p className="text-[0.6875rem] font-medium uppercase tracking-[0.18em] text-cream/75">
+            <p className="flex items-center justify-center gap-2 text-[0.6875rem] font-medium uppercase tracking-[0.18em] text-cream/75 md:justify-start">
+              <span className="inline-block size-1.5 rounded-full bg-[#2B57F6] shadow-[0_0_8px_#2B57F6]" />
               A fitting room in your browser
             </p>
             <h1 className="mt-5 text-4xl leading-[1.06] text-cream md:text-4xl lg:text-5xl xl:text-6xl">
-              See it on you
+              <span className="text-pop-blue">See it on you</span>
               <br />
               before you buy.
             </h1>
@@ -263,7 +290,7 @@ function Landing() {
             size="lg"
             className={cn(
               LANDING_CTA,
-              "h-12 border-foreground bg-foreground px-8 text-background hover:bg-foreground/90",
+              "h-12 border-[#2B57F6]/60 bg-[#2B57F6] px-8 text-white shadow-[0_0_20px_rgba(43,87,246,0.4)] hover:bg-[#2048dd] hover:shadow-[0_0_30px_rgba(43,87,246,0.6)] transition-all",
             )}
           >
             <Link to="/studio" onClick={(e) => handleGatedNavigation(e, "/studio")}>
@@ -271,7 +298,15 @@ function Landing() {
               <ArrowRight className="size-4" />
             </Link>
           </Button>
-          <Button asChild variant="outline" size="lg" className={LANDING_CTA}>
+          <Button
+            asChild
+            variant="outline"
+            size="lg"
+            className={cn(
+              LANDING_CTA,
+              "text-pop-blue border-[#2B57F6]/35 hover:bg-[#2B57F6]/10 hover:border-[#2B57F6]/70 transition-all",
+            )}
+          >
             <Link to="/generate" onClick={(e) => handleGatedNavigation(e, "/generate")}>
               AI Stylist
             </Link>

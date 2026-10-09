@@ -261,6 +261,17 @@
   }
 }
 
+/* Luxury jewelry aesthetic: royal sapphire blue accent */
+.text-pop-blue {
+  color: #2B57F6;
+  text-shadow: 0 0 15px rgba(43, 87, 246, 0.3);
+}
+
+@utility text-pop-blue {
+  color: #2B57F6;
+  text-shadow: 0 0 15px rgba(43, 87, 246, 0.3);
+}
+
 @utility eyebrow {
   font-size: 0.6875rem;
   font-weight: 500;

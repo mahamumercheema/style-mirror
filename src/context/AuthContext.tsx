@@ -6,6 +6,8 @@ import {
   apiRegisterIntent,
   apiVerifyCode,
   apiResendCode,
+  apiForgotPassword,
+  apiResetPassword,
   apiRequestEmailOtp,
   apiVerifyEmailOtp,
 } from "@/lib/auth.functions";
@@ -24,7 +26,7 @@ export interface User {
   twoFactorVerified: boolean;
 }
 
-export type AuthModalView = "login" | "signup";
+export type AuthModalView = "login" | "signup" | "forgot-password";
 
 interface AuthContextType {
   user: User | null;
@@ -41,6 +43,7 @@ interface AuthContextType {
   isSubmitting: boolean;
   openLogin: (initialEmail?: string, reason?: string, targetRoute?: string) => void;
   openSignUp: (initialEmail?: string, reason?: string, targetRoute?: string) => void;
+  openForgotPassword: (initialEmail?: string) => void;
   promptSaveGuestWardrobe: (reason?: string) => void;
   requireAuth: (targetRoute: string, customPrompt?: string) => boolean;
   closeModal: () => void;
@@ -57,6 +60,12 @@ interface AuthContextType {
     name?: string,
   ) => Promise<{ success: boolean; error?: string }>;
   verifyTwoStepCode: (code: string) => Promise<{ success: boolean; error?: string }>;
+  requestPasswordReset: (email: string) => Promise<{ success: boolean; error?: string }>;
+  resetPasswordWithCode: (
+    email: string,
+    code: string,
+    newPassword: string,
+  ) => Promise<{ success: boolean; error?: string }>;
   resendCode: () => Promise<void>;
   backToStep1: () => void;
   logout: () => void;
@@ -77,6 +86,7 @@ export const defaultAuthContext: AuthContextType = {
   isSubmitting: false,
   openLogin: () => {},
   openSignUp: () => {},
+  openForgotPassword: () => {},
   promptSaveGuestWardrobe: () => {},
   requireAuth: () => false,
   closeModal: () => {},
@@ -86,6 +96,8 @@ export const defaultAuthContext: AuthContextType = {
   loginAsGuest: () => {},
   startSignUp: async () => ({ success: false, error: "Authentication initializing" }),
   verifyTwoStepCode: async () => ({ success: false, error: "Authentication initializing" }),
+  requestPasswordReset: async () => ({ success: false, error: "Authentication initializing" }),
+  resetPasswordWithCode: async () => ({ success: false, error: "Authentication initializing" }),
   resendCode: async () => {},
   backToStep1: () => {},
   logout: () => {},
@@ -214,6 +226,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (typeof window !== "undefined" && window.sessionStorage) {
         window.sessionStorage.setItem(REDIRECT_STORAGE_KEY, targetRoute);
       }
+    }
+    setIsModalOpen(true);
+  };
+
+  const openForgotPassword = (initialEmail?: string) => {
+    setModalView("forgot-password");
+    setSignUpStep(1);
+    setGateReason(null);
+    if (initialEmail) {
+      setPendingEmail(initialEmail.trim().toLowerCase());
     }
     setIsModalOpen(true);
   };
@@ -388,6 +410,75 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   /**
+   * Password Reset Step 1: Request 6-digit OTP code to registered email
+   */
+  const requestPasswordReset = async (
+    email: string,
+  ): Promise<{ success: boolean; error?: string }> => {
+    setIsSubmitting(true);
+    try {
+      const result = await apiForgotPassword({ email: email.trim().toLowerCase() });
+      if (!result.success) {
+        if (result.retryAfter) {
+          setResendCooldown(result.retryAfter);
+        }
+        return {
+          success: false,
+          error: result.error || "Failed to send reset code. Please try again.",
+        };
+      }
+
+      setPendingEmail(email.trim().toLowerCase());
+      setSignUpStep(2);
+      setResendCooldown(RESEND_COOLDOWN_SECONDS);
+
+      toast.success("Reset Code Sent", {
+        description: `Please enter the 6-digit reset code sent to ${email}`,
+      });
+
+      return { success: true };
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  /**
+   * Password Reset Step 2 & 3: Verify OTP and update password
+   */
+  const resetPasswordWithCode = async (
+    email: string,
+    code: string,
+    newPassword: string,
+  ): Promise<{ success: boolean; error?: string }> => {
+    setIsSubmitting(true);
+    try {
+      const result = await apiResetPassword({
+        email: email.trim().toLowerCase(),
+        code: code.trim(),
+        newPassword,
+      });
+
+      if (!result.success) {
+        return {
+          success: false,
+          error: result.error || "Failed to reset password. Please check your code.",
+        };
+      }
+
+      toast.success("Password Updated", {
+        description: "Password updated successfully. Please log in with your new password.",
+      });
+
+      setPendingEmail("");
+      setSignUpStep(1);
+      setModalView("login");
+      return { success: true };
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  /**
    * Resend Code on Step 2 with 60-second cooldown
    */
   const resendCode = async (): Promise<void> => {
@@ -395,7 +486,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     setIsSubmitting(true);
     try {
-      const result = await apiResendCode({ email: pendingEmail });
+      const result =
+        modalView === "forgot-password"
+          ? await apiForgotPassword({ email: pendingEmail })
+          : await apiResendCode({ email: pendingEmail });
 
       if (!result.success) {
         toast.error("Failed to resend code", {
@@ -458,6 +552,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isSubmitting,
         openLogin,
         openSignUp,
+        openForgotPassword,
         promptSaveGuestWardrobe,
         requireAuth,
         closeModal,
@@ -467,6 +562,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         loginAsGuest,
         startSignUp,
         verifyTwoStepCode,
+        requestPasswordReset,
+        resetPasswordWithCode,
         resendCode,
         backToStep1,
         logout,
