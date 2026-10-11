@@ -152,7 +152,7 @@ function Landing() {
           className="absolute inset-0 -z-20 grid animate-in fade-in duration-700 md:grid-cols-2"
           aria-hidden="true"
         >
-          {/* Desktop: both photos side by side. Phones: only the second, the higher-resolution one */}
+          {/* Desktop: both photos side by side, unaltered. Phones: only the second, the higher-resolution one */}
           <img
             src={heroCollage1}
             alt=""
@@ -230,11 +230,12 @@ function Landing() {
           </div>
 
           <div className="fade-rise max-w-md text-center md:w-[calc(32%+3rem)] md:max-w-none md:pl-12 md:text-left lg:w-[calc(32%+4rem)] lg:pl-16">
-            <p className="text-[0.6875rem] font-medium uppercase tracking-[0.18em] text-cream/75">
-              A fitting room in your browser
+            <p className="flex items-center justify-center gap-2 text-[0.6875rem] font-medium uppercase tracking-[0.18em] text-cream/75 md:justify-start">
+              <span className="inline-block size-1.5 rounded-full bg-cobalt" />A fitting room in
+              your browser
             </p>
             <h1 className="mt-5 text-4xl leading-[1.06] text-cream md:text-4xl lg:text-5xl xl:text-6xl">
-              See it on you
+              <span className="text-cobalt-text">See it on you</span>
               <br />
               before you buy.
             </h1>
@@ -279,7 +280,15 @@ function Landing() {
               <ArrowRight className="size-4" />
             </Link>
           </Button>
-          <Button asChild variant="outline" size="lg" className={LANDING_CTA}>
+          <Button
+            asChild
+            variant="outline"
+            size="lg"
+            className={cn(
+              LANDING_CTA,
+              "text-cobalt-text border-cobalt-border hover:border-cobalt-bright hover:bg-cobalt-tint",
+            )}
+          >
             <Link to="/generate" onClick={(e) => handleGatedNavigation(e, "/generate")}>
               AI Stylist
             </Link>

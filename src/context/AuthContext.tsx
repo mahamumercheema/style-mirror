@@ -2,9 +2,12 @@ import { useRouter } from "@tanstack/react-router";
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { toast } from "sonner";
 import {
+  apiLogin,
   apiRegisterIntent,
   apiVerifyCode,
   apiResendCode,
+  apiForgotPassword,
+  apiResetPassword,
   apiRequestEmailOtp,
   apiVerifyEmailOtp,
 } from "@/lib/auth.functions";
@@ -23,7 +26,7 @@ export interface User {
   twoFactorVerified: boolean;
 }
 
-export type AuthModalView = "login" | "signup" | "email2fa";
+export type AuthModalView = "login" | "signup" | "forgot-password";
 
 interface AuthContextType {
   user: User | null;
@@ -38,22 +41,31 @@ interface AuthContextType {
   gateReason: string | null;
   redirectRoute: string | null;
   isSubmitting: boolean;
-  devOtpCode: string | null;
   openLogin: (initialEmail?: string, reason?: string, targetRoute?: string) => void;
   openSignUp: (initialEmail?: string, reason?: string, targetRoute?: string) => void;
-  openEmail2FA: (initialEmail?: string, reason?: string, targetRoute?: string) => void;
+  openForgotPassword: (initialEmail?: string) => void;
   promptSaveGuestWardrobe: (reason?: string) => void;
   requireAuth: (targetRoute: string, customPrompt?: string) => boolean;
   closeModal: () => void;
   setModalView: (view: AuthModalView) => void;
   setRedirectRoute: (route: string | null) => void;
-  loginWithGoogle: () => Promise<{ success: boolean; error?: string }>;
+  loginWithPassword: (
+    email: string,
+    password: string,
+  ) => Promise<{ success: boolean; error?: string }>;
   loginAsGuest: () => void;
-  requestEmail2FA: (email: string) => Promise<{ success: boolean; error?: string }>;
-  verifyEmail2FA: (code: string) => Promise<{ success: boolean; error?: string }>;
-  /** Sign-up step 1: email plus an optional name; the account is verified by an emailed code */
-  startSignUp: (email: string, name?: string) => Promise<{ success: boolean; error?: string }>;
+  startSignUp: (
+    email: string,
+    password: string,
+    name?: string,
+  ) => Promise<{ success: boolean; error?: string }>;
   verifyTwoStepCode: (code: string) => Promise<{ success: boolean; error?: string }>;
+  requestPasswordReset: (email: string) => Promise<{ success: boolean; error?: string }>;
+  resetPasswordWithCode: (
+    email: string,
+    code: string,
+    newPassword: string,
+  ) => Promise<{ success: boolean; error?: string }>;
   resendCode: () => Promise<void>;
   backToStep1: () => void;
   logout: () => void;
@@ -72,21 +84,20 @@ export const defaultAuthContext: AuthContextType = {
   gateReason: null,
   redirectRoute: null,
   isSubmitting: false,
-  devOtpCode: null,
   openLogin: () => {},
   openSignUp: () => {},
-  openEmail2FA: () => {},
+  openForgotPassword: () => {},
   promptSaveGuestWardrobe: () => {},
   requireAuth: () => false,
   closeModal: () => {},
   setModalView: () => {},
   setRedirectRoute: () => {},
-  loginWithGoogle: async () => ({ success: false, error: "Authentication initializing" }),
+  loginWithPassword: async () => ({ success: false, error: "Authentication initializing" }),
   loginAsGuest: () => {},
-  requestEmail2FA: async () => ({ success: false, error: "Authentication initializing" }),
-  verifyEmail2FA: async () => ({ success: false, error: "Authentication initializing" }),
   startSignUp: async () => ({ success: false, error: "Authentication initializing" }),
   verifyTwoStepCode: async () => ({ success: false, error: "Authentication initializing" }),
+  requestPasswordReset: async () => ({ success: false, error: "Authentication initializing" }),
+  resetPasswordWithCode: async () => ({ success: false, error: "Authentication initializing" }),
   resendCode: async () => {},
   backToStep1: () => {},
   logout: () => {},
@@ -97,8 +108,8 @@ const AuthContext = createContext<AuthContextType>(defaultAuthContext);
 const USER_STORAGE_KEY = "vtr_auth_user";
 const TOKEN_STORAGE_KEY = "vtr_auth_token";
 const REDIRECT_STORAGE_KEY = "vtr_auth_redirect_target";
-/** Matches the server's gap between two emailed codes */
-const RESEND_COOLDOWN_SECONDS = 30;
+/** 60-second cooldown timer for resending OTP */
+const RESEND_COOLDOWN_SECONDS = 60;
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
@@ -116,7 +127,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [pendingEmail, setPendingEmail] = useState<string>("");
   const [resendCooldown, setResendCooldown] = useState<number>(0);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
-  const [devOtpCode, setDevOtpCode] = useState<string | null>(null);
 
   // Automatically execute post-auth forwarding to target route
   const handlePostAuthRedirect = () => {
@@ -131,8 +141,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       setRedirectRoute(null);
 
-      // Forward to the requested feature with the router (no full reload, so in-page
-      // state such as an analysed photo in the studio survives)
+      // Forward to the requested feature with the router (no full reload)
       router.history.push(target);
     }
   };
@@ -198,7 +207,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const openLogin = (_initialEmail?: string, reason?: string, targetRoute?: string) => {
     setModalView("login");
     setSignUpStep(1);
-    // Only a gated feature passes a reason; a plain "Log in" shows no banner
     setGateReason(reason || null);
     if (targetRoute) {
       setRedirectRoute(targetRoute);
@@ -222,20 +230,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsModalOpen(true);
   };
 
-  const openEmail2FA = (_initialEmail?: string, reason?: string, targetRoute?: string) => {
-    setModalView("email2fa");
+  const openForgotPassword = (initialEmail?: string) => {
+    setModalView("forgot-password");
     setSignUpStep(1);
-    setGateReason(
-      reason || "Please log in or create an account to access the AI Stylist and digital closet.",
-    );
-    if (_initialEmail) {
-      setPendingEmail(_initialEmail.trim().toLowerCase());
-    }
-    if (targetRoute) {
-      setRedirectRoute(targetRoute);
-      if (typeof window !== "undefined" && window.sessionStorage) {
-        window.sessionStorage.setItem(REDIRECT_STORAGE_KEY, targetRoute);
-      }
+    setGateReason(null);
+    if (initialEmail) {
+      setPendingEmail(initialEmail.trim().toLowerCase());
     }
     setIsModalOpen(true);
   };
@@ -243,7 +243,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const closeModal = () => {
     setIsModalOpen(false);
     setGateReason(null);
-    setDevOtpCode(null);
     setTimeout(() => {
       setSignUpStep(1);
     }, 200);
@@ -264,36 +263,44 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     handlePostAuthRedirect();
   };
 
-  const loginWithGoogle = async (): Promise<{ success: boolean; error?: string }> => {
+  /**
+   * Routine Log In: Email + Password only.
+   * Direct authentication against server, no OTP dispatched.
+   */
+  const loginWithPassword = async (
+    email: string,
+    password: string,
+  ): Promise<{ success: boolean; error?: string }> => {
     setIsSubmitting(true);
     try {
-      const googleUser: User = {
-        id: "usr_google_" + Math.random().toString(36).substring(2, 9),
-        email: "alex.fashion@gmail.com",
-        name: "Alex Rivera",
-        createdAt: new Date().toISOString(),
-        emailVerified: true,
-        twoFactorVerified: true,
-      };
+      const result = await apiLogin({ email, password });
+      if (!result.success || !result.user) {
+        return {
+          success: false,
+          error: result.error || "Invalid email or password.",
+        };
+      }
 
-      setUser(googleUser);
-      localStorage.setItem(TOKEN_STORAGE_KEY, "google_oauth_token_" + Date.now());
-      localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(googleUser));
+      setUser(result.user);
+      if (result.token) {
+        localStorage.setItem(TOKEN_STORAGE_KEY, result.token);
+      }
+      localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(result.user));
 
       // Transfer temporary guest items into newly authenticated account
       try {
-        const transferred = transferGuestWardrobeToAccount(googleUser.id);
+        const transferred = transferGuestWardrobeToAccount(result.user.id);
         if (transferred.length > 0) {
           toast.success("Guest Wardrobe Saved!", {
             description: `${transferred.length} temporary clothing item${transferred.length > 1 ? "s" : ""} transferred to your account!`,
           });
         }
       } catch (err) {
-        console.warn("Failed to transfer guest wardrobe on Google login:", err);
+        console.warn("Failed to transfer guest wardrobe on login:", err);
       }
 
-      toast.success("Signed in with Google", {
-        description: `Welcome, ${googleUser.name}!`,
+      toast.success("Welcome back!", {
+        description: `Logged in as ${result.user.email}`,
       });
 
       closeModal();
@@ -304,14 +311,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  /**
+   * Sign-Up Step 1:
+   * Collects email + password, registers pending state, sends 6-digit OTP to email.
+   */
   const startSignUp = async (
     email: string,
+    password: string,
     name?: string,
   ): Promise<{ success: boolean; error?: string }> => {
     setIsSubmitting(true);
     try {
       const result = await apiRegisterIntent({
         email,
+        password,
         name: name?.trim() || undefined,
       });
 
@@ -328,11 +341,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setPendingEmail(email.trim().toLowerCase());
       setSignUpStep(2);
       setResendCooldown(RESEND_COOLDOWN_SECONDS);
-      if (result.devOtpCode) {
-        setDevOtpCode(result.devOtpCode);
-      }
 
-      // Secure toast notification: NEVER discloses OTP code
+      toast.success("Verification Code Sent", {
+        description: `Please enter the 6-digit code sent to ${email}`,
+      });
 
       return { success: true };
     } finally {
@@ -340,6 +352,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  /**
+   * Sign-Up Step 2:
+   * Validates 6-digit OTP code and creates verified session.
+   */
   const verifyTwoStepCode = async (code: string): Promise<{ success: boolean; error?: string }> => {
     if (!pendingEmail) {
       return {
@@ -380,6 +396,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         console.warn("Failed to transfer guest wardrobe on signup:", err);
       }
 
+      toast.success("Account Created!", {
+        description: "Your email has been verified successfully.",
+      });
+
       setPendingEmail("");
       closeModal();
       handlePostAuthRedirect();
@@ -389,89 +409,86 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const requestEmail2FA = async (email: string): Promise<{ success: boolean; error?: string }> => {
+  /**
+   * Password Reset Step 1: Request 6-digit OTP code to registered email
+   */
+  const requestPasswordReset = async (
+    email: string,
+  ): Promise<{ success: boolean; error?: string }> => {
     setIsSubmitting(true);
     try {
-      const result = await apiRequestEmailOtp({ email });
+      const result = await apiForgotPassword({ email: email.trim().toLowerCase() });
       if (!result.success) {
         if (result.retryAfter) {
           setResendCooldown(result.retryAfter);
         }
         return {
           success: false,
-          error: result.error || "Couldn't send the code. Please try again.",
+          error: result.error || "Failed to send reset code. Please try again.",
         };
       }
 
       setPendingEmail(email.trim().toLowerCase());
       setSignUpStep(2);
       setResendCooldown(RESEND_COOLDOWN_SECONDS);
-      if (result.devOtpCode) {
-        setDevOtpCode(result.devOtpCode);
-      }
+
+      toast.success("Reset Code Sent", {
+        description: `Please enter the 6-digit reset code sent to ${email}`,
+      });
+
       return { success: true };
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const verifyEmail2FA = async (code: string): Promise<{ success: boolean; error?: string }> => {
-    if (!pendingEmail) {
-      return {
-        success: false,
-        error: "Email address is missing. Please enter it again.",
-      };
-    }
-
+  /**
+   * Password Reset Step 2 & 3: Verify OTP and update password
+   */
+  const resetPasswordWithCode = async (
+    email: string,
+    code: string,
+    newPassword: string,
+  ): Promise<{ success: boolean; error?: string }> => {
     setIsSubmitting(true);
     try {
-      const result = await apiVerifyEmailOtp({
-        email: pendingEmail,
-        code,
+      const result = await apiResetPassword({
+        email: email.trim().toLowerCase(),
+        code: code.trim(),
+        newPassword,
       });
 
-      if (!result.success || !result.user) {
+      if (!result.success) {
         return {
           success: false,
-          error: result.error || "Invalid code. Please check your email.",
+          error: result.error || "Failed to reset password. Please check your code.",
         };
       }
 
-      setUser(result.user);
-      if (result.token) {
-        localStorage.setItem(TOKEN_STORAGE_KEY, result.token);
-      }
-      localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(result.user));
-
-      // Transfer temporary guest items into account
-      try {
-        const transferred = transferGuestWardrobeToAccount(result.user.id);
-        if (transferred.length > 0) {
-          toast.success("Guest Wardrobe Saved!", {
-            description: `${transferred.length} temporary clothing item${transferred.length > 1 ? "s" : ""} transferred to your account!`,
-          });
-        }
-      } catch (err) {
-        console.warn("Failed to transfer guest wardrobe on 2FA login:", err);
-      }
+      toast.success("Password Updated", {
+        description: "Password updated successfully. Please log in with your new password.",
+      });
 
       setPendingEmail("");
-      closeModal();
-      handlePostAuthRedirect();
+      setSignUpStep(1);
+      setModalView("login");
       return { success: true };
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  /**
+   * Resend Code on Step 2 with 60-second cooldown
+   */
   const resendCode = async (): Promise<void> => {
     if (!pendingEmail || resendCooldown > 0 || isSubmitting) return;
 
     setIsSubmitting(true);
     try {
       const result =
-        modalView === "email2fa"
-          ? await apiRequestEmailOtp({ email: pendingEmail })
+        modalView === "forgot-password"
+          ? await apiForgotPassword({ email: pendingEmail })
           : await apiResendCode({ email: pendingEmail });
 
       if (!result.success) {
@@ -485,11 +502,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       setResendCooldown(RESEND_COOLDOWN_SECONDS);
-      if (result.devOtpCode) {
-        setDevOtpCode(result.devOtpCode);
-      }
-
-      // Secure toast notification: NEVER discloses OTP code
+      toast.success("New Code Sent", {
+        description: `A new 6-digit verification code was sent to ${pendingEmail}`,
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -535,21 +550,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         gateReason,
         redirectRoute,
         isSubmitting,
-        devOtpCode,
         openLogin,
         openSignUp,
-        openEmail2FA,
+        openForgotPassword,
         promptSaveGuestWardrobe,
         requireAuth,
         closeModal,
         setModalView,
         setRedirectRoute,
-        loginWithGoogle,
+        loginWithPassword,
         loginAsGuest,
-        requestEmail2FA,
-        verifyEmail2FA,
         startSignUp,
         verifyTwoStepCode,
+        requestPasswordReset,
+        resetPasswordWithCode,
         resendCode,
         backToStep1,
         logout,

@@ -13,9 +13,11 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AiStylistRouteImport } from './routes/ai-stylist'
 import { Route as ClosetRouteImport } from './routes/closet'
 import { Route as FittingRoomRouteImport } from './routes/fitting-room'
+import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as GenerateRouteImport } from './routes/generate'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as ProfileRouteImport } from './routes/profile'
+import { Route as SignupRouteImport } from './routes/signup'
 import { Route as StudioRouteImport } from './routes/studio'
 import { Route as StylistRouteImport } from './routes/stylist'
 
@@ -39,6 +41,11 @@ const FittingRoomRoute = FittingRoomRouteImport.update({
   path: '/fitting-room',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
+  id: '/forgot-password',
+  path: '/forgot-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const GenerateRoute = GenerateRouteImport.update({
   id: '/generate',
   path: '/generate',
@@ -52,6 +59,11 @@ const LoginRoute = LoginRouteImport.update({
 const ProfileRoute = ProfileRouteImport.update({
   id: '/profile',
   path: '/profile',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SignupRoute = SignupRouteImport.update({
+  id: '/signup',
+  path: '/signup',
   getParentRoute: () => rootRouteImport,
 } as any)
 const StudioRoute = StudioRouteImport.update({
@@ -70,9 +82,11 @@ export interface FileRoutesByFullPath {
   '/ai-stylist': typeof AiStylistRoute
   '/closet': typeof ClosetRoute
   '/fitting-room': typeof FittingRoomRoute
+  '/forgot-password': typeof ForgotPasswordRoute
   '/generate': typeof GenerateRoute
   '/login': typeof LoginRoute
   '/profile': typeof ProfileRoute
+  '/signup': typeof SignupRoute
   '/studio': typeof StudioRoute
   '/stylist': typeof StylistRoute
 }
@@ -81,9 +95,11 @@ export interface FileRoutesByTo {
   '/ai-stylist': typeof AiStylistRoute
   '/closet': typeof ClosetRoute
   '/fitting-room': typeof FittingRoomRoute
+  '/forgot-password': typeof ForgotPasswordRoute
   '/generate': typeof GenerateRoute
   '/login': typeof LoginRoute
   '/profile': typeof ProfileRoute
+  '/signup': typeof SignupRoute
   '/studio': typeof StudioRoute
   '/stylist': typeof StylistRoute
 }
@@ -93,9 +109,11 @@ export interface FileRoutesById {
   '/ai-stylist': typeof AiStylistRoute
   '/closet': typeof ClosetRoute
   '/fitting-room': typeof FittingRoomRoute
+  '/forgot-password': typeof ForgotPasswordRoute
   '/generate': typeof GenerateRoute
   '/login': typeof LoginRoute
   '/profile': typeof ProfileRoute
+  '/signup': typeof SignupRoute
   '/studio': typeof StudioRoute
   '/stylist': typeof StylistRoute
 }
@@ -106,9 +124,11 @@ export interface FileRouteTypes {
     | '/ai-stylist'
     | '/closet'
     | '/fitting-room'
+    | '/forgot-password'
     | '/generate'
     | '/login'
     | '/profile'
+    | '/signup'
     | '/studio'
     | '/stylist'
   fileRoutesByTo: FileRoutesByTo
@@ -117,9 +137,11 @@ export interface FileRouteTypes {
     | '/ai-stylist'
     | '/closet'
     | '/fitting-room'
+    | '/forgot-password'
     | '/generate'
     | '/login'
     | '/profile'
+    | '/signup'
     | '/studio'
     | '/stylist'
   id:
@@ -128,9 +150,11 @@ export interface FileRouteTypes {
     | '/ai-stylist'
     | '/closet'
     | '/fitting-room'
+    | '/forgot-password'
     | '/generate'
     | '/login'
     | '/profile'
+    | '/signup'
     | '/studio'
     | '/stylist'
   fileRoutesById: FileRoutesById
@@ -140,9 +164,11 @@ export interface RootRouteChildren {
   AiStylistRoute: typeof AiStylistRoute
   ClosetRoute: typeof ClosetRoute
   FittingRoomRoute: typeof FittingRoomRoute
+  ForgotPasswordRoute: typeof ForgotPasswordRoute
   GenerateRoute: typeof GenerateRoute
   LoginRoute: typeof LoginRoute
   ProfileRoute: typeof ProfileRoute
+  SignupRoute: typeof SignupRoute
   StudioRoute: typeof StudioRoute
   StylistRoute: typeof StylistRoute
 }
@@ -177,6 +203,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof FittingRoomRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/forgot-password': {
+      id: '/forgot-password'
+      path: '/forgot-password'
+      fullPath: '/forgot-password'
+      preLoaderRoute: typeof ForgotPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/generate': {
       id: '/generate'
       path: '/generate'
@@ -196,6 +229,13 @@ declare module '@tanstack/react-router' {
       path: '/profile'
       fullPath: '/profile'
       preLoaderRoute: typeof ProfileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/signup': {
+      id: '/signup'
+      path: '/signup'
+      fullPath: '/signup'
+      preLoaderRoute: typeof SignupRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/studio': {
@@ -220,9 +260,11 @@ const rootRouteChildren: RootRouteChildren = {
   AiStylistRoute: AiStylistRoute,
   ClosetRoute: ClosetRoute,
   FittingRoomRoute: FittingRoomRoute,
+  ForgotPasswordRoute: ForgotPasswordRoute,
   GenerateRoute: GenerateRoute,
   LoginRoute: LoginRoute,
   ProfileRoute: ProfileRoute,
+  SignupRoute: SignupRoute,
   StudioRoute: StudioRoute,
   StylistRoute: StylistRoute,
 }

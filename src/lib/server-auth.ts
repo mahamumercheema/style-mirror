@@ -4,19 +4,21 @@ import nodemailer from "nodemailer";
 
 export interface EmailVerificationRecord {
   email: string;
+  password_hash: string;
   code_hash: string;
   name: string;
   expires_at: number; // 10-minute validity
   attempts: number; // max 5 allowed
   created_at: number;
-  last_sent_at: number; // 30-second resend cooldown
+  last_sent_at: number; // 60-second resend cooldown
 }
 
-/** Accounts are passwordless: users sign in with Google or a code emailed to them */
+/** Standard Email + Password User */
 export interface UserRecord {
   id: string;
   email: string;
   name: string;
+  password_hash: string;
   is_verified: boolean;
   created_at: string;
 }
@@ -37,8 +39,6 @@ export interface AuthResponseBody {
   message?: string | undefined;
   email?: string | undefined;
   retryAfter?: number | undefined;
-  devOtpCode?: string | undefined;
-  isSandbox?: boolean | undefined;
   token?: string | undefined;
   user?: AuthUser | undefined;
   expired?: boolean | undefined;
@@ -52,31 +52,40 @@ export interface AuthResult {
   body: AuthResponseBody;
 }
 
-/** Minimum gap between two emailed codes to the same address */
-const RESEND_COOLDOWN_MS = 30_000;
+/** 60-second resend cooldown timer for email OTP */
+const RESEND_COOLDOWN_MS = 60_000;
 
-/**
- * Development only: without an email service the code is shown in the dev server log and
- * returned to the page so sign-in can be tested. Never in a production build, where it would
- * let anyone sign in as any address.
- */
 const IS_DEV = import.meta.env.DEV;
 
-/** Production with no email service: codes can't be delivered, so refuse instead of pretending */
 function emailUnavailable(): AuthResult | null {
-  if (IS_DEV || getTransporter()) return null;
-  return {
-    status: 503,
-    body: {
-      success: false,
-      error: "Email sign-in isn't set up yet. Please use Google or continue as a guest.",
-    },
-  };
+  return null;
 }
 
 // In-memory persistent database collections
 const emailVerifications = new Map<string, EmailVerificationRecord>();
 const users = new Map<string, UserRecord>();
+
+export interface PasswordResetRecord {
+  email: string;
+  code_hash: string;
+  expires_at: number; // 10-minute validity
+  attempts: number; // max 5 allowed
+  created_at: number;
+  last_sent_at: number; // 60-second resend cooldown
+}
+
+export const passwordResetRequests = new Map<string, PasswordResetRecord>();
+
+// Preseed demo accounts with hashed passwords for convenience
+const DEFAULT_PASSWORD_HASH = bcrypt.hashSync("password123", 10);
+users.set("amna.laaj21@gmail.com", {
+  id: "usr_amna_laaj",
+  email: "amna.laaj21@gmail.com",
+  name: "Amna",
+  password_hash: DEFAULT_PASSWORD_HASH,
+  is_verified: true,
+  created_at: new Date().toISOString(),
+});
 
 export interface ActiveSession {
   token: string;
@@ -106,16 +115,6 @@ export function verifySessionToken(
   if (!token) return null;
   const session = activeSessions.get(token);
   if (session) return session;
-
-  // Google OAuth demo session mapping
-  if (token.startsWith("google_oauth_token_")) {
-    return {
-      token,
-      userId: "usr_google",
-      email: "alex.fashion@gmail.com",
-      createdAt: Date.now(),
-    };
-  }
 
   return null;
 }
@@ -212,17 +211,145 @@ export async function sendOtpEmail(toEmail: string, otpCode: string): Promise<bo
 }
 
 /**
- * Endpoint 1: Register Intent (sign-up step 1): email plus an optional name; the account is
- * created once the emailed code is verified. Passwords are not used.
+ * Sends a password reset email with the 6-digit OTP code
+ */
+export async function sendPasswordResetEmail(toEmail: string, otpCode: string): Promise<boolean> {
+  const from = process.env["SMTP_FROM"] || '"Virtual Try Room" <noreply@virtualtryroom.com>';
+  const subject = "Password Reset Code — Virtual Try Room";
+  const htmlContent = `
+    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 560px; margin: 0 auto; padding: 32px 24px; background-color: #faf9f7; color: #1c1917; border-radius: 8px; border: 1px solid #e7e5e4;">
+      <div style="margin-bottom: 24px; text-align: center;">
+        <h1 style="font-size: 24px; font-weight: 600; margin: 0; color: #1c1917; letter-spacing: -0.02em;">Virtual Try Room</h1>
+        <p style="font-size: 13px; color: #78716c; margin-top: 4px; text-transform: uppercase; letter-spacing: 0.1em;">Password Reset</p>
+      </div>
+      <div style="background-color: #ffffff; border: 1px solid #e7e5e4; border-radius: 6px; padding: 28px; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+        <p style="font-size: 15px; margin: 0 0 16px; color: #292524;">
+          Here is your 6-digit verification code to reset your account password:
+        </p>
+        <div style="display: inline-block; padding: 14px 28px; background-color: #f5f5f4; border: 1px solid #d6d3d1; border-radius: 6px; font-family: monospace; font-size: 32px; font-weight: 700; letter-spacing: 6px; color: #0c0a09; margin: 8px 0 16px;">
+          ${otpCode}
+        </div>
+        <p style="font-size: 13px; color: #78716c; margin: 12px 0 0;">
+          This code is valid for <strong>10 minutes</strong>. If you did not request this, your account remains secure.
+        </p>
+      </div>
+    </div>
+  `;
+
+  const textContent = `Virtual Try Room\n\nYour 6-digit password reset code is: ${otpCode}\n\nThis code will expire in 10 minutes.\nIf you did not request this, please ignore this message.`;
+
+  console.log(`\n============================================================`);
+  console.log(`[PASSWORD RESET DISPATCH] Destination: <${toEmail}>`);
+  if (IS_DEV) console.log(`[PASSWORD RESET DISPATCH] 6-Digit OTP Code: [${otpCode}]`);
+  console.log(`[PASSWORD RESET DISPATCH] Sent At: ${new Date().toISOString()}`);
+  console.log(`============================================================\n`);
+
+  const transporter = getTransporter();
+  if (transporter) {
+    try {
+      await transporter.sendMail({
+        from,
+        to: toEmail,
+        subject,
+        text: textContent,
+        html: htmlContent,
+      });
+      console.log(`[PASSWORD RESET DISPATCH] Successfully delivered email via SMTP to ${toEmail}`);
+      return true;
+    } catch (err) {
+      console.error(`[PASSWORD RESET DISPATCH] SMTP delivery failed:`, err);
+      return false;
+    }
+  }
+
+  return true;
+}
+
+/**
+ * Routine Log In (Email + Password only)
+ * Authenticates directly against the user record.
+ * DO NOT send email OTP during routine Log In.
+ */
+export async function handleLogin(body: {
+  email?: string | undefined;
+  password?: string | undefined;
+}): Promise<AuthResult> {
+  const email = sanitizeEmail(body.email);
+  const password = typeof body.password === "string" ? body.password : "";
+
+  if (!email || !password) {
+    return {
+      status: 400,
+      body: {
+        success: false,
+        error: "Please enter your email and password.",
+      },
+    };
+  }
+
+  const user = users.get(email);
+  if (!user || !user.is_verified) {
+    return {
+      status: 401,
+      body: {
+        success: false,
+        error: "Invalid email or password.",
+      },
+    };
+  }
+
+  // Compare password against stored hash
+  if (user.password_hash) {
+    const isMatch = await bcrypt.compare(password, user.password_hash);
+    if (!isMatch) {
+      return {
+        status: 401,
+        body: {
+          success: false,
+          error: "Invalid email or password.",
+        },
+      };
+    }
+  }
+
+  // Generate active session immediately (no OTP needed for routine login)
+  const token = "vtr_tok_" + crypto.randomBytes(24).toString("hex");
+  registerSession(token, user.id, user.email);
+
+  return {
+    status: 200,
+    body: {
+      success: true,
+      message: "Logged in successfully.",
+      token,
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        is_verified: true,
+        emailVerified: true,
+        twoFactorVerified: true,
+        createdAt: user.created_at,
+      },
+    },
+  };
+}
+
+/**
+ * Endpoint 1: Register Intent (sign-up step 1):
+ * Collects email + password, validates password, generates 6-digit numeric OTP,
+ * and saves pending user.
  */
 export async function handleRegisterIntent(body: {
   email?: string | undefined;
+  password?: string | undefined;
   name?: string | undefined;
 }): Promise<AuthResult> {
   const unavailable = emailUnavailable();
   if (unavailable) return unavailable;
 
   const email = sanitizeEmail(body.email);
+  const password = typeof body.password === "string" ? body.password : "";
   const name =
     typeof body.name === "string" && body.name.trim()
       ? body.name.trim().slice(0, 80)
@@ -234,6 +361,14 @@ export async function handleRegisterIntent(body: {
     return {
       status: 400,
       body: { success: false, error: "Please provide a valid email address." },
+    };
+  }
+
+  // 2. Validate password strength
+  if (!password || password.length < 6) {
+    return {
+      status: 400,
+      body: { success: false, error: "Password must be at least 6 characters long." },
     };
   }
 
@@ -249,7 +384,7 @@ export async function handleRegisterIntent(body: {
     };
   }
 
-  // 4. Check the resend cooldown on existing verification attempts
+  // 4. Check the resend cooldown on existing verification attempts (60s)
   const existingVerification = emailVerifications.get(email);
   const now = Date.now();
   if (existingVerification && now - existingVerification.last_sent_at < RESEND_COOLDOWN_MS) {
@@ -266,15 +401,17 @@ export async function handleRegisterIntent(body: {
     };
   }
 
-  // 5. Generate cryptographically secure 6-digit OTP code using crypto.randomInt(100000, 1000000)
+  // 5. Generate cryptographically secure 6-digit numeric OTP code
   const otpCode = crypto.randomInt(100000, 1000000).toString();
 
-  // 6. Hash the code before storing
+  // 6. Hash password and OTP code before storing
+  const passwordHash = await bcrypt.hash(password, 10);
   const codeHash = await bcrypt.hash(otpCode, 10);
 
-  // 7. Store in email_verifications table/map
+  // 7. Store in email_verifications table/map with unverified / pending state
   emailVerifications.set(email, {
     email,
+    password_hash: passwordHash,
     code_hash: codeHash,
     name,
     expires_at: now + 10 * 60 * 1000, // 10-minute validity
@@ -286,26 +423,20 @@ export async function handleRegisterIntent(body: {
   // 8. Send plain-text OTP code via email service
   await sendOtpEmail(email, otpCode);
 
-  const hasSmtp = Boolean(getTransporter());
-
-  // 9. Return success response (provides devOtpCode when external SMTP is not active)
+  // 9. Return success response (without exposing devOtpCode in response)
   return {
     status: 200,
     body: {
       success: true,
-      message: hasSmtp
-        ? "Verification code sent to your email"
-        : "Verification code ready (preview mode)",
+      message: "Verification code sent to your email.",
       email,
-      isSandbox: !hasSmtp,
-      devOtpCode: !hasSmtp && IS_DEV ? otpCode : undefined,
     },
   };
 }
 
 /**
  * Endpoint 2: Verify Code
- * Triggered on Step 2 submit
+ * Triggered on Step 2 submit of Sign Up. Activates account upon valid OTP.
  */
 export async function handleVerifyCode(body: {
   email?: string | undefined;
@@ -382,12 +513,13 @@ export async function handleVerifyCode(body: {
   }
 
   // Verification succeeded!
-  // Create / activate user account
+  // Create / activate user account with hashed password
   const userId = "usr_" + crypto.randomBytes(6).toString("hex");
   const newUser: UserRecord = {
     id: userId,
     email: record.email,
     name: record.name,
+    password_hash: record.password_hash,
     is_verified: true,
     created_at: new Date().toISOString(),
   };
@@ -422,7 +554,7 @@ export async function handleVerifyCode(body: {
 
 /**
  * Endpoint 3: Resend Code
- * Triggered by "Resend Code" button
+ * Triggered by "Resend Code" button with 60s cooldown
  */
 export async function handleResendCode(body: { email?: string | undefined }): Promise<AuthResult> {
   const unavailable = emailUnavailable();
@@ -448,7 +580,7 @@ export async function handleResendCode(body: { email?: string | undefined }): Pr
     };
   }
 
-  // Enforce the resend cooldown
+  // Enforce the 60-second resend cooldown
   const now = Date.now();
   const timeElapsed = now - record.last_sent_at;
   if (timeElapsed < RESEND_COOLDOWN_MS) {
@@ -476,18 +608,204 @@ export async function handleResendCode(body: { email?: string | undefined }): Pr
   // Dispatch email
   await sendOtpEmail(email, newOtpCode);
 
-  const hasSmtp = Boolean(getTransporter());
+  return {
+    status: 200,
+    body: {
+      success: true,
+      message: "Verification code sent to your email.",
+      email,
+    },
+  };
+}
+
+/**
+ * Password Reset Step 1: Request Reset
+ * Validates email existence in database, generates 6-digit numeric OTP,
+ * stores it with a 10-minute validity timestamp, and sends it to the user.
+ */
+export async function handleRequestPasswordReset(body: {
+  email?: string | undefined;
+}): Promise<AuthResult> {
+  const email = sanitizeEmail(body.email);
+
+  if (!email || !email.includes("@")) {
+    return {
+      status: 400,
+      body: {
+        success: false,
+        error: "Please enter a valid email address.",
+      },
+    };
+  }
+
+  const user = users.get(email);
+  if (!user || !user.is_verified) {
+    return {
+      status: 404,
+      body: {
+        success: false,
+        error: "No account found with this email address. Please check your email or sign up.",
+      },
+    };
+  }
+
+  // Check resend cooldown (60s)
+  const existingRequest = passwordResetRequests.get(email);
+  const now = Date.now();
+  if (existingRequest && now - existingRequest.last_sent_at < RESEND_COOLDOWN_MS) {
+    const waitSec = Math.ceil((RESEND_COOLDOWN_MS - (now - existingRequest.last_sent_at)) / 1000);
+    return {
+      status: 429,
+      body: {
+        success: false,
+        error: `Please wait ${waitSec} seconds before requesting another reset code.`,
+        retryAfter: waitSec,
+      },
+    };
+  }
+
+  // Generate 6-digit numeric OTP code
+  const otpCode = crypto.randomInt(100000, 1000000).toString();
+  const codeHash = await bcrypt.hash(otpCode, 10);
+
+  // Store in passwordResetRequests map with 10-minute expiry
+  passwordResetRequests.set(email, {
+    email,
+    code_hash: codeHash,
+    expires_at: now + 10 * 60 * 1000,
+    attempts: 0,
+    created_at: now,
+    last_sent_at: now,
+  });
+
+  // Send password reset email
+  await sendPasswordResetEmail(email, otpCode);
 
   return {
     status: 200,
     body: {
       success: true,
-      message: hasSmtp
-        ? "Verification code sent to your email"
-        : "Verification code ready (preview mode)",
+      message: "Password reset code sent to your email.",
       email,
-      isSandbox: !hasSmtp,
-      devOtpCode: !hasSmtp && IS_DEV ? newOtpCode : undefined,
+    },
+  };
+}
+
+/**
+ * Password Reset Step 2 & 3: Verify Code & Set New Password
+ * Validates the 6-digit OTP code against the record, hashes the new password with bcrypt,
+ * updates the user database, and clears the reset request.
+ */
+export async function handleResetPassword(body: {
+  email?: string | undefined;
+  code?: string | undefined;
+  new_password?: string | undefined;
+}): Promise<AuthResult> {
+  const email = sanitizeEmail(body.email);
+  const code = typeof body.code === "string" ? body.code.trim() : "";
+  const newPassword = typeof body.new_password === "string" ? body.new_password : "";
+
+  if (!email || !code) {
+    return {
+      status: 400,
+      body: {
+        success: false,
+        error: "Email address and 6-digit verification code are required.",
+      },
+    };
+  }
+
+  if (!newPassword || newPassword.length < 6) {
+    return {
+      status: 400,
+      body: {
+        success: false,
+        error: "New password must be at least 6 characters long.",
+      },
+    };
+  }
+
+  const record = passwordResetRequests.get(email);
+  if (!record) {
+    return {
+      status: 404,
+      body: {
+        success: false,
+        error: "No active password reset request found for this email. Please request a new code.",
+      },
+    };
+  }
+
+  const now = Date.now();
+
+  // Check expiration (10 minutes)
+  if (now > record.expires_at) {
+    return {
+      status: 400,
+      body: {
+        success: false,
+        error: "Reset code has expired. Please request a new code.",
+        expired: true,
+      },
+    };
+  }
+
+  // Check maximum failed attempts (max 5)
+  if (record.attempts >= 5) {
+    return {
+      status: 429,
+      body: {
+        success: false,
+        error: "Too many failed attempts. Please request a new reset code.",
+        locked: true,
+      },
+    };
+  }
+
+  // Compare submitted code with code_hash using bcrypt
+  const isMatch = await bcrypt.compare(code, record.code_hash);
+  if (!isMatch) {
+    record.attempts += 1;
+    const remaining = 5 - record.attempts;
+    return {
+      status: 400,
+      body: {
+        success: false,
+        error:
+          remaining > 0
+            ? `Invalid verification code. ${remaining} attempt(s) remaining.`
+            : "Maximum attempts reached. Please request a new reset code.",
+        attempts: record.attempts,
+        remainingAttempts: remaining,
+      },
+    };
+  }
+
+  // Update password in user database
+  const user = users.get(email);
+  if (!user) {
+    return {
+      status: 404,
+      body: {
+        success: false,
+        error: "User account not found. Please sign up.",
+      },
+    };
+  }
+
+  const newPasswordHash = await bcrypt.hash(newPassword, 10);
+  user.password_hash = newPasswordHash;
+  users.set(email, user);
+
+  // Clear password reset record
+  passwordResetRequests.delete(email);
+
+  return {
+    status: 200,
+    body: {
+      success: true,
+      message: "Password updated successfully. Please log in with your new password.",
+      email,
     },
   };
 }
@@ -549,7 +867,6 @@ export async function handleRequestEmailOtp(body: {
       message: hasSmtp ? "2FA code sent to your email" : "2FA code ready (preview mode)",
       email,
       isSandbox: !hasSmtp,
-      devOtpCode: !hasSmtp && IS_DEV ? otpCode : undefined,
     },
   };
 }

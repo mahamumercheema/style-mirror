@@ -37,10 +37,20 @@ import { cn } from "@/lib/utils";
 import { GuestLockScreenPreview } from "@/components/GuestLockScreenPreview";
 
 function ProfileRouteWrapper() {
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, openLogin } = useAuth();
 
-  // Route Guard / Auth Gate: Unauthenticated guests see the preview teaser lock screen
-  if (!isAuthenticated || !user) {
+  // Route Guard / Auth Gate: Unauthenticated users are redirected to login
+  useEffect(() => {
+    if (!isAuthenticated || !user || user.id === "guest_user") {
+      openLogin(
+        undefined,
+        "Please log in or create an account to view and manage your profile.",
+        "/profile",
+      );
+    }
+  }, [isAuthenticated, user, openLogin]);
+
+  if (!isAuthenticated || !user || user.id === "guest_user") {
     return <GuestLockScreenPreview feature="profile" />;
   }
 

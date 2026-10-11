@@ -1,7 +1,10 @@
 import {
+  handleLogin,
   handleRegisterIntent,
   handleVerifyCode,
   handleResendCode,
+  handleRequestPasswordReset,
+  handleResetPassword,
   handleRequestEmailOtp,
   handleVerifyEmailOtp,
   verifySessionToken,
@@ -59,14 +62,14 @@ export async function handleApiRouter(request: Request): Promise<Response | null
         result = await handleResendCode(body);
         break;
       case "/api/auth/login":
-        // Password sign-in was removed: accounts use Google or an emailed code
-        result = {
-          status: 410,
-          body: {
-            success: false,
-            error: "Password sign-in is no longer available. Use Google or an email code.",
-          },
-        };
+        result = await handleLogin(body);
+        break;
+      case "/api/auth/forgot-password":
+      case "/api/auth/request-password-reset":
+        result = await handleRequestPasswordReset(body);
+        break;
+      case "/api/auth/reset-password":
+        result = await handleResetPassword(body);
         break;
       case "/api/auth/request-otp":
       case "/api/auth/login-2fa":
