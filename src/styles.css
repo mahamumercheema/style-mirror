@@ -6,8 +6,8 @@
 
 /*
  * Virtual Try Room design system.
- * Warm neutral, editorial fashion aesthetic: cream paper, soft charcoal text,
- * muted gold and silver metal accents. All tokens semantic.
+ * Editorial fashion aesthetic: charcoal grounds, off-white text, cobalt blue accents
+ * and silver. All tokens semantic.
  */
 
 @theme inline {
@@ -39,8 +39,12 @@
   --color-ring: var(--ring);
   --color-ring-offset-background: var(--background);
   --color-canvas: var(--canvas);
-  --color-gold: var(--gold);
-  --color-gold-ink: var(--gold-ink);
+  /* Cobalt accent palette (values per scope below) */
+  --color-cobalt: var(--cobalt);
+  --color-cobalt-bright: var(--cobalt-bright);
+  --color-cobalt-text: var(--cobalt-text);
+  --color-cobalt-tint: var(--cobalt-tint);
+  --color-cobalt-border: var(--cobalt-border);
   --color-silver: var(--silver);
   --color-cream: #f7f5f1;
   --color-chart-1: var(--chart-1);
@@ -56,20 +60,27 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
-  --font-display: "Instrument Serif", ui-serif, Georgia, serif;
-  --font-sans: "Work Sans", ui-sans-serif, system-ui, sans-serif;
+  /* Lato is the typeface for the whole site; the two logos keep Bodoni Moda */
+  --font-display: "Lato", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Lato", ui-sans-serif, system-ui, sans-serif;
   --font-wordmark: "Bodoni Moda", "Didot", "Bodoni 72", ui-serif, serif;
+  /* Tailwind's built-in serif/mono utilities (font-serif, font-mono) also use Lato */
+  --font-serif: "Lato", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Lato", ui-sans-serif, system-ui, sans-serif;
   --tracking-editorial: 0.18em;
   --shadow-soft: 0 1px 2px oklch(0.25 0.02 60 / 0.04), 0 12px 32px -12px oklch(0.25 0.02 60 / 0.16);
   --shadow-lift: 0 2px 4px oklch(0.25 0.02 60 / 0.05), 0 28px 60px -20px oklch(0.25 0.02 60 / 0.24);
+  /* shadow-cobalt-glow, and a stronger one for hover */
+  --shadow-cobalt-glow: var(--cobalt-glow);
+  --shadow-cobalt-glow-strong: var(--cobalt-glow-strong);
 }
 
 :root {
   /*
    * Atelier Ora inner pages: #4A4A4A dark grey ground, one-shade-lighter panels,
    * off-white text. Every text colour here measures at least 4.5:1 on the page, the
-   * panels and the chips; gold borders/rings (#c79d84) at least 3:1. --gold-ink is a
-   * lighter amber used only for amber *text*.
+   * panels and the chips. Accents are cobalt: --cobalt for borders, icons and selected
+   * states, --cobalt-text (lighter) for small accent text so it stays readable on dark.
    */
   --radius: 0.375rem;
   --background: #4a4a4a;
@@ -78,36 +89,43 @@
   --card-foreground: #f5f2ec;
   --popover: #565656;
   --popover-foreground: #f5f2ec;
-  --primary: #c79d84;
-  --primary-foreground: #1a1a1a;
+  --primary: var(--cobalt);
+  --primary-foreground: #121212;
   --secondary: #5a5a5a;
   --secondary-foreground: #f5f2ec;
   --muted: #5a5a5a;
   --muted-foreground: #dcd8d1;
-  --accent: rgb(199 157 132 / 0.18);
+  --accent: var(--cobalt-tint);
   --accent-foreground: #f5f2ec;
   --destructive: #ffc4bd;
   --destructive-foreground: #1a1a1a;
   --border: rgb(0 0 0 / 0.12);
   --input: rgb(255 255 255 / 0.22);
-  --ring: #c79d84;
+  --ring: var(--cobalt);
   --canvas: #525252;
-  --gold: #c79d84;
-  --gold-ink: #ecc0a6;
+  --cobalt: #7b8fe0;
+  --cobalt-bright: #9aabf0;
+  /* Soft blue-white accent text for dark grounds (the cream landing section overrides it) */
+  --cobalt-text-on-dark: #c9d2f5;
+  --cobalt-text: var(--cobalt-text-on-dark);
+  --cobalt-tint: rgb(90 115 220 / 0.06);
+  --cobalt-border: rgb(120 140 230 / 0.3);
+  --cobalt-glow: 0 0 24px rgb(80 110 230 / 0.15);
+  --cobalt-glow-strong: 0 0 28px rgb(80 110 230 / 0.22);
   --silver: #b9b7b1;
-  --chart-1: #c79d84;
+  --chart-1: var(--cobalt);
   --chart-2: #b9b7b1;
   --chart-3: #f5f2ec;
-  --chart-4: #ecc0a6;
+  --chart-4: var(--cobalt-text);
   --chart-5: #dcd8d1;
   --sidebar: #565656;
   --sidebar-foreground: #f5f2ec;
-  --sidebar-primary: #c79d84;
-  --sidebar-primary-foreground: #1a1a1a;
+  --sidebar-primary: var(--cobalt);
+  --sidebar-primary-foreground: #121212;
   --sidebar-accent: #5a5a5a;
   --sidebar-accent-foreground: #f5f2ec;
   --sidebar-border: rgb(0 0 0 / 0.12);
-  --sidebar-ring: #c79d84;
+  --sidebar-ring: var(--cobalt);
   color-scheme: dark;
 }
 
@@ -119,42 +137,40 @@
   --card-foreground: #f5f2ec;
   --popover: #1a1a1a;
   --popover-foreground: #f5f2ec;
-  --primary: #c79d84;
-  --primary-foreground: #0e0e0e;
+  --primary: var(--cobalt);
+  --primary-foreground: #121212;
   --secondary: #1a1a1a;
   --secondary-foreground: #f5f2ec;
   --muted: #1a1a1a;
   --muted-foreground: rgb(245 242 236 / 0.6);
-  --accent: rgb(199 157 132 / 0.14);
+  --accent: var(--cobalt-tint);
   --accent-foreground: #f5f2ec;
   --destructive: #e5534b;
   --destructive-foreground: #f5f2ec;
   --border: rgb(255 255 255 / 0.1);
   --input: rgb(255 255 255 / 0.14);
-  --ring: #c79d84;
+  --ring: var(--cobalt);
   --canvas: #161616;
-  --gold: #c79d84;
-  --gold-ink: #c79d84;
   --silver: #8f8d88;
-  --chart-1: #c79d84;
+  --chart-1: var(--cobalt);
   --chart-2: #8f8d88;
   --chart-3: #f5f2ec;
-  --chart-4: #a88a45;
+  --chart-4: var(--cobalt-text);
   --chart-5: #5c5a55;
   --sidebar: #161616;
   --sidebar-foreground: #f5f2ec;
-  --sidebar-primary: #c79d84;
-  --sidebar-primary-foreground: #0e0e0e;
+  --sidebar-primary: var(--cobalt);
+  --sidebar-primary-foreground: #121212;
   --sidebar-accent: #1a1a1a;
   --sidebar-accent-foreground: #f5f2ec;
   --sidebar-border: rgb(255 255 255 / 0.1);
-  --sidebar-ring: #c79d84;
+  --sidebar-ring: var(--cobalt);
   color-scheme: dark;
 }
 
 /* Landing page lower section keeps the original light palette */
 .theme-cream {
-  --gold-ink: #8a6b2e;
+  --cobalt-text: #4a5bb8;
   --background: #f7f5f1;
   --foreground: #2b2825;
   --card: oklch(0.99 0.005 90);
@@ -167,21 +183,20 @@
   --secondary-foreground: oklch(0.303 0.014 58);
   --muted: oklch(0.938 0.011 84);
   --muted-foreground: oklch(0.523 0.018 62);
-  --accent: oklch(0.728 0.062 52);
+  --accent: var(--cobalt-tint);
   --accent-foreground: oklch(0.216 0.012 55);
   --destructive: oklch(0.552 0.176 24);
   --destructive-foreground: oklch(0.98 0.008 84);
   --border: oklch(0.888 0.012 78);
   --input: oklch(0.888 0.012 78);
-  --ring: oklch(0.728 0.062 52);
+  --ring: var(--cobalt);
   --canvas: oklch(0.912 0.012 80);
-  --gold: #c9a961;
   --silver: #b9b7b1;
-  --chart-1: oklch(0.728 0.062 52);
+  --chart-1: var(--cobalt);
   --chart-2: oklch(0.6 0.05 160);
   --chart-3: oklch(0.45 0.04 250);
-  --chart-4: oklch(0.8 0.08 84);
-  --chart-5: oklch(0.65 0.09 30);
+  --chart-4: var(--cobalt-text);
+  --chart-5: oklch(0.6 0.03 260);
   --sidebar: oklch(0.99 0.005 90);
   --sidebar-foreground: oklch(0.216 0.012 55);
   --sidebar-primary: oklch(0.243 0.014 58);
@@ -189,7 +204,7 @@
   --sidebar-accent: oklch(0.938 0.011 84);
   --sidebar-accent-foreground: oklch(0.303 0.014 58);
   --sidebar-border: oklch(0.888 0.012 78);
-  --sidebar-ring: oklch(0.728 0.062 52);
+  --sidebar-ring: var(--cobalt);
 }
 
 .dark {
@@ -205,29 +220,28 @@
   --secondary-foreground: oklch(0.96 0.006 84);
   --muted: oklch(0.28 0.01 60);
   --muted-foreground: oklch(0.7 0.014 70);
-  --accent: oklch(0.728 0.062 52);
-  --accent-foreground: oklch(0.2 0.012 58);
+  --accent: var(--cobalt-tint);
+  --accent-foreground: oklch(0.96 0.006 84);
   --destructive: oklch(0.62 0.17 24);
   --destructive-foreground: oklch(0.98 0.008 84);
   --border: oklch(1 0 0 / 12%);
   --input: oklch(1 0 0 / 16%);
-  --ring: oklch(0.728 0.062 52);
+  --ring: var(--cobalt);
   --canvas: oklch(0.26 0.01 60);
-  --gold: #c79d84;
   --silver: #8f8d88;
-  --chart-1: oklch(0.728 0.062 52);
+  --chart-1: var(--cobalt);
   --chart-2: oklch(0.7 0.06 160);
   --chart-3: oklch(0.6 0.06 250);
-  --chart-4: oklch(0.8 0.08 84);
-  --chart-5: oklch(0.7 0.09 30);
+  --chart-4: var(--cobalt-text);
+  --chart-5: oklch(0.7 0.03 260);
   --sidebar: oklch(0.228 0.01 60);
   --sidebar-foreground: oklch(0.96 0.006 84);
-  --sidebar-primary: oklch(0.728 0.062 52);
-  --sidebar-primary-foreground: oklch(0.2 0.012 58);
+  --sidebar-primary: var(--cobalt);
+  --sidebar-primary-foreground: #121212;
   --sidebar-accent: oklch(0.28 0.01 60);
   --sidebar-accent-foreground: oklch(0.96 0.006 84);
   --sidebar-border: oklch(1 0 0 / 12%);
-  --sidebar-ring: oklch(0.728 0.062 52);
+  --sidebar-ring: var(--cobalt);
 }
 
 @layer base {
@@ -239,17 +253,19 @@
     background-color: var(--color-background);
     color: var(--color-foreground);
     font-family: var(--font-sans);
+    /* Only the Lato weights loaded in __root.tsx are used; never fake bold/italic */
+    font-synthesis: none;
     -webkit-font-smoothing: antialiased;
   }
 
   :where(a, button):not(:disabled):hover {
-    text-shadow: 0 0 8px rgb(199 157 132 / 0.6);
+    text-shadow: 0 0 8px rgb(123 143 224 / 0.35);
   }
   :where(a, button):not(:disabled):active {
-    text-shadow: 0 0 12px rgb(199 157 132 / 0.8);
+    text-shadow: 0 0 12px rgb(123 143 224 / 0.45);
   }
   :where(a, button):not(:disabled):hover svg {
-    filter: drop-shadow(0 0 4px rgb(199 157 132 / 0.55));
+    filter: drop-shadow(0 0 4px rgb(123 143 224 / 0.35));
   }
 
   h1,
@@ -327,7 +343,7 @@
 }
 
 /*
- * Gold hover/press glow for text links: colour shifts toward gold, soft text-shadow,
+ * Cobalt hover/press glow for text links: colour shifts toward cobalt, soft text-shadow,
  * and any icon inside picks up a matching drop-shadow.
  */
 @utility glow {
@@ -340,18 +356,22 @@
   &:hover,
   &:focus-visible {
     /* Set --glow-base to the link's resting colour on dark backgrounds */
-    color: color-mix(in oklab, var(--glow-base, var(--color-foreground)) 55%, var(--color-gold));
-    text-shadow: 0 0 8px rgb(199 157 132 / 0.6);
+    color: color-mix(
+      in oklab,
+      var(--glow-base, var(--color-foreground)) 55%,
+      var(--color-cobalt-text)
+    );
+    text-shadow: 0 0 8px rgb(123 143 224 / 0.35);
   }
   &:hover svg,
   &:focus-visible svg {
-    filter: drop-shadow(0 0 4px rgb(199 157 132 / 0.6));
+    filter: drop-shadow(0 0 4px rgb(123 143 224 / 0.35));
   }
   &:active {
-    text-shadow: 0 0 12px rgb(199 157 132 / 0.8);
+    text-shadow: 0 0 12px rgb(123 143 224 / 0.45);
   }
   &:active svg {
-    filter: drop-shadow(0 0 6px rgb(199 157 132 / 0.8));
+    filter: drop-shadow(0 0 6px rgb(123 143 224 / 0.45));
   }
 }
 
@@ -457,7 +477,7 @@ body.glass-scope [role="dialog"] {
   left: 30%;
   width: 40vmax;
   height: 40vmax;
-  background: radial-gradient(circle, rgb(199 157 132 / 0.05), transparent 70%);
+  background: radial-gradient(circle, rgb(90 115 220 / 0.04), transparent 70%);
   animation: bg-drift-a 22s ease-in-out infinite reverse;
 }
 @keyframes bg-drift-a {

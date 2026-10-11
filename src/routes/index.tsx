@@ -7,8 +7,8 @@ import { HeaderAuthButtons } from "@/components/HeaderAuthButtons";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
-import heroCollage1 from "@/assets/hero-collage-1.jpg";
-import heroCollage2 from "@/assets/hero-collage-2.jpg";
+import heroCollage1 from "@/assets/hero-collage-1.png";
+import heroCollage2 from "@/assets/hero-collage-2.png";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -140,26 +140,34 @@ function Landing() {
       {/* Full-bleed hero: two-photo collage behind the nav and headline */}
       <div
         className="relative isolate overflow-clip bg-[#1c1b1a] text-cream"
-        style={{ "--glow-base": "var(--color-cream)" } as React.CSSProperties}
+        style={
+          {
+            "--glow-base": "var(--color-cream)",
+            // The hero is dark: accent text uses the dark-ground value, not the cream section's
+            "--cobalt-text": "var(--cobalt-text-on-dark)",
+          } as React.CSSProperties
+        }
       >
         <div
           className="absolute inset-0 -z-20 grid animate-in fade-in duration-700 md:grid-cols-2"
           aria-hidden="true"
         >
+          {/* Desktop: both photos side by side. Phones: only the second, the higher-resolution one */}
           <img
             src={heroCollage1}
             alt=""
-            width={736}
-            height={920}
+            width={766}
+            height={992}
             fetchPriority="high"
-            className="h-full w-full object-cover"
+            className="hidden h-full w-full object-cover md:block"
           />
           <img
             src={heroCollage2}
             alt=""
-            width={1000}
-            height={1250}
-            className="hidden h-full w-full object-cover md:block"
+            width={1683}
+            height={2144}
+            fetchPriority="high"
+            className="h-full w-full object-cover"
           />
         </div>
         {/* Contrast overlay: darker under the nav and behind the headline block */}
@@ -194,7 +202,7 @@ function Landing() {
                 <Link
                   to="/generate"
                   onClick={(e) => handleGatedNavigation(e, "/generate")}
-                  className="nav-link text-gold cursor-pointer"
+                  className="nav-link text-cobalt-text cursor-pointer"
                 >
                   AI Stylist
                 </Link>

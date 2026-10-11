@@ -34,7 +34,7 @@ export function HeaderAuthButtons({
               size="sm"
               className="gap-2 h-9 px-3 rounded-full border-border bg-card hover:bg-muted font-normal text-xs"
             >
-              <span className="flex size-5 items-center justify-center rounded-full border border-gold/60 text-[10px] font-semibold text-gold-ink">
+              <span className="flex size-5 items-center justify-center rounded-full border border-cobalt-border text-[10px] font-semibold text-cobalt-text">
                 {initials}
               </span>
               <span className="max-w-[130px] truncate text-foreground font-medium sm:inline">
@@ -54,13 +54,13 @@ export function HeaderAuthButtons({
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild className="cursor-pointer gap-2 text-xs">
               <Link to="/closet">
-                <Shirt className="size-3.5 text-gold-ink" />
+                <Shirt className="size-3.5 text-cobalt-text" />
                 <span>My Closet</span>
               </Link>
             </DropdownMenuItem>
             <DropdownMenuItem asChild className="cursor-pointer gap-2 text-xs">
               <Link to="/studio">
-                <Sparkles className="size-3.5 text-gold-ink" />
+                <Sparkles className="size-3.5 text-cobalt-text" />
                 <span>Fitting Studio</span>
               </Link>
             </DropdownMenuItem>

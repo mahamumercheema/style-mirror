@@ -52,6 +52,15 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 
+/** Soft accent button: faint border and blue-white text, no glow at rest; brighter border and soft glow on hover */
+const ACCENT_BUTTON =
+  "border-cobalt-border text-cobalt-text hover:border-cobalt-bright hover:shadow-cobalt-glow";
+/** Selected occasion / time-of-day card */
+const SELECTED_CARD =
+  "border-cobalt-border bg-cobalt-tint text-cobalt-text font-medium shadow-cobalt-glow hover:border-cobalt-bright hover:shadow-cobalt-glow-strong";
+/** Small cobalt badge (photo count, suitable pieces) */
+const ACCENT_BADGE = "border-cobalt-border text-cobalt-text";
+
 export const Route = createFileRoute("/generate")({
   head: () => ({
     meta: [
@@ -486,15 +495,17 @@ function GeneratePage() {
   };
 
   return (
-    <main className="min-h-screen text-foreground pb-24 selection:bg-gold/30">
+    <main className="min-h-screen text-foreground pb-24 selection:bg-cobalt/30">
       <div className="mx-auto w-full max-w-6xl px-4 sm:px-6 pt-8 sm:pt-10 space-y-8">
         {/* Page Header */}
         <div className="space-y-2 border-b border-border pb-6">
           <div className="flex items-center gap-2">
-            <p className="eyebrow text-gold-ink tracking-wider">AI Styling & Occasion Filtering</p>
+            <p className="eyebrow text-cobalt-text tracking-wider">
+              AI Styling & Occasion Filtering
+            </p>
             <Badge
               variant="outline"
-              className="text-[10px] bg-gold/10 border-gold/30 text-gold-ink font-mono"
+              className="text-[10px] bg-cobalt-tint border-cobalt-border text-cobalt-text font-mono"
             >
               Auto-Remove Backgrounds
             </Badge>
@@ -511,10 +522,10 @@ function GeneratePage() {
 
         {/* Gallery / Guest Session Status Indicator Banner */}
         {isGuest ? (
-          <div className="rounded-xl border border-gold/30 bg-gold/10 p-4 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="rounded-xl border border-cobalt-border bg-cobalt-tint p-4 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <div className="flex size-10 items-center justify-center rounded-xl bg-gold/10 text-gold-ink shrink-0 border border-gold/30">
-                <Sparkles className="size-5 text-gold-ink" />
+              <div className="flex size-10 items-center justify-center rounded-xl bg-cobalt-tint text-cobalt-text shrink-0 border border-cobalt-border">
+                <Sparkles className="size-5 text-cobalt" />
               </div>
               <div>
                 <div className="flex items-center gap-2 flex-wrap">
@@ -526,7 +537,7 @@ function GeneratePage() {
                     className={`text-[10px] font-mono ${
                       activeGalleryItems.length > 0
                         ? "bg-emerald-500/10 text-emerald-300 border-emerald-500/30 font-semibold"
-                        : "bg-gold/10 text-gold-ink border-gold/30"
+                        : `bg-cobalt-tint ${ACCENT_BADGE}`
                     }`}
                   >
                     {activeGalleryItems.length} in-session photo
@@ -540,7 +551,7 @@ function GeneratePage() {
                   </Badge>
                   <Badge
                     variant="outline"
-                    className="text-[10px] bg-gold/10 text-gold-ink border-gold/30"
+                    className="text-[10px] bg-cobalt-tint text-cobalt-text border-cobalt-border"
                   >
                     Temporary Browser Session
                   </Badge>
@@ -567,7 +578,7 @@ function GeneratePage() {
               <Button
                 onClick={() => setIsAddModalOpen(true)}
                 size="sm"
-                className="gap-1.5 text-xs cursor-pointer shadow-xs"
+                className={`gap-1.5 text-xs cursor-pointer shadow-xs ${ACCENT_BUTTON}`}
               >
                 <Plus className="size-3.5" />
                 <span>Upload Clothing</span>
@@ -588,7 +599,7 @@ function GeneratePage() {
                   onClick={handleSeedGuestDemo}
                   size="sm"
                   variant="outline"
-                  className="gap-1 text-gold-ink border-gold/30 bg-card hover:bg-gold/10 text-xs cursor-pointer"
+                  className="gap-1 text-cobalt-text border-cobalt-border bg-card hover:bg-cobalt-tint text-xs cursor-pointer"
                 >
                   <span>Load Sample Items</span>
                 </Button>
@@ -598,8 +609,8 @@ function GeneratePage() {
         ) : (
           <div className="rounded-xl border border-border bg-card p-4 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <div className="flex size-10 items-center justify-center rounded-xl bg-gold/10 text-gold-ink shrink-0 border border-gold/30">
-                <Shirt className="size-5 text-gold-ink" />
+              <div className="flex size-10 items-center justify-center rounded-xl bg-cobalt-tint shrink-0 border border-cobalt-border">
+                <Shirt className="size-5 text-cobalt" />
               </div>
               <div>
                 <div className="flex items-center gap-2 flex-wrap">
@@ -611,7 +622,7 @@ function GeneratePage() {
                     className={`text-[10px] font-mono ${
                       uploadedWardrobe.length > 0
                         ? "bg-emerald-500/10 text-emerald-300 border-emerald-500/30"
-                        : "bg-gold/10 text-gold-ink border-gold/30"
+                        : `bg-cobalt-tint ${ACCENT_BADGE}`
                     }`}
                   >
                     {uploadedWardrobe.length} photo{uploadedWardrobe.length === 1 ? "" : "s"}{" "}
@@ -638,9 +649,9 @@ function GeneratePage() {
               <Button
                 onClick={() => setIsAddModalOpen(true)}
                 size="sm"
-                className="gap-1.5 text-xs cursor-pointer shadow-xs"
+                className={`gap-1.5 text-xs cursor-pointer shadow-xs ${ACCENT_BUTTON}`}
               >
-                <Plus className="size-3.5" />
+                <Plus className="size-3.5 text-cobalt" />
                 <span>Upload Clothing Photo</span>
               </Button>
             </div>
@@ -649,9 +660,9 @@ function GeneratePage() {
 
         {/* Empty Guest Session Guidance Card */}
         {isGuest && activeGalleryItems.length === 0 && (
-          <div className="rounded-2xl border-2 border-dashed border-gold/30 bg-gold/10 p-6 sm:p-8 text-center space-y-4">
-            <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-gold/10 text-gold-ink border border-gold/30">
-              <Sparkles className="size-6 text-gold-ink" />
+          <div className="rounded-2xl border-2 border-dashed border-cobalt-border bg-cobalt-tint p-6 sm:p-8 text-center space-y-4">
+            <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-cobalt-tint text-cobalt-text border border-cobalt-border">
+              <Sparkles className="size-6 text-cobalt" />
             </div>
             <div className="space-y-1.5 max-w-lg mx-auto">
               <h3 className="text-lg font-display font-semibold text-foreground">
@@ -668,13 +679,13 @@ function GeneratePage() {
                 onClick={() => setIsAddModalOpen(true)}
                 className="gap-2 text-xs shadow-xs cursor-pointer"
               >
-                <Plus className="size-3.5" />
+                <Plus className="size-3.5 text-cobalt" />
                 <span>Upload Clothing Photo</span>
               </Button>
               <Button
                 variant="outline"
                 onClick={handleSeedGuestDemo}
-                className="gap-2 border-gold/30 bg-card hover:bg-gold/10 text-gold-ink text-xs cursor-pointer"
+                className="gap-2 border-cobalt-border bg-card hover:bg-cobalt-tint text-cobalt-text text-xs cursor-pointer"
               >
                 <span>Load 4 Demo Garments into Session</span>
               </Button>
@@ -689,7 +700,7 @@ function GeneratePage() {
             <div className="rounded-2xl border border-border bg-card p-6 shadow-xs space-y-6">
               <div className="border-b border-border pb-4">
                 <h2 className="text-lg font-display font-medium text-foreground flex items-center gap-2">
-                  <Compass className="size-5 text-gold-ink" />
+                  <Compass className="size-5 text-cobalt" />
                   <span>Occasion & Styling Criteria</span>
                 </h2>
                 <p className="text-xs text-muted-foreground mt-0.5">
@@ -705,7 +716,9 @@ function GeneratePage() {
                     <label className="text-xs font-semibold text-foreground/90 uppercase tracking-wider">
                       Select or Enter Occasion *
                     </label>
-                    <span className="text-[10px] text-gold-ink font-medium">Filtering Gallery</span>
+                    <span className="text-[10px] text-cobalt-text font-medium">
+                      Filtering Gallery
+                    </span>
                   </div>
 
                   {/* Preset Occasion Pills */}
@@ -722,7 +735,7 @@ function GeneratePage() {
                           }}
                           className={`flex items-start gap-2 p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
                             isSelected
-                              ? "border-gold bg-gold/10 text-gold-ink font-medium shadow-xs"
+                              ? SELECTED_CARD
                               : "border-border bg-secondary hover:bg-secondary text-foreground/90"
                           }`}
                         >
@@ -745,7 +758,7 @@ function GeneratePage() {
                         Or Enter Custom Occasion:
                       </span>
                       {isCustomOccasion && (
-                        <span className="text-[10px] text-gold-ink font-semibold">
+                        <span className="text-[10px] text-cobalt-text font-semibold">
                           Active Filter
                         </span>
                       )}
@@ -766,7 +779,7 @@ function GeneratePage() {
                         }}
                         className={`text-xs h-10 pr-20 ${
                           isCustomOccasion
-                            ? "border-gold ring-2 ring-gold/20 bg-gold/10"
+                            ? "border-cobalt-border ring-2 ring-cobalt/20 bg-cobalt-tint"
                             : "border-border bg-secondary"
                         }`}
                       />
@@ -786,17 +799,14 @@ function GeneratePage() {
                   </div>
 
                   {/* Active Occasion Target Indicator */}
-                  <div className="rounded-lg bg-gold/10 border border-gold/30 p-2.5 flex items-center justify-between text-xs text-gold-ink">
+                  <div className="rounded-lg bg-cobalt-tint border border-cobalt-border p-2.5 flex items-center justify-between text-xs text-foreground/90">
                     <div className="flex items-center gap-1.5">
-                      <Sparkles className="size-3.5 text-gold-ink shrink-0" />
+                      <Sparkles className="size-3.5 text-cobalt shrink-0" />
                       <span>
-                        Target: <strong>{effectiveOccasion}</strong>
+                        Target: <strong className="text-cobalt-text">{effectiveOccasion}</strong>
                       </span>
                     </div>
-                    <Badge
-                      variant="outline"
-                      className="text-[10px] bg-card border-gold/30 text-gold-ink"
-                    >
+                    <Badge variant="outline" className={`text-[10px] bg-card ${ACCENT_BADGE}`}>
                       {occasionMatchedItems.length} gallery piece(s) suitable
                     </Badge>
                   </div>
@@ -818,12 +828,12 @@ function GeneratePage() {
                           onClick={() => setSelectedTimeOfDay(t.id)}
                           className={`flex flex-col items-center justify-center p-2.5 rounded-lg border text-center transition-all cursor-pointer ${
                             isSelected
-                              ? "border-gold bg-gold/10 text-gold-ink font-medium shadow-xs"
+                              ? SELECTED_CARD
                               : "border-border bg-secondary hover:bg-secondary text-muted-foreground"
                           }`}
                         >
                           <Icon
-                            className={`size-4 mb-1 ${isSelected ? "text-gold-ink" : "text-muted-foreground/80"}`}
+                            className={`size-4 mb-1 ${isSelected ? "text-cobalt-text" : "text-muted-foreground/80"}`}
                           />
                           <span className="text-xs">{t.label}</span>
                         </button>
@@ -840,7 +850,7 @@ function GeneratePage() {
                   <select
                     value={selectedSeason}
                     onChange={(e) => setSelectedSeason(e.target.value)}
-                    className="w-full h-10 rounded-lg border border-border bg-secondary px-3 text-xs sm:text-sm font-medium text-foreground focus:outline-hidden focus:ring-2 focus:ring-gold/40"
+                    className="w-full h-10 rounded-lg border border-border bg-secondary px-3 text-xs sm:text-sm font-medium text-foreground focus:outline-hidden focus:ring-2 focus:ring-cobalt"
                   >
                     {FASHION_SEASONS.map((s) => (
                       <option key={s} value={s}>
@@ -865,7 +875,7 @@ function GeneratePage() {
                           onClick={() => setSelectedVibe(v.id)}
                           className={`w-full text-left p-2.5 rounded-lg border transition-all cursor-pointer flex items-center justify-between ${
                             isSelected
-                              ? "border-gold bg-gold/10 text-foreground font-medium shadow-2xs"
+                              ? "border-cobalt-border bg-cobalt-tint text-foreground font-medium shadow-2xs"
                               : "border-border bg-card hover:bg-secondary text-muted-foreground"
                           }`}
                         >
@@ -873,7 +883,7 @@ function GeneratePage() {
                             <p className="text-xs font-medium text-foreground">{v.label}</p>
                             <p className="text-[11px] text-muted-foreground">{v.desc}</p>
                           </div>
-                          {isSelected && <Check className="size-4 text-gold-ink shrink-0 ml-2" />}
+                          {isSelected && <Check className="size-4 text-cobalt shrink-0 ml-2" />}
                         </button>
                       );
                     })}
@@ -884,12 +894,12 @@ function GeneratePage() {
                 <div className="space-y-2 pt-1 border-t border-border">
                   <label className="text-xs font-semibold text-foreground/90 uppercase tracking-wider flex items-center justify-between">
                     <span>Modesty & Silhouette Preference</span>
-                    <span className="text-[10px] text-gold-ink font-medium">Profile Linked</span>
+                    <span className="text-[10px] text-cobalt-text font-medium">Profile Linked</span>
                   </label>
                   <select
                     value={modestyFilter}
                     onChange={(e) => setModestyFilter(e.target.value)}
-                    className="w-full h-10 rounded-lg border border-border bg-secondary px-3 text-xs sm:text-sm font-medium text-foreground focus:outline-hidden focus:ring-2 focus:ring-gold/40"
+                    className="w-full h-10 rounded-lg border border-border bg-secondary px-3 text-xs sm:text-sm font-medium text-foreground focus:outline-hidden focus:ring-2 focus:ring-cobalt"
                   >
                     <option value="Modest & Loose Fit">
                       Modest & Relaxed (Loose silhouettes, comfortable drape)
@@ -915,7 +925,7 @@ function GeneratePage() {
                   <select
                     value={heroItemId}
                     onChange={(e) => setHeroItemId(e.target.value)}
-                    className="w-full h-10 rounded-lg border border-border bg-secondary px-3 text-xs font-medium text-foreground focus:outline-hidden focus:ring-2 focus:ring-gold/40"
+                    className="w-full h-10 rounded-lg border border-border bg-secondary px-3 text-xs font-medium text-foreground focus:outline-hidden focus:ring-2 focus:ring-cobalt"
                   >
                     <option value="none">No specific piece (Let AI choose full look)</option>
                     {activeGalleryItems.map((item) => (
@@ -979,7 +989,7 @@ function GeneratePage() {
                 >
                   {isCurating ? (
                     <>
-                      <Loader2 className="size-4 animate-spin text-gold-ink" />
+                      <Loader2 className="size-4 animate-spin text-cobalt-text" />
                       <span>Styling your closet...</span>
                     </>
                   ) : (
@@ -996,37 +1006,37 @@ function GeneratePage() {
           <div className="lg:col-span-7 space-y-6">
             {isCurating ? (
               /* Loading State */
-              <div className="rounded-2xl border border-dashed border-gold/30 bg-gold/10 p-12 text-center space-y-6">
-                <div className="relative mx-auto flex size-16 items-center justify-center rounded-full bg-card shadow-xs border border-gold/30">
-                  <Sparkles className="size-8 text-gold-ink animate-pulse" />
+              <div className="rounded-2xl border border-dashed border-cobalt-border bg-cobalt-tint p-12 text-center space-y-6">
+                <div className="relative mx-auto flex size-16 items-center justify-center rounded-full bg-card shadow-xs border border-cobalt-border">
+                  <Sparkles className="size-8 text-cobalt animate-pulse" />
                 </div>
                 <div className="space-y-2">
                   <h3 className="text-xl font-display font-medium text-foreground">
                     Curating Occasion Ensemble...
                   </h3>
-                  <p className="text-xs text-gold-ink max-w-md mx-auto font-mono">
+                  <p className="text-xs text-cobalt-text max-w-md mx-auto font-mono">
                     {curationStage || "Harmonizing silhouettes & removing clothing backgrounds..."}
                   </p>
                 </div>
-                <div className="max-w-xs mx-auto h-1.5 bg-gold/10 rounded-full overflow-hidden">
-                  <div className="h-full bg-gold rounded-full animate-pulse w-3/4" />
+                <div className="max-w-xs mx-auto h-1.5 bg-cobalt-tint rounded-full overflow-hidden">
+                  <div className="h-full bg-cobalt rounded-full animate-pulse w-3/4" />
                 </div>
               </div>
             ) : recommendations && recommendations.length > 0 ? (
               /* Results Cards */
               <div className="space-y-6">
                 {infoMessage && (
-                  <div className="rounded-lg border border-gold/30 bg-gold/10 px-4 py-2.5 text-xs text-gold-ink flex items-center justify-between gap-2">
+                  <div className="rounded-lg border border-cobalt-border bg-cobalt-tint px-4 py-2.5 text-xs text-cobalt-text flex items-center justify-between gap-2">
                     <div className="flex items-center gap-2">
-                      <Info className="size-4 text-gold-ink shrink-0" />
+                      <Info className="size-4 text-cobalt-text shrink-0" />
                       <span>{infoMessage}</span>
                     </div>
                     {isRemovingBackgrounds && (
                       <Badge
                         variant="outline"
-                        className="text-[10px] bg-card border-gold/30 text-gold-ink gap-1 animate-pulse"
+                        className="text-[10px] bg-card border-cobalt-border text-cobalt-text gap-1 animate-pulse"
                       >
-                        <Sparkles className="size-2.5 text-gold-ink" />
+                        <Sparkles className="size-2.5 text-cobalt" />
                         <span>Auto-cleaning backgrounds...</span>
                       </Badge>
                     )}
@@ -1045,7 +1055,7 @@ function GeneratePage() {
                         onClick={() => setActiveOptionTab(idx)}
                         className={`px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer ${
                           activeOptionTab === idx
-                            ? "bg-gold/15 text-gold-ink shadow-sm"
+                            ? "bg-cobalt-tint text-cobalt-text shadow-sm"
                             : "bg-card text-muted-foreground border border-border hover:bg-secondary"
                         }`}
                       >
@@ -1061,7 +1071,7 @@ function GeneratePage() {
                       onClick={() => setShowCheckerboard(!showCheckerboard)}
                       className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors cursor-pointer border ${
                         showCheckerboard
-                          ? "bg-gold/15 text-gold-ink border-gold"
+                          ? "bg-cobalt-tint text-cobalt-text border-cobalt-border"
                           : "bg-card text-muted-foreground border-border hover:bg-secondary"
                       }`}
                       title="Toggle transparent grid background"
@@ -1093,7 +1103,7 @@ function GeneratePage() {
                     {/* Header */}
                     <div className="space-y-2 border-b border-border pb-5">
                       <div className="flex flex-wrap items-center gap-2">
-                        <Badge className="bg-gold/10 text-gold-ink border-gold/30 text-xs">
+                        <Badge className="bg-cobalt-tint text-cobalt-text border-cobalt-border text-xs">
                           {effectiveOccasion}
                         </Badge>
                         <Badge variant="outline" className="text-xs text-muted-foreground">
@@ -1197,7 +1207,7 @@ function GeneratePage() {
                     {/* Outfit Breakdown Details */}
                     <div className="rounded-xl border border-border bg-secondary p-4 space-y-3">
                       <h4 className="text-xs font-semibold text-foreground uppercase tracking-wider flex items-center gap-1.5">
-                        <Layers className="size-4 text-gold-ink" />
+                        <Layers className="size-4 text-cobalt-text" />
                         <span>Outfit Breakdown</span>
                       </h4>
                       <dl className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
@@ -1240,10 +1250,10 @@ function GeneratePage() {
                     {/* Step-by-Step Styling Instructions */}
                     <div className="space-y-2">
                       <h4 className="text-xs font-semibold text-foreground/90 uppercase tracking-wider flex items-center gap-1.5">
-                        <Compass className="size-4 text-gold-ink" />
+                        <Compass className="size-4 text-cobalt" />
                         <span>Styling & Proportions Directive for {effectiveOccasion}</span>
                       </h4>
-                      <p className="text-xs sm:text-sm text-foreground/90 leading-relaxed bg-gold/10 border border-gold/20 rounded-xl p-3.5">
+                      <p className="text-xs sm:text-sm text-foreground/90 leading-relaxed bg-cobalt-tint border border-cobalt-border rounded-xl p-3.5">
                         {currentOption.styling_instructions}
                       </p>
                     </div>
@@ -1252,7 +1262,7 @@ function GeneratePage() {
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
                       <div className="rounded-xl border border-border bg-card p-4 space-y-2 shadow-2xs">
                         <div className="flex items-center gap-2 text-foreground">
-                          <div className="size-7 rounded-full bg-gold/10 flex items-center justify-center text-gold-ink">
+                          <div className="size-7 rounded-full bg-cobalt-tint flex items-center justify-center text-cobalt-text">
                             <Scissors className="size-3.5" />
                           </div>
                           <h5 className="text-xs font-semibold uppercase tracking-wider">
@@ -1281,9 +1291,9 @@ function GeneratePage() {
 
                     {/* Conversion Trigger for Guests: Save My Wardrobe */}
                     {isGuest && (
-                      <div className="rounded-xl border border-gold/30 bg-gradient-to-r from-gold/10 to-transparent p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
+                      <div className="rounded-xl border border-cobalt-border bg-gradient-to-r from-cobalt-tint to-transparent p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
                         <div className="flex items-center gap-3">
-                          <div className="flex size-9 items-center justify-center rounded-full bg-gold text-primary-foreground shrink-0 shadow-xs">
+                          <div className="flex size-9 items-center justify-center rounded-full bg-cobalt text-primary-foreground shrink-0 shadow-xs">
                             <Sparkles className="size-4" />
                           </div>
                           <div>
@@ -1329,7 +1339,7 @@ function GeneratePage() {
             ) : (
               /* Initial State */
               <div className="rounded-2xl border border-border bg-card p-10 text-center space-y-5 shadow-xs">
-                <div className="mx-auto flex size-14 items-center justify-center rounded-full bg-gold/10 text-gold-ink border border-gold/30">
+                <div className="mx-auto flex size-14 items-center justify-center rounded-full bg-cobalt-tint text-cobalt border border-cobalt-border shadow-cobalt-glow">
                   <Sparkles className="size-7" />
                 </div>
                 <div className="space-y-1.5 max-w-md mx-auto">
@@ -1343,15 +1353,18 @@ function GeneratePage() {
                   </p>
                 </div>
                 <div className="pt-2 flex flex-wrap justify-center gap-3">
-                  <Button onClick={handleCurateOutfit} className="gap-2 cursor-pointer text-xs">
+                  <Button
+                    onClick={handleCurateOutfit}
+                    className={`gap-2 cursor-pointer text-xs ${ACCENT_BUTTON}`}
+                  >
                     <span>Curate Look for {effectiveOccasion}</span>
                   </Button>
                   <Button
                     onClick={() => setIsAddModalOpen(true)}
                     variant="outline"
-                    className="gap-1.5 text-xs cursor-pointer border-border"
+                    className={`gap-1.5 text-xs cursor-pointer ${ACCENT_BUTTON}`}
                   >
-                    <Upload className="size-3.5 text-muted-foreground" />
+                    <Upload className="size-3.5 text-cobalt" />
                     <span>Upload Clothing Photo</span>
                   </Button>
                 </div>

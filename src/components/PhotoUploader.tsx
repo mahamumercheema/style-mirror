@@ -169,8 +169,8 @@ export function PhotoUploader({
 
           {/* Validation still runs for every photo; only warnings are shown */}
           {validationNote && validationNote.type === "warning" ? (
-            <div className="flex items-start gap-2.5 rounded-md border border-gold/40 p-3 text-xs text-gold-ink">
-              <AlertCircle className="size-4 shrink-0 mt-0.5 text-gold-ink" />
+            <div className="flex items-start gap-2.5 rounded-md border border-cobalt-border p-3 text-xs text-cobalt-text">
+              <AlertCircle className="size-4 shrink-0 mt-0.5 text-cobalt-text" />
               <p>{validationNote.message}</p>
             </div>
           ) : null}
@@ -210,8 +210,8 @@ export function PhotoUploader({
           className={cn(
             "flex h-full cursor-pointer flex-col items-center justify-center rounded-md border border-dashed px-6 py-8 text-center transition-colors duration-300 sm:px-8",
             dragging
-              ? "border-gold bg-foreground/[0.06]"
-              : "border-white/30 bg-card hover:border-gold",
+              ? "border-cobalt-border bg-foreground/[0.06]"
+              : "border-white/30 bg-card hover:border-cobalt-border",
           )}
         >
           {busy ? (
@@ -266,7 +266,7 @@ export function PhotoGuidance() {
       <ul className="mt-4 space-y-3">
         {GUIDELINES.map((line, index) => (
           <li key={line} className="flex gap-3 text-[13px] text-muted-foreground">
-            <span className="font-display text-base text-gold-ink">
+            <span className="font-display text-base text-cobalt-text">
               {String(index + 1).padStart(2, "0")}
             </span>
             <span>{line}</span>
@@ -281,7 +281,7 @@ export function PhotoGuidance() {
       </div>
 
       <p className="mt-8 flex items-center gap-2 text-xs text-muted-foreground">
-        <Lock className="size-3.5 shrink-0 text-gold-ink" />
+        <Lock className="size-3.5 shrink-0 text-cobalt-text" />
         Your photo is processed in this browser and never stored
       </p>
     </div>
@@ -298,7 +298,7 @@ function PoseExample({ good }: { good: boolean }) {
       <div
         className={cn(
           "overflow-hidden rounded-md border bg-foreground/[0.04]",
-          good ? "border-gold/50" : "border-border",
+          good ? "border-cobalt-border" : "border-border",
         )}
       >
         <svg
@@ -339,7 +339,7 @@ function PoseExample({ good }: { good: boolean }) {
       <figcaption className="flex items-center gap-1.5 text-xs">
         {good ? (
           <>
-            <CheckCircle2 className="size-3.5 text-gold-ink" />
+            <CheckCircle2 className="size-3.5 text-cobalt-text" />
             <span className="text-foreground">Good</span>
           </>
         ) : (

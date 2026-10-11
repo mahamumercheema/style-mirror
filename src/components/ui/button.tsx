@@ -6,22 +6,22 @@ import { cn } from "@/lib/utils";
 
 /*
  * Atelier Ora buttons: uppercase, letter-spaced, 1px border, no fill.
- * Hover/press add a soft amber glow; primary (default) actions are amber.
+ * Hover/press add a soft cobalt glow; primary (default) actions are cobalt.
  */
 const GLOW =
-  "hover:shadow-[0_0_14px_rgb(199_157_132/0.35)] hover:[text-shadow:0_0_8px_rgb(199_157_132/0.5)] active:shadow-[0_0_18px_rgb(199_157_132/0.5)]";
+  "hover:shadow-cobalt-glow hover:[text-shadow:0_0_8px_rgb(123_143_224/0.3)] active:shadow-cobalt-glow-strong";
 
 const buttonVariants = cva(
   "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md border bg-transparent text-[11px] font-medium uppercase tracking-[0.2em] cursor-pointer transition-[color,border-color,background-color,box-shadow,text-shadow] duration-250 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-40 disabled:cursor-not-allowed [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
   {
     variants: {
       variant: {
-        default: `border-gold text-foreground hover:bg-gold/10 ${GLOW}`,
+        default: `border-cobalt-border text-foreground hover:border-cobalt-bright hover:bg-cobalt-tint ${GLOW}`,
         destructive: `border-destructive/70 text-destructive hover:bg-destructive/10`,
-        outline: `border-foreground/60 text-foreground hover:border-gold hover:text-gold-ink ${GLOW}`,
-        secondary: `border-border text-foreground/85 hover:border-gold/60 hover:text-gold-ink ${GLOW}`,
-        ghost: `border-transparent text-muted-foreground hover:text-gold-ink hover:[text-shadow:0_0_8px_rgb(199_157_132/0.5)]`,
-        link: "border-transparent normal-case tracking-normal text-gold-ink underline-offset-4 hover:underline",
+        outline: `border-foreground/60 text-foreground hover:border-cobalt-bright hover:text-cobalt-text ${GLOW}`,
+        secondary: `border-border text-foreground/85 hover:border-cobalt-border hover:text-cobalt-text ${GLOW}`,
+        ghost: `border-transparent text-muted-foreground hover:text-cobalt-text hover:[text-shadow:0_0_8px_rgb(123_143_224/0.3)]`,
+        link: "border-transparent normal-case tracking-normal text-cobalt-text underline-offset-4 hover:underline",
       },
       size: {
         default: "h-9 px-4 py-2",

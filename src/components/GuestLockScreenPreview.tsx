@@ -127,7 +127,7 @@ export function GuestLockScreenPreview({
               <Shirt className="size-10 text-muted-foreground/30 stroke-1" />
             </div>
             <div className="space-y-1 text-left">
-              <span className="text-[10px] tracking-widest uppercase text-gold/70 font-mono">
+              <span className="text-[10px] tracking-widest uppercase text-cobalt-text font-mono">
                 {card.category} · {card.occasion}
               </span>
               <p className="font-serif text-sm font-medium text-foreground/80 truncate">
@@ -145,14 +145,14 @@ export function GuestLockScreenPreview({
       />
 
       {/* Main Lock Screen Card */}
-      <div className="relative z-20 w-full max-w-xl mx-auto rounded-2xl border border-gold/30 bg-card/90 backdrop-blur-xl p-7 sm:p-10 shadow-[0_20px_50px_rgba(0,0,0,0.4)] text-center animate-in fade-in zoom-in-95 duration-300">
+      <div className="relative z-20 w-full max-w-xl mx-auto rounded-2xl border border-cobalt-border bg-card/90 backdrop-blur-xl p-7 sm:p-10 shadow-[0_20px_50px_rgba(0,0,0,0.4)] text-center animate-in fade-in zoom-in-95 duration-300">
         {/* Luxury Lock Emblem */}
-        <div className="mx-auto mb-5 flex size-14 items-center justify-center rounded-full border border-gold/40 bg-gold/10 text-gold-ink shadow-sm">
+        <div className="mx-auto mb-5 flex size-14 items-center justify-center rounded-full border border-cobalt-border bg-cobalt-tint text-cobalt-text shadow-sm">
           <Lock className="size-6 stroke-[1.75]" />
         </div>
 
         {/* Eyebrow */}
-        <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-gold-ink mb-2">
+        <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-cobalt-text mb-2">
           {config.eyebrow}
         </p>
 
@@ -170,7 +170,7 @@ export function GuestLockScreenPreview({
         <div className="rounded-xl border border-border/80 bg-secondary/40 p-4 sm:p-5 text-left space-y-2.5 mb-8">
           {config.bullets.map((bullet, i) => (
             <div key={i} className="flex items-start gap-2.5 text-xs sm:text-sm text-foreground/90">
-              <span className="mt-0.5 flex size-4 shrink-0 items-center justify-center rounded-full bg-gold/20 text-gold-ink text-[10px] font-bold">
+              <span className="mt-0.5 flex size-4 shrink-0 items-center justify-center rounded-full bg-cobalt/20 text-cobalt-text text-[10px] font-bold">
                 ✓
               </span>
               <span className="leading-snug">{bullet}</span>
@@ -184,7 +184,7 @@ export function GuestLockScreenPreview({
             id="guest-gate-signup-btn"
             size="lg"
             onClick={() => openSignUp(undefined, undefined, pathname)}
-            className="w-full sm:w-auto h-12 px-7 text-sm font-medium tracking-wide bg-gold text-background hover:bg-gold/90 border border-gold cursor-pointer shadow-sm transition-all active:scale-[0.98] gap-2"
+            className="w-full sm:w-auto h-12 px-7 text-sm font-medium tracking-wide bg-cobalt-tint text-cobalt-text border border-cobalt-border hover:border-cobalt-bright hover:shadow-cobalt-glow cursor-pointer shadow-sm transition-all active:scale-[0.98] gap-2"
           >
             <UserPlus className="size-4" />
             <span>Sign Up for Free</span>

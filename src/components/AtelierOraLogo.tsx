@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 
 /**
  * "Atelier Ora" brand logo: Bodoni Moda, "Atelier" regular and "Ora" bold. Links home and
- * picks up the gold hover glow. Use tone="light" over dark imagery (the landing hero).
+ * picks up the cobalt hover glow. Use tone="light" over dark imagery (the landing hero).
  */
 export function AtelierOraLogo({
   tone = "dark",

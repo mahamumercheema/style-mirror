@@ -451,7 +451,7 @@ function ProfilePage() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-border">
           <div className="space-y-1">
             <div className="flex items-center gap-2">
-              <span className="flex size-6 items-center justify-center rounded-full bg-primary/10 text-primary">
+              <span className="flex size-6 items-center justify-center rounded-full bg-primary/10 text-cobalt-text">
                 <User className="size-3.5" />
               </span>
               <span className="eyebrow">Phase 4 • Silhouette & Measurements</span>
@@ -474,7 +474,7 @@ function ProfilePage() {
               className="gap-1.5 text-xs font-medium cursor-pointer"
             >
               <Link to="/studio">
-                <Shirt className="size-3.5 text-primary" />
+                <Shirt className="size-3.5 text-cobalt" />
                 <span>Open Fitting Studio</span>
                 <ArrowRight className="size-3 text-muted-foreground" />
               </Link>
@@ -517,7 +517,7 @@ function ProfilePage() {
                   <span className="text-muted-foreground">Body Shape</span>
                   <Badge
                     variant="outline"
-                    className="font-semibold text-xs border-primary/30 text-primary"
+                    className="font-semibold text-xs border-primary/30 text-cobalt-text"
                   >
                     {bodyType}
                   </Badge>
@@ -541,7 +541,7 @@ function ProfilePage() {
               </div>
 
               {!isAuthenticated && (
-                <div className="rounded-lg border border-gold/30 bg-gold/10 p-3 text-xs text-gold-ink space-y-2">
+                <div className="rounded-lg border border-cobalt-border bg-cobalt-tint p-3 text-xs text-cobalt-text space-y-2">
                   <p className="font-medium">Using Guest Mode</p>
                   <p className="text-[11px] text-muted-foreground">
                     Log in to automatically synchronize your base photo and tailored fitting room
@@ -567,17 +567,17 @@ function ProfilePage() {
                 <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 text-xs space-y-2.5">
                   <div className="flex items-center justify-between">
                     <span className="font-semibold text-foreground flex items-center gap-1.5">
-                      <Sparkles className="size-3.5 text-primary" />
+                      <Sparkles className="size-3.5 text-cobalt" />
                       <span>{activeShape.title} Silhouette</span>
                     </span>
-                    <span className="text-[10px] text-primary/80 font-mono">Active Fit</span>
+                    <span className="text-[10px] text-cobalt-text font-mono">Active Fit</span>
                   </div>
                   <p className="text-[11px] text-muted-foreground leading-relaxed">
                     {activeShape.description}
                   </p>
                   <div className="rounded-md bg-background/80 p-2.5 border border-border/60">
                     <p className="text-[11px] text-foreground font-medium flex items-center gap-1 mb-1">
-                      <Compass className="size-3 text-gold-ink" />
+                      <Compass className="size-3 text-cobalt-text" />
                       <span>Couture Stylist Note</span>
                     </p>
                     <p className="text-[11px] text-muted-foreground italic">
@@ -632,7 +632,7 @@ function ProfilePage() {
                 <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border pb-3">
                   <div>
                     <h2 className="text-sm font-semibold text-foreground flex items-center gap-1.5">
-                      <Camera className="size-4 text-primary" />
+                      <Camera className="size-4 text-cobalt" />
                       <span>Virtual Fitting Base Photo</span>
                     </h2>
                     <p className="text-xs text-muted-foreground mt-0.5">
@@ -651,7 +651,7 @@ function ProfilePage() {
                         className="text-xs h-7 px-2.5 gap-1.5 cursor-pointer"
                       >
                         {isDetectingPose ? (
-                          <RefreshCw className="size-3 animate-spin text-primary" />
+                          <RefreshCw className="size-3 animate-spin text-cobalt" />
                         ) : null}
                         <span>Scan Proportions</span>
                       </Button>
@@ -758,7 +758,7 @@ function ProfilePage() {
                 <div className="flex items-center justify-between border-b border-border pb-3">
                   <div>
                     <h2 className="text-sm font-semibold text-foreground flex items-center gap-1.5">
-                      <Ruler className="size-4 text-primary" />
+                      <Ruler className="size-4 text-cobalt" />
                       <span>Body Measurements & Sizing Proportions</span>
                     </h2>
                     <p className="text-xs text-muted-foreground mt-0.5">
@@ -921,9 +921,9 @@ function ProfilePage() {
                 <div className="rounded-lg border border-border/80 bg-secondary/30 p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
                   <div className="space-y-0.5">
                     <span className="font-medium text-foreground flex items-center gap-1.5">
-                      <Sparkles className="size-3 text-primary" />
+                      <Sparkles className="size-3 text-cobalt" />
                       <span>Proportional Ratio Analysis:</span>
-                      <strong className="text-primary font-semibold">
+                      <strong className="text-cobalt-text font-semibold">
                         {calculatedSilhouette.suggestedShape}
                       </strong>
                     </span>
@@ -952,7 +952,7 @@ function ProfilePage() {
               <div className="rounded-xl border border-border bg-card p-6 shadow-xs space-y-4">
                 <div className="border-b border-border pb-3">
                   <h2 className="text-sm font-semibold text-foreground flex items-center gap-1.5">
-                    <Layers className="size-4 text-primary" />
+                    <Layers className="size-4 text-cobalt" />
                     <span>Body Shape & Silhouette Type</span>
                   </h2>
                   <p className="text-xs text-muted-foreground mt-0.5">
@@ -996,7 +996,7 @@ function ProfilePage() {
               <div className="rounded-xl border border-border bg-card p-6 shadow-xs space-y-5">
                 <div className="border-b border-border pb-3">
                   <h2 className="text-sm font-semibold text-foreground flex items-center gap-1.5">
-                    <Compass className="size-4 text-primary" />
+                    <Compass className="size-4 text-cobalt" />
                     <span>Styling Aesthetics & Modesty Preferences</span>
                   </h2>
                   <p className="text-xs text-muted-foreground mt-0.5">
@@ -1026,7 +1026,7 @@ function ProfilePage() {
                         >
                           <div className="flex items-center justify-between">
                             <span className="text-xs font-medium text-foreground">{opt.label}</span>
-                            {isSelected && <Check className="size-3 text-primary" />}
+                            {isSelected && <Check className="size-3 text-cobalt" />}
                           </div>
                           <p className="text-[11px] text-muted-foreground leading-tight">
                             {opt.desc}
@@ -1121,7 +1121,7 @@ function ProfilePage() {
               {/* Form Submission Action Bar */}
               <div className="rounded-xl border border-border bg-card p-4 shadow-xs flex flex-wrap items-center justify-between gap-3">
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <Info className="size-3.5 text-primary" />
+                  <Info className="size-3.5 text-cobalt" />
                   <span>Changes immediately sync to the Fitting Studio and AI Stylist.</span>
                 </div>
 

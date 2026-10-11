@@ -112,14 +112,14 @@ function Stat({
     <div
       className={cn(
         "rounded-md bg-secondary/60 p-4",
-        lowConfidence && "ring-1 ring-gold/50 border border-gold/40",
+        lowConfidence && "ring-1 ring-cobalt/50 border border-cobalt-border",
       )}
     >
       <p className="eyebrow">{label}</p>
       <p className="mt-2 font-display text-3xl leading-none">{value}</p>
       {hint ? <p className="mt-1.5 text-xs text-muted-foreground">{hint}</p> : null}
       {lowConfidence ? (
-        <p className="mt-1.5 flex items-center gap-1 text-[11px] font-medium text-gold-ink">
+        <p className="mt-1.5 flex items-center gap-1 text-[11px] font-medium text-cobalt-text">
           <AlertTriangle className="size-3" />
           Low confidence — consider entering it manually
         </p>
@@ -261,7 +261,7 @@ export function MeasurementsCard({
         </div>
         <div className="flex items-center gap-2">
           {!calibrated ? (
-            <span className="flex items-center gap-1.5 rounded-full border border-gold/40 px-3 py-1 text-xs font-medium text-gold-ink">
+            <span className="flex items-center gap-1.5 rounded-full border border-cobalt-border px-3 py-1 text-xs font-medium text-cobalt-text">
               <Info className="size-3.5" />
               Estimated
             </span>
@@ -272,7 +272,7 @@ export function MeasurementsCard({
 
       {calibrated ? (
         <p className="flex gap-2 rounded-md bg-accent/12 p-3 text-xs text-muted-foreground">
-          <Info className="mt-0.5 size-4 shrink-0 text-gold-ink" />
+          <Info className="mt-0.5 size-4 shrink-0 text-cobalt-text" />
           <span>
             Scaled from your {Math.round(calibrated.heightCm)} cm height using your{" "}
             {calibrated.scaleMethod === "silhouette"
@@ -285,7 +285,7 @@ export function MeasurementsCard({
           </span>
         </p>
       ) : (
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-gold/40 p-3 text-xs text-gold-ink">
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-cobalt-border p-3 text-xs text-cobalt-text">
           <span>
             These proportions aren't calibrated yet. Add your height to get measurements in
             centimeters.
@@ -424,7 +424,7 @@ export function MeasurementsCard({
       <div className="rounded-lg border border-border bg-card/60 p-4 space-y-4">
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-2">
-            <PencilLine className="size-4 text-gold-ink" />
+            <PencilLine className="size-4 text-cobalt-text" />
             <div>
               <Label htmlFor="manual-toggle" className="text-sm font-medium cursor-pointer">
                 Manually enter measurements

@@ -276,7 +276,7 @@ export function EditItemModal({
           <div className="flex items-center justify-between rounded-lg border border-border bg-secondary/30 p-3">
             <div className="flex items-center gap-2">
               <Heart
-                className={`size-4 ${isFavorite ? "fill-gold text-gold-ink" : "text-muted-foreground"}`}
+                className={`size-4 ${isFavorite ? "fill-cobalt text-cobalt-text" : "text-muted-foreground"}`}
               />
               <span className="text-xs font-medium text-foreground">Favorite Piece</span>
             </div>
@@ -285,7 +285,7 @@ export function EditItemModal({
               id="edit-favorite-toggle"
               checked={isFavorite}
               onChange={(e) => setIsFavorite(e.target.checked)}
-              className="size-4 rounded-sm border-border text-gold-ink cursor-pointer"
+              className="size-4 rounded-sm border-border text-cobalt-text cursor-pointer"
             />
           </div>
 

@@ -691,7 +691,7 @@ export function TryOnCanvas({
       ctx.stroke();
 
       const fontSize = Math.max(14, Math.round(size.width * 0.024));
-      ctx.font = `600 ${fontSize}px sans-serif`;
+      ctx.font = `700 ${fontSize}px Lato, sans-serif`;
       ctx.fillStyle = "rgba(255, 255, 255, 0.95)";
       ctx.shadowColor = "rgba(0,0,0,0.8)";
       ctx.shadowBlur = 6;
@@ -738,7 +738,7 @@ export function TryOnCanvas({
     ctx.stroke();
 
     const fontSize = Math.max(14, Math.round(size.width * 0.022));
-    ctx.font = `600 ${fontSize}px sans-serif`;
+    ctx.font = `700 ${fontSize}px Lato, sans-serif`;
     ctx.fillStyle = "rgba(255, 255, 255, 0.95)";
     ctx.shadowColor = "rgba(0,0,0,0.8)";
     ctx.shadowBlur = 6;
@@ -896,7 +896,7 @@ export function TryOnCanvas({
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 rounded-lg bg-secondary/40 border border-border/50 p-2 text-xs">
             <div className="flex items-center gap-2">
               <span className="font-semibold text-foreground flex items-center gap-1">
-                <Sparkles className="size-3.5 text-gold" />
+                <Sparkles className="size-3.5 text-cobalt-text" />
                 <span>Comparison Sliding Toggle:</span>
               </span>
               <span className="text-[11px] text-muted-foreground">
@@ -940,7 +940,7 @@ export function TryOnCanvas({
                 onClick={() => setSplitPosition(50)}
                 className={`px-2 py-0.5 rounded text-[11px] font-medium transition-colors cursor-pointer ${
                   splitPosition === 50
-                    ? "bg-primary/20 text-primary font-bold"
+                    ? "bg-primary/20 text-cobalt-text font-bold"
                     : "hover:bg-secondary text-muted-foreground"
                 }`}
                 title="Balance 50/50"
@@ -989,7 +989,7 @@ export function TryOnCanvas({
                     {comparisonType === "size" ? `Size ${lookASizeId.toUpperCase()}` : garmentTitle}
                   </span>
                 </span>
-                <span className="text-[10px] uppercase tracking-wider font-semibold px-2 py-0.5 rounded-full bg-primary/10 text-primary">
+                <span className="text-[10px] uppercase tracking-wider font-semibold px-2 py-0.5 rounded-full bg-primary/10 text-cobalt-text">
                   {comparisonType === "size" ? `Fit ${lookASizeId.toUpperCase()}` : `Outfit A`}
                 </span>
               </div>
@@ -1013,8 +1013,8 @@ export function TryOnCanvas({
             {/* Right Synced View: Look B */}
             <div className="space-y-1.5">
               <div className="flex items-center justify-between px-1">
-                <span className="text-xs font-semibold text-primary flex items-center gap-1.5">
-                  <Sparkles className="size-3 text-gold" />
+                <span className="text-xs font-semibold text-cobalt-text flex items-center gap-1.5">
+                  <Sparkles className="size-3 text-cobalt-text" />
                   <span>
                     {rightLookTitle}:{" "}
                     {comparisonType === "size" ? `Size ${lookBSizeId.toUpperCase()}` : lookBTitle}
@@ -1062,7 +1062,7 @@ export function TryOnCanvas({
                 </div>
 
                 <div className="absolute top-3 right-3 z-10 pointer-events-none flex items-center gap-1.5 rounded-full bg-primary/90 px-2.5 py-1 text-[11px] font-medium text-primary-foreground backdrop-blur-md shadow-xs">
-                  <Sparkles className="size-3 text-gold" />
+                  <Sparkles className="size-3 text-cobalt-text" />
                   <span>
                     Right:{" "}
                     {comparisonType === "size"
@@ -1101,17 +1101,17 @@ export function TryOnCanvas({
                 className="absolute top-0 bottom-0 z-20 flex items-center justify-center -translate-x-1/2 w-10 cursor-ew-resize touch-none select-none group"
               >
                 {/* Full-height Vertical Dividing Line with contrast glow */}
-                <div className="w-[2px] h-full bg-white/95 shadow-[0_0_8px_rgba(0,0,0,0.6),0_0_2px_rgba(0,0,0,0.9)] transition-colors group-hover:bg-gold" />
+                <div className="w-[2px] h-full bg-white/95 shadow-[0_0_8px_rgba(0,0,0,0.6),0_0_2px_rgba(0,0,0,0.9)] transition-colors group-hover:bg-cobalt" />
 
                 {/* Central Interactive Floating Handle */}
                 <div
                   className={`absolute top-1/2 -translate-y-1/2 flex items-center justify-center size-9 sm:size-10 rounded-full bg-card/95 border-2 border-primary text-foreground shadow-[var(--shadow-lift)] backdrop-blur-md transition-transform duration-100 ${
                     isDraggingSlider
-                      ? "scale-110 ring-4 ring-primary/20 border-gold"
+                      ? "scale-110 ring-4 ring-primary/20 border-cobalt-border"
                       : "group-hover:scale-105"
                   }`}
                 >
-                  <div className="flex items-center gap-0.5 text-primary">
+                  <div className="flex items-center gap-0.5 text-cobalt-text">
                     <ChevronLeft className="size-3.5 stroke-[2.5]" />
                     <div className="w-0.5 h-3.5 bg-border rounded-full" />
                     <ChevronRight className="size-3.5 stroke-[2.5]" />
@@ -1134,7 +1134,7 @@ export function TryOnCanvas({
         {/* Viewport Info / Usage Cue */}
         <div className="flex flex-wrap items-center justify-between gap-2 px-1 pt-1 text-[11px] text-muted-foreground">
           <span className="flex items-center gap-1.5">
-            <Move className="size-3 text-primary" />
+            <Move className="size-3 text-cobalt" />
             <span>
               {viewMode === "split"
                 ? "Drag central vertical slider horizontally across your body to compare • Drag garment on canvas to adjust"
@@ -1195,7 +1195,7 @@ export function TryOnCanvas({
                 onClick={onOpenColorStudio}
                 className="text-xs gap-1.5 cursor-pointer h-8"
               >
-                <Palette className="size-3 text-primary" />
+                <Palette className="size-3 text-cobalt" />
                 <span className="hidden sm:inline">Color Atelier</span>
               </Button>
             )}
@@ -1206,7 +1206,7 @@ export function TryOnCanvas({
         <div className="rounded-xl border border-border bg-secondary/25 p-4 space-y-3">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-foreground flex items-center gap-1.5">
-              <Tag className="size-3.5 text-primary" />
+              <Tag className="size-3.5 text-cobalt" />
               <span>{activeTabLook === "A" ? "Look A" : "Look B"} Size & Fit Specification</span>
             </span>
             <span className="text-[11px] font-mono text-muted-foreground">
@@ -1257,7 +1257,7 @@ export function TryOnCanvas({
           <div className="rounded-xl border border-border bg-secondary/30 p-4 space-y-3">
             <div className="flex items-center justify-between">
               <span className="text-xs font-semibold text-foreground flex items-center gap-1.5">
-                <Shirt className="size-3.5 text-primary" />
+                <Shirt className="size-3.5 text-cobalt" />
                 <span>Look B Outfit Selection ({lookBTitle})</span>
               </span>
               <Button
@@ -1265,7 +1265,7 @@ export function TryOnCanvas({
                 variant="ghost"
                 size="sm"
                 onClick={() => setShowOutfitBPicker(!showOutfitBPicker)}
-                className="h-7 text-xs text-primary hover:underline cursor-pointer"
+                className="h-7 text-xs text-cobalt-text hover:underline cursor-pointer"
               >
                 {showOutfitBPicker ? "Done" : "Change Garment B"}
               </Button>
@@ -1300,7 +1300,7 @@ export function TryOnCanvas({
                       </p>
                       <p className="text-[9px] text-muted-foreground truncate">{preset.category}</p>
                     </div>
-                    {isSelected && <Check className="size-3.5 text-primary" />}
+                    {isSelected && <Check className="size-3.5 text-cobalt" />}
                   </button>
                 );
               })}
@@ -1326,7 +1326,7 @@ export function TryOnCanvas({
                     setLookBSource(customGarmentDataUrl);
                     setLookBTitle("Color Atelier Custom Theme");
                   }}
-                  className="text-primary hover:underline cursor-pointer flex items-center gap-1"
+                  className="text-cobalt-text hover:underline cursor-pointer flex items-center gap-1"
                 >
                   <Palette className="size-3" />
                   <span>Use Bespoke Color Atelier</span>
@@ -1340,7 +1340,7 @@ export function TryOnCanvas({
         <div className="space-y-4 pt-1">
           <div className="flex items-center justify-between text-xs text-muted-foreground border-b border-border/40 pb-2">
             <span className="font-semibold text-foreground flex items-center gap-1.5">
-              <Layers className="size-3.5 text-primary" />
+              <Layers className="size-3.5 text-cobalt" />
               <span>Fine-Tuning: Look {activeTabLook}</span>
             </span>
             <Button
@@ -1355,7 +1355,7 @@ export function TryOnCanvas({
                   setLayerA({ ...layerB });
                 }
               }}
-              className="h-6 text-[11px] px-2 text-primary hover:underline cursor-pointer"
+              className="h-6 text-[11px] px-2 text-cobalt-text hover:underline cursor-pointer"
             >
               Sync Placement to Other Look
             </Button>

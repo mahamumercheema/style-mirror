@@ -3,52 +3,91 @@ import { AlertCircle, Download, Loader2, RefreshCw } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import type { AiTryOn } from "@/hooks/use-ai-try-on";
-import { CATEGORY_LABELS, type GarmentCategory } from "@/lib/garment-category";
+import type { GarmentCardsTryOn } from "@/hooks/use-garment-cards-try-on";
 import { FRAME_LABEL, IMAGE_FRAME } from "@/lib/frame-styles";
+import { OUTFIT_SLOT_LABELS, SKIP_REASONS } from "@/lib/outfit";
 import { cn } from "@/lib/utils";
 
-function sourceNote(source: string | null, evidence: string | null) {
-  switch (source) {
-    case "closet":
-      return "From its closet category";
-    case "image":
-      return `Detected from the product image${evidence ? ` (${evidence})` : ""}`;
-    case "you":
-      return "Chosen by you";
-    case null:
-      return null;
-    default:
-      return `Detected from the product ${source}${evidence ? ` (“${evidence}”)` : ""}`;
-  }
-}
-
-export function TryOnButton({ tryOn, className }: { tryOn: AiTryOn; className?: string }) {
-  const { garment, category, busy, detected } = tryOn;
-  const hint = !garment
-    ? "Add a garment first"
-    : detected.analysingImage
-      ? "Analyzing the garment..."
-      : !category || detected.needsConfirmation
-        ? "Confirm the garment type"
-        : null;
+/**
+ * Try-on button for the "Add garments" cards: sends the photo with every filled card, each as
+ * its own category, layered top → sweater → jacket with pants separately.
+ */
+export function GarmentCardsTryOnButton({
+  cards,
+  onEdit,
+  className,
+}: {
+  cards: GarmentCardsTryOn;
+  onEdit: () => void;
+  className?: string;
+}) {
+  const { filled, layers, busy } = cards;
+  const latest = cards.looks[0];
   return (
-    <div className={cn("flex flex-col items-end gap-1", className)}>
+    <div className={cn("flex flex-col gap-2", className)}>
       <Button
-        onClick={() => void tryOn.tryOn()}
-        disabled={!garment || !category || busy || detected.analysingImage}
+        onClick={() => void cards.start()}
+        disabled={busy || layers.length === 0}
         className="w-full gap-2 sm:w-auto"
       >
         {busy ? <Loader2 className="size-4 animate-spin" /> : null}
         {busy ? "Working..." : "Try it on"}
       </Button>
-      {hint && !busy ? <p className="text-[11px] text-muted-foreground">{hint}</p> : null}
+      <div className="space-y-1 text-[11px] leading-relaxed text-muted-foreground">
+        {filled.length === 0 ? (
+          <p>Add a top, pants, jacket or sweater below to try them on.</p>
+        ) : (
+          <p>
+            Your {filled.length === 1 ? "garment" : `${filled.length} garments`}:{" "}
+            {filled.map((slot) => OUTFIT_SLOT_LABELS[slot]).join(", ")}.{" "}
+            <button
+              type="button"
+              onClick={onEdit}
+              disabled={busy}
+              className="cursor-pointer text-cobalt-text underline-offset-2 hover:underline"
+            >
+              Edit
+            </button>
+          </p>
+        )}
+        {layers.length > 0 ? (
+          <p>
+            Layered {layers.map((slot) => OUTFIT_SLOT_LABELS[slot].toLowerCase()).join(", then ")} (
+            {layers.length === 1 ? "1 run" : `${layers.length} runs`} of your free daily try-ons).
+          </p>
+        ) : null}
+        {latest && !busy
+          ? latest.skipped
+              .filter((item) => item.reason === "no-image")
+              .map(({ slot }) => (
+                <p key={slot} className="text-cobalt-text">
+                  {OUTFIT_SLOT_LABELS[slot]} wasn't rendered: {SKIP_REASONS["no-image"]}. Upload a
+                  photo of it instead.
+                </p>
+              ))
+          : null}
+      </div>
     </div>
   );
 }
 
+/** What the photo frame shows: the person photo or the generated look */
+export type TryOnView = Pick<
+  AiTryOn,
+  "personPhoto" | "phase" | "error" | "elapsed" | "busy" | "statusText" | "download"
+> & {
+  result: { imageDataUrl: string; elapsedMs: number } | null;
+  /** What was tried on, e.g. "Top" or "Pants + Top" */
+  resultLabel: string | null;
+  resultAlt: string;
+  /** Re-runs the try-on, with a new seed for a different result */
+  tryOn: (seed?: number) => Promise<void>;
+};
+
 /** "Your photo" column: the person photo, replaced by the generated look once it's ready. */
-export function TryOnPhotoFrame({ tryOn }: { tryOn: AiTryOn }) {
-  const { personPhoto, phase, result, error, elapsed, busy, statusText, garment } = tryOn;
+export function TryOnPhotoFrame({ tryOn }: { tryOn: TryOnView }) {
+  const { personPhoto, phase, result, error, elapsed, busy, statusText, resultLabel, resultAlt } =
+    tryOn;
   const [showOriginal, setShowOriginal] = useState(false);
   useEffect(() => setShowOriginal(false), [result]);
   const showResult = phase === "done" && result && !showOriginal;
@@ -73,7 +112,7 @@ export function TryOnPhotoFrame({ tryOn }: { tryOn: AiTryOn }) {
                 className={cn(
                   "cursor-pointer rounded-full border px-3 py-1 text-[11px] transition-colors",
                   showOriginal === original
-                    ? "border-gold text-gold-ink"
+                    ? "border-cobalt-border text-cobalt-text"
                     : "border-transparent text-muted-foreground hover:text-foreground",
                 )}
               >
@@ -87,7 +126,7 @@ export function TryOnPhotoFrame({ tryOn }: { tryOn: AiTryOn }) {
       <div data-frame="photo" className={cn(IMAGE_FRAME, "bg-secondary")}>
         <img
           src={showResult ? result.imageDataUrl : personPhoto}
-          alt={showResult && garment ? `You wearing ${garment.title}` : "Your photo"}
+          alt={showResult ? resultAlt : "Your photo"}
           className={cn(
             "absolute inset-0 size-full object-top",
             showResult ? "object-contain" : "object-cover",
@@ -124,7 +163,7 @@ export function TryOnPhotoFrame({ tryOn }: { tryOn: AiTryOn }) {
       {phase === "done" && result ? (
         <div className="flex flex-wrap items-center justify-between gap-3">
           <p className="text-xs text-muted-foreground">
-            Generated in {Math.round(result.elapsedMs / 1000)}s · {CATEGORY_LABELS[result.category]}
+            Generated in {Math.round(result.elapsedMs / 1000)}s · {resultLabel}
           </p>
           <div className="flex gap-2">
             <Button
@@ -142,56 +181,6 @@ export function TryOnPhotoFrame({ tryOn }: { tryOn: AiTryOn }) {
           </div>
         </div>
       ) : null}
-    </div>
-  );
-}
-
-/** Garment type (Leffa mode): detected automatically, always overridable */
-export function GarmentTypePicker({ tryOn }: { tryOn: AiTryOn }) {
-  const { detected, category, busy } = tryOn;
-  return (
-    <div className="space-y-2">
-      <p className="text-sm font-medium">What kind of garment is it?</p>
-      <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Garment type">
-        {(Object.keys(CATEGORY_LABELS) as GarmentCategory[]).map((option) => (
-          <button
-            key={option}
-            type="button"
-            role="radio"
-            aria-checked={category === option}
-            disabled={busy}
-            onClick={() => detected.chooseCategory(option)}
-            className={cn(
-              "rounded-full border px-3.5 py-1.5 text-xs font-medium transition-colors",
-              category === option
-                ? "border-gold bg-gold/10 text-gold-ink"
-                : "border-border text-muted-foreground hover:border-foreground/50",
-            )}
-          >
-            {CATEGORY_LABELS[option]}
-          </button>
-        ))}
-      </div>
-      {detected.analysingImage ? (
-        <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
-          <Loader2 className="size-3 animate-spin" />
-          Analyzing the garment...
-        </p>
-      ) : detected.needsConfirmation ? (
-        <p className="text-xs font-medium text-gold-ink">
-          {category
-            ? "Not certain — please confirm the garment type."
-            : "Couldn't identify the garment — please choose its type."}
-        </p>
-      ) : (
-        <p className="text-xs text-muted-foreground">
-          {sourceNote(detected.source, detected.evidence)}
-        </p>
-      )}
-      <p className="text-[11px] leading-relaxed text-muted-foreground">
-        Try-on uses the free, open-source Leffa model on Hugging Face's free GPU tier, so there's a
-        small daily limit. Your images are sent for this one request and not stored.
-      </p>
     </div>
   );
 }

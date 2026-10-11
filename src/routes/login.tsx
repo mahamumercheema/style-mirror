@@ -46,8 +46,8 @@ function LoginPage() {
       <div className="max-w-md space-y-6">
         <AtelierOraLogo />
         <div className="space-y-2">
-          <div className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-3 py-1 text-xs font-medium text-amber-900 border border-amber-200">
-            <ShieldCheck className="size-3.5 text-amber-600" />
+          <div className="inline-flex items-center gap-1.5 rounded-full bg-cobalt-tint px-3 py-1 text-xs font-medium text-cobalt-text border border-cobalt-border">
+            <ShieldCheck className="size-3.5 text-cobalt-text" />
             <span>Protected Feature Gate</span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-display font-semibold text-foreground">

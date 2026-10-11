@@ -58,8 +58,8 @@ export function ColorStudioPanel({
       {/* Studio Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border/80 pb-5">
         <div>
-          <div className="flex items-center gap-1.5 text-xs font-semibold text-gold-ink">
-            <Palette className="size-4 text-gold-ink" />
+          <div className="flex items-center gap-1.5 text-xs font-semibold text-cobalt-text">
+            <Palette className="size-4 text-cobalt-text" />
             <span>Interactive Color Wheel & Harmony Studio</span>
           </div>
           <h2 className="mt-1 font-display text-2xl md:text-3xl">
@@ -76,7 +76,7 @@ export function ColorStudioPanel({
           <Button
             type="button"
             onClick={onApplyAndClose}
-            className="gap-2 shrink-0 cursor-pointer border border-gold bg-transparent text-gold-ink hover:bg-gold/10"
+            className="gap-2 shrink-0 cursor-pointer border border-cobalt-border bg-transparent text-cobalt-text hover:bg-cobalt-tint"
           >
             <CheckCircle2 className="size-4" />
             <span>Apply to Fitting Room</span>
@@ -92,7 +92,7 @@ export function ColorStudioPanel({
           className={cn(
             "flex items-center gap-1.5 rounded-lg px-3.5 py-2 font-medium transition-all cursor-pointer",
             activeTab === "customizer"
-              ? "border border-gold bg-gold/10 text-gold-ink "
+              ? "border border-cobalt-border bg-cobalt-tint text-cobalt-text "
               : "bg-secondary/40 text-muted-foreground hover:bg-secondary hover:text-foreground",
           )}
         >
@@ -106,7 +106,7 @@ export function ColorStudioPanel({
           className={cn(
             "flex items-center gap-1.5 rounded-lg px-3.5 py-2 font-medium transition-all cursor-pointer",
             activeTab === "harmonies"
-              ? "border border-gold bg-gold/10 text-gold-ink "
+              ? "border border-cobalt-border bg-cobalt-tint text-cobalt-text "
               : "bg-secondary/40 text-muted-foreground hover:bg-secondary hover:text-foreground",
           )}
         >
@@ -119,7 +119,7 @@ export function ColorStudioPanel({
           className={cn(
             "flex items-center gap-1.5 rounded-lg px-3.5 py-2 font-medium transition-all cursor-pointer",
             activeTab === "moodboard"
-              ? "border border-gold bg-gold/10 text-gold-ink "
+              ? "border border-cobalt-border bg-cobalt-tint text-cobalt-text "
               : "bg-secondary/40 text-muted-foreground hover:bg-secondary hover:text-foreground",
           )}
         >
@@ -141,13 +141,13 @@ export function ColorStudioPanel({
           <div className="surface p-4 rounded-md border border-border/80 bg-secondary/15 space-y-3">
             <div className="flex items-center justify-between">
               <span className="text-xs font-semibold text-foreground flex items-center gap-1.5">
-                <Sparkles className="size-3.5 text-gold-ink" />
+                <Sparkles className="size-3.5 text-cobalt-text" />
                 <span>Quick Harmony Presets for Base ({baseColorHex}):</span>
               </span>
               <button
                 type="button"
                 onClick={() => setActiveTab("harmonies")}
-                className="text-xs text-gold-ink hover:underline cursor-pointer"
+                className="text-xs text-cobalt-text hover:underline cursor-pointer"
               >
                 Open Full Color Wheel →
               </button>
@@ -214,7 +214,7 @@ export function ColorStudioPanel({
                   <button
                     type="button"
                     onClick={() => setActiveTab("customizer")}
-                    className="text-xs text-gold-ink hover:underline cursor-pointer"
+                    className="text-xs text-cobalt-text hover:underline cursor-pointer"
                   >
                     View Garment Blueprint →
                   </button>

@@ -110,7 +110,7 @@ export function GarmentCropDialog({
               onChange={(_, percentCrop) => setCrop(percentCrop)}
               keepSelection
               ruleOfThirds
-              className="[--rc-border-color:var(--color-gold)] [--rc-drag-handle-bg-colour:var(--color-gold)] [--rc-drag-handle-size:14px] [--rc-drag-handle-mobile-size:26px]"
+              className="[--rc-border-color:var(--color-cobalt)] [--rc-drag-handle-bg-colour:var(--color-cobalt)] [--rc-drag-handle-size:14px] [--rc-drag-handle-mobile-size:26px]"
               style={{ maxHeight: IMAGE_MAX_HEIGHT }}
             >
               <img

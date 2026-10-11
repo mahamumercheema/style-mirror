@@ -80,8 +80,8 @@ export function PoseOverlay({
 
       for (const line of skeletonLines) {
         ctx.beginPath();
-        // Warm clay / subtle gold editorial tone
-        ctx.strokeStyle = "rgba(184, 134, 102, 0.85)";
+        // Cobalt accent
+        ctx.strokeStyle = "rgba(123, 143, 224, 0.85)";
         ctx.moveTo(line.from.x * scaleFactor, line.from.y * scaleFactor);
         ctx.lineTo(line.to.x * scaleFactor, line.to.y * scaleFactor);
         ctx.stroke();
@@ -93,16 +93,16 @@ export function PoseOverlay({
         const x = kp.x * scaleFactor;
         const y = kp.y * scaleFactor;
 
-        // Outer translucent halo (amber for weakly detected joints)
+        // Outer translucent halo (coral for weakly detected joints, so they stand out from cobalt)
         const weak = kp.score < LOW_LANDMARK_SCORE;
         ctx.beginPath();
-        ctx.fillStyle = weak ? "rgba(217, 119, 6, 0.45)" : "rgba(184, 134, 102, 0.35)";
+        ctx.fillStyle = weak ? "rgba(255, 107, 107, 0.5)" : "rgba(123, 143, 224, 0.35)";
         ctx.arc(x, y, Math.max(5, width * 0.007), 0, Math.PI * 2);
         ctx.fill();
 
         // Inner solid core
         ctx.beginPath();
-        ctx.fillStyle = weak ? "#FDE68A" : "#FAF8F5";
+        ctx.fillStyle = weak ? "#FFC9C9" : "#FAF8F5";
         ctx.strokeStyle = "rgba(45, 38, 32, 0.9)";
         ctx.lineWidth = 1.5;
         ctx.arc(x, y, Math.max(2.5, width * 0.0035), 0, Math.PI * 2);
@@ -137,7 +137,7 @@ export function PoseOverlay({
           ) : null}
           {backgroundRemoved ? (
             <span className="hidden items-center gap-1 rounded-full bg-background/90 px-2.5 py-1 text-xs text-foreground backdrop-blur-sm sm:flex">
-              <Wand2 className="size-3 text-gold-ink" />
+              <Wand2 className="size-3 text-cobalt-text" />
               Background removed
             </span>
           ) : null}
@@ -159,11 +159,11 @@ export function PoseOverlay({
 
       {lowConfidenceMeasurements.length > 0 ? (
         <div className="border-t border-border px-4 py-3 text-xs">
-          <p className="flex items-start gap-1.5 text-gold-ink">
+          <p className="flex items-start gap-1.5 text-cobalt-text">
             <AlertTriangle className="mt-0.5 size-3.5 shrink-0" />
             <span>
               <span className="font-medium">Low confidence:</span>{" "}
-              {lowConfidenceMeasurements.join(", ")}. Amber joints were hard to see.
+              {lowConfidenceMeasurements.join(", ")}. Coral joints were hard to see.
             </span>
           </p>
         </div>
@@ -171,7 +171,7 @@ export function PoseOverlay({
 
       <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border p-4 text-xs text-muted-foreground">
         <div className="flex items-center gap-2">
-          <Sparkles className="size-3.5 text-gold-ink" />
+          <Sparkles className="size-3.5 text-cobalt-text" />
           <span>Real-time pose detected on your device</span>
         </div>
         <div className="flex items-center gap-2">

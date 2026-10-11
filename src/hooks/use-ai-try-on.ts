@@ -2,13 +2,14 @@ import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 
 import { useGarmentCategory } from "@/hooks/use-garment-category";
+import { CATEGORY_LABELS } from "@/lib/garment-category";
 import type { ProductPreview } from "@/lib/product.functions";
 import { generateTryOn, type TryOnResult } from "@/lib/tryon.functions";
 
 const MAX_EDGE = 1024;
 
 /** Shrinks a data-URL image to at most 1024px on its long edge (JPEG). URLs pass through. */
-async function prepareImage(src: string) {
+export async function prepareImage(src: string) {
   if (!src.startsWith("data:")) return src;
   const img = new Image();
   img.src = src;
@@ -29,14 +30,14 @@ async function prepareImage(src: string) {
 const LEFFA_WIDTH = 768;
 const LEFFA_HEIGHT = 1024;
 
-type Rect = { x: number; y: number; width: number; height: number };
+export type Rect = { x: number; y: number; width: number; height: number };
 
 /**
  * Fits the person photo into Leffa's 768×1024 frame without distortion. Instead of the
  * white bars Leffa would add, the spare space is filled with a blurred copy of the photo
  * (natural context for the model). Returns where the real photo sits, to crop back later.
  */
-async function preparePerson(src: string): Promise<{ dataUrl: string; photoRect: Rect }> {
+export async function preparePerson(src: string): Promise<{ dataUrl: string; photoRect: Rect }> {
   const img = new Image();
   img.src = src;
   await img.decode();
@@ -69,7 +70,7 @@ async function preparePerson(src: string): Promise<{ dataUrl: string; photoRect:
 }
 
 /** Crops Leffa's output back to the photo's original framing (drops the padded margins). */
-async function cropToPhoto(resultSrc: string, rect: Rect) {
+export async function cropToPhoto(resultSrc: string, rect: Rect) {
   const img = new Image();
   img.src = resultSrc;
   await img.decode();
@@ -95,7 +96,7 @@ async function cropToPhoto(resultSrc: string, rect: Rect) {
   return canvas.toDataURL("image/png");
 }
 
-type Phase = "idle" | "preparing" | "generating" | "done" | "error";
+export type TryOnPhase = "idle" | "preparing" | "generating" | "done" | "error";
 
 /**
  * Leffa try-on state for a person photo and garment: category detection, generation and
@@ -104,7 +105,7 @@ type Phase = "idle" | "preparing" | "generating" | "done" | "error";
 export function useAiTryOn(personPhoto: string, garment: ProductPreview | null) {
   const runTryOn = useServerFn(generateTryOn);
   const detected = useGarmentCategory(garment);
-  const [phase, setPhase] = useState<Phase>("idle");
+  const [phase, setPhase] = useState<TryOnPhase>("idle");
   const [result, setResult] = useState<TryOnResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [elapsed, setElapsed] = useState(0);
@@ -181,6 +182,8 @@ export function useAiTryOn(personPhoto: string, garment: ProductPreview | null) 
   return {
     garment,
     personPhoto,
+    resultLabel: result ? CATEGORY_LABELS[result.category] : null,
+    resultAlt: garment ? `You wearing ${garment.title}` : "Your look",
     detected,
     category,
     phase,

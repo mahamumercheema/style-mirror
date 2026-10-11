@@ -32,7 +32,7 @@ function NotFoundComponent() {
         <div className="mt-6">
           <Link
             to="/"
-            className="inline-flex items-center justify-center rounded-md border border-gold px-4 py-2 text-[11px] font-medium uppercase tracking-[0.2em] text-gold-ink transition-colors hover:bg-gold/10"
+            className="inline-flex items-center justify-center rounded-md border border-cobalt-border px-4 py-2 text-[11px] font-medium uppercase tracking-[0.2em] text-cobalt-text transition-colors hover:bg-cobalt-tint"
           >
             Go home
           </Link>
@@ -64,7 +64,7 @@ function ErrorComponent({ error, reset }: ErrorComponentProps) {
               router.invalidate();
               reset();
             }}
-            className="inline-flex items-center justify-center rounded-md border border-gold px-4 py-2 text-[11px] font-medium uppercase tracking-[0.2em] text-gold-ink transition-colors hover:bg-gold/10"
+            className="inline-flex items-center justify-center rounded-md border border-cobalt-border px-4 py-2 text-[11px] font-medium uppercase tracking-[0.2em] text-cobalt-text transition-colors hover:bg-cobalt-tint"
           >
             Try again
           </button>
@@ -106,7 +106,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       {
         rel: "stylesheet",
-        href: "https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,400..900&display=swap",
+        href: "https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,300;0,400;0,700;0,900;1,400;1,700&family=Bodoni+Moda:opsz,wght@6..96,400..900&display=swap",
       },
       {
         rel: "stylesheet",

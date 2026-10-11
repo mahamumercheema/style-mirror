@@ -36,7 +36,7 @@ export function WardrobeItemCard({
       case "Bottoms":
         return "bg-secondary text-muted-foreground border-border";
       case "Full Body / Ethnic Set":
-        return "border border-gold/40 text-gold-ink border-gold/40";
+        return "border border-cobalt-border text-cobalt-text border-cobalt-border";
       case "Footwear":
         return "bg-secondary text-muted-foreground border-border";
       case "Accessories":
@@ -75,7 +75,7 @@ export function WardrobeItemCard({
           }}
           className={`absolute right-2.5 top-2.5 z-10 flex size-8 items-center justify-center rounded-full backdrop-blur-md transition-all cursor-pointer  ${
             item.is_favorite
-              ? "border border-gold bg-gold/10 text-gold-ink hover:bg-gold/20 scale-105"
+              ? "border border-cobalt-border bg-cobalt-tint text-cobalt-text hover:bg-cobalt/20 scale-105"
               : "bg-black/40 text-white/80 hover:bg-black/60 hover:text-white"
           }`}
         >
@@ -103,7 +103,7 @@ export function WardrobeItemCard({
           <Button
             asChild
             size="sm"
-            className="w-full h-8 text-xs font-medium border border-gold bg-black/60 text-gold-ink hover:bg-black/70 backdrop-blur-xs cursor-pointer gap-1.5"
+            className="w-full h-8 text-xs font-medium border border-cobalt-border bg-black/60 text-cobalt-text hover:bg-black/70 backdrop-blur-xs cursor-pointer gap-1.5"
           >
             <Link to="/studio">
               <Shirt className="size-3.5" />
@@ -187,7 +187,9 @@ export function WardrobeItemCard({
                 key={occ.id}
                 className="inline-flex items-center gap-1 rounded-full bg-secondary/80 px-2 py-0.5 text-[10px] text-secondary-foreground font-medium"
               >
-                {occ.name?.includes("Wedding") && <Sparkles className="size-2.5 text-gold-ink" />}
+                {occ.name?.includes("Wedding") && (
+                  <Sparkles className="size-2.5 text-cobalt-text" />
+                )}
                 <span className="truncate max-w-[100px]">{occ.name}</span>
               </span>
             ))}

@@ -77,7 +77,7 @@ export function MobileNav() {
                     to={link.to}
                     onClick={() => setOpen(false)}
                     className={`glow flex w-full items-center border-b border-border py-5 text-sm font-medium uppercase tracking-[0.2em] ${
-                      link.accent ? "text-gold" : "text-foreground/90"
+                      link.accent ? "text-cobalt-text" : "text-foreground/90"
                     }`}
                   >
                     {link.label}
@@ -98,7 +98,7 @@ export function MobileNav() {
                 {isAuthenticated && user ? (
                   <>
                     <div className="flex items-center gap-3 rounded-lg border border-border/80 bg-secondary/50 p-3">
-                      <div className="flex size-9 items-center justify-center rounded-full border border-gold/50 bg-gold/10 text-xs font-semibold text-gold-ink">
+                      <div className="flex size-9 items-center justify-center rounded-full border border-cobalt-border bg-cobalt-tint text-xs font-semibold text-cobalt-text">
                         {user.email.substring(0, 2).toUpperCase()}
                       </div>
                       <div className="min-w-0 flex-1">
@@ -132,7 +132,7 @@ export function MobileNav() {
                       Log In
                     </Button>
                     <Button
-                      className="h-12 w-full gap-2 bg-gold text-background hover:bg-gold/90 border border-gold"
+                      className="h-12 w-full gap-2 bg-cobalt-tint text-cobalt-text border border-cobalt-border hover:border-cobalt-bright hover:shadow-cobalt-glow"
                       onClick={() => {
                         setOpen(false);
                         openSignUp();

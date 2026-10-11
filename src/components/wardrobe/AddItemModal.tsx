@@ -377,7 +377,7 @@ export function AddItemModal({
                         {isRemovingBg ? (
                           <Badge
                             variant="outline"
-                            className="text-[10px] bg-gold/10 text-gold-ink border-gold/20 gap-1"
+                            className="text-[10px] bg-cobalt-tint text-cobalt-text border-cobalt-border gap-1"
                           >
                             <Loader2 className="size-2.5 animate-spin" />
                             <span>Auto-Removing Background</span>
@@ -733,7 +733,7 @@ export function AddItemModal({
               id="modal-favorite-toggle"
               checked={isFavorite}
               onChange={(e) => setIsFavorite(e.target.checked)}
-              className="size-4 rounded-sm border-border text-primary cursor-pointer"
+              className="size-4 rounded-sm border-border text-cobalt-text cursor-pointer"
             />
           </div>
 

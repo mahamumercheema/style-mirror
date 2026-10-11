@@ -50,7 +50,7 @@ export function SiteHeader() {
           <Link to="/closet" className="nav-link text-foreground/90">
             My Closet
           </Link>
-          <Link to="/generate" className="nav-link text-gold-ink">
+          <Link to="/generate" className="nav-link text-cobalt-text">
             AI Stylist
           </Link>
           <Link to="/studio" className="nav-link text-foreground/90">

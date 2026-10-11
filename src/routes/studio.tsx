@@ -22,14 +22,18 @@ import {
   Wand2,
 } from "lucide-react";
 
-import { ClothingLinkPanel } from "@/components/ClothingLinkPanel";
+import {
+  EMPTY_GARMENT_UPLOADS,
+  GarmentUploadCards,
+  type GarmentUploads,
+} from "@/components/GarmentUploadCards";
 import { HeaderAuthButtons } from "@/components/HeaderAuthButtons";
 import { HeightCalibrationCard } from "@/components/HeightCalibrationCard";
 import { lowConfidenceLabels, MeasurementsCard } from "@/components/MeasurementsCard";
 import { PhotoGuidance, PhotoUploader } from "@/components/PhotoUploader";
 import { PoseOverlay } from "@/components/PoseOverlay";
-import { GarmentTypePicker, TryOnButton, TryOnPhotoFrame } from "@/components/AiTryOnPanel";
-import { useAiTryOn } from "@/hooks/use-ai-try-on";
+import { GarmentCardsTryOnButton, TryOnPhotoFrame } from "@/components/AiTryOnPanel";
+import { useGarmentCardsTryOn } from "@/hooks/use-garment-cards-try-on";
 import { useBackgroundPause } from "@/hooks/use-background-pause";
 import { FRAME_LABEL, IMAGE_FRAME } from "@/lib/frame-styles";
 import { ColorStudioPanel } from "@/components/colors/ColorStudioPanel";
@@ -47,8 +51,14 @@ import {
   type PoseGuide,
   type SkeletonLine,
 } from "@/lib/pose-types";
-import type { ProductPreview } from "@/lib/product.functions";
 import { resolveMeasurements, type ManualMeasurements } from "@/lib/body-measurements";
+import {
+  itemImage,
+  linkDomain,
+  OUTFIT_SLOT_LABELS,
+  OUTFIT_SLOTS,
+  type OutfitPayload,
+} from "@/lib/outfit";
 import {
   extractColorPaletteFromImage,
   FALLBACK_MOOD_BOARD_PALETTE,
@@ -105,7 +115,8 @@ function Studio() {
   const [guide, setGuide] = useState<PoseGuide | null>(null);
   const [keypoints, setKeypoints] = useState<DetectedKeypoint[]>([]);
   const [skeletonLines, setSkeletonLines] = useState<SkeletonLine[]>([]);
-  const [product, setProduct] = useState<ProductPreview | null>(null);
+  /** "Add garments" cards: { top, pants, jacket, sweater }, each a photo, a link or null */
+  const [garments, setGarments] = useState<GarmentUploads>(EMPTY_GARMENT_UPLOADS);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [isSyncingProfile, setIsSyncingProfile] = useState(false);
 
@@ -133,8 +144,12 @@ function Studio() {
     buttons: "#1c1815",
     stitching: "#e5ded4",
   });
-  const [customGarmentDataUrl, setCustomGarmentDataUrl] = useState<string | null>(null);
   const [showColorStudio, setShowColorStudio] = useState<boolean>(true);
+
+  // Each step opens at the top of the page, not at the previous step's scroll position
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "instant" });
+  }, [currentStep]);
 
   // Phase 4: Automatically load saved base photo and measurement proportions from user profile
   useEffect(() => {
@@ -189,23 +204,10 @@ function Studio() {
     }
   }, [user?.id, photo]);
 
-  // What gets tried on: the chosen item, or the Color Studio's custom colourway
-  const tryOnGarment = useMemo<ProductPreview | null>(
-    () =>
-      product ??
-      (customGarmentDataUrl
-        ? {
-            title: "Custom colorway garment",
-            siteName: "Color Studio",
-            sourceUrl: "",
-            imageDataUrl: customGarmentDataUrl,
-          }
-        : null),
-    [product, customGarmentDataUrl],
-  );
-  const tryOn = useAiTryOn(photo ?? "", tryOnGarment);
+  // Try it on sends the photo plus every filled "Add garments" card
+  const cardsTryOn = useGarmentCardsTryOn(photo ?? "", garments);
   // Keep the GPU free for pose detection and try-on
-  useBackgroundPause(status === "measuring" || tryOn.busy);
+  useBackgroundPause(status === "measuring" || cardsTryOn.busy);
 
   const handleSaveMeasurementsToProfile = async () => {
     if (!measurements) return;
@@ -336,27 +338,6 @@ function Studio() {
     });
   };
 
-  const handleProductSelect = (newProduct: ProductPreview | null) => {
-    setProduct(newProduct);
-    if (newProduct?.imageDataUrl) {
-      void extractColorPaletteFromImage(newProduct.imageDataUrl).then((palette) => {
-        if (palette && palette.length > 0) {
-          setExtractedPalette(palette);
-          if (palette[0]) {
-            setBaseColorHex(palette[0].hex);
-            setGarmentTheme((curr) => ({
-              ...curr,
-              mainBody: palette[0]!.hex,
-              trims: palette[1]?.hex || curr.trims,
-              buttons: palette[palette.length - 1]?.hex || curr.buttons,
-              stitching: palette[2]?.hex || curr.stitching,
-            }));
-          }
-        }
-      });
-    }
-  };
-
   // Step 2 opens on the height prompt; analysis starts once height is confirmed
   const handleStartAnalysis = () => {
     if (!photo) return;
@@ -374,6 +355,9 @@ function Studio() {
     setCurrentStep(3);
   };
 
+  const scrollToGarmentCards = () =>
+    document.getElementById("add-garments")?.scrollIntoView({ behavior: "smooth", block: "start" });
+
   const reset = () => {
     setPhoto(null);
     setCurrentStep(1);
@@ -384,7 +368,6 @@ function Studio() {
     setKeypoints([]);
     setSkeletonLines([]);
     setPoseError(null);
-    setProduct(null);
     setAnalysisPhoto(null);
     setBackgroundRemoved(false);
   };
@@ -431,7 +414,7 @@ function Studio() {
             className={cn(
               "relative shrink-0 whitespace-nowrap border-b py-3 text-left text-[11px] font-medium uppercase tracking-[0.2em] transition-colors min-[900px]:border-b-0 min-[900px]:border-l min-[900px]:py-1.5 min-[900px]:pl-3",
               currentStep === step
-                ? "border-gold text-foreground"
+                ? "border-cobalt-border text-foreground"
                 : enabled
                   ? "glow border-transparent text-muted-foreground hover:text-foreground"
                   : "cursor-not-allowed border-transparent text-muted-foreground/70",
@@ -495,7 +478,7 @@ function Studio() {
                         onClick={() => handlePhotoSelect(profile.user_photo_url!)}
                         className="mt-5 gap-1.5 text-xs font-medium cursor-pointer"
                       >
-                        <Camera className="size-3.5 text-gold-ink" />
+                        <Camera className="size-3.5 text-cobalt-text" />
                         <span>Use Saved Profile Photo</span>
                       </Button>
                     );
@@ -580,7 +563,7 @@ function Studio() {
                     <Button
                       onClick={handleUseManualPlacement}
                       size="default"
-                      className="gap-2 border border-gold bg-transparent text-gold-ink hover:bg-gold/10 cursor-pointer"
+                      className="gap-2 border border-cobalt-border bg-transparent text-cobalt-text hover:bg-cobalt-tint cursor-pointer"
                     >
                       <ArrowRight className="size-4" />
                       Skip to Fitting Room (Manual Garment Placement)
@@ -632,8 +615,8 @@ function Studio() {
                       id="measurements-lock-overlay"
                       className="absolute inset-0 z-20 flex items-center justify-center bg-background/60 p-4 sm:p-6"
                     >
-                      <div className="w-full max-w-[520px] surface border-gold/40 bg-card/95 px-5 py-5 sm:px-10 sm:py-8 text-center shadow-2xl">
-                        <div className="mx-auto flex size-12 sm:size-14 items-center justify-center rounded-full border border-gold/60 text-gold-ink ring-4 ring-primary/15 animate-in zoom-in duration-300">
+                      <div className="w-full max-w-[520px] surface border-cobalt-border bg-card/95 px-5 py-5 sm:px-10 sm:py-8 text-center shadow-2xl">
+                        <div className="mx-auto flex size-12 sm:size-14 items-center justify-center rounded-full border border-cobalt-border text-cobalt-text ring-4 ring-primary/15 animate-in zoom-in duration-300">
                           <Lock className="size-6" />
                         </div>
                         <p className="eyebrow mt-4">Gate Enforced</p>
@@ -675,7 +658,7 @@ function Studio() {
                           <button
                             type="button"
                             onClick={loginAsGuest}
-                            className="cursor-pointer text-xs text-muted-foreground underline underline-offset-4 transition-colors hover:text-gold-ink"
+                            className="cursor-pointer text-xs text-muted-foreground underline underline-offset-4 transition-colors hover:text-cobalt-text"
                           >
                             Continue as guest
                           </button>
@@ -746,7 +729,7 @@ function Studio() {
                       size="sm"
                       disabled={isSyncingProfile}
                       onClick={handleSaveMeasurementsToProfile}
-                      className="h-8 gap-1.5 text-xs cursor-pointer border-primary/30 text-gold-ink hover:bg-primary/10"
+                      className="h-8 gap-1.5 text-xs cursor-pointer border-primary/30 text-cobalt-text hover:bg-primary/10"
                     >
                       {isSyncingProfile ? (
                         <RefreshCw className="size-3 animate-spin" />
@@ -791,9 +774,9 @@ function Studio() {
             >
               <div
                 id="step3-auth-gate-card"
-                className="surface max-w-md space-y-4 border-gold/40 bg-card/95 p-8 text-center"
+                className="surface max-w-md space-y-4 border-cobalt-border bg-card/95 p-8 text-center"
               >
-                <div className="mx-auto flex size-14 items-center justify-center rounded-full border border-gold/60 text-gold-ink">
+                <div className="mx-auto flex size-14 items-center justify-center rounded-full border border-cobalt-border text-cobalt-text">
                   <Lock className="size-6" />
                 </div>
                 <h2 className="text-2xl font-display">Fitting Room Locked</h2>
@@ -845,34 +828,8 @@ function Studio() {
             panel={
               // Your photo | garment: two tall panels side by side
               <div className="grid grid-cols-1 gap-8 min-[900px]:grid-cols-2 min-[900px]:gap-[clamp(16px,2vw,32px)]">
-                <TryOnPhotoFrame tryOn={tryOn} />
-
-                <div className="min-w-0 space-y-3">
-                  <div className="flex min-h-8 items-center justify-between gap-3">
-                    <p className={FRAME_LABEL}>Garment</p>
-                    {tryOnGarment?.siteName ? (
-                      <p className="truncate text-[11px] text-muted-foreground">
-                        {tryOnGarment.siteName}
-                      </p>
-                    ) : null}
-                  </div>
-                  <div data-frame="garment" className={cn(IMAGE_FRAME, "bg-foreground/10")}>
-                    {tryOnGarment ? (
-                      <img
-                        src={tryOnGarment.imageDataUrl}
-                        alt={tryOnGarment.title}
-                        className="absolute inset-0 size-full object-contain p-3"
-                      />
-                    ) : (
-                      <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 p-6 text-center">
-                        <Shirt className="size-8 text-muted-foreground" />
-                        <p className="text-sm text-muted-foreground">
-                          Paste a product link, upload a photo or pick from your closet.
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                </div>
+                <TryOnPhotoFrame tryOn={cardsTryOn} />
+                <OutfitFrame outfit={cardsTryOn.payload} />
               </div>
             }
             aside={
@@ -889,31 +846,17 @@ function Studio() {
                       <ArrowLeft className="size-3.5" />
                       Back
                     </Button>
-                    <TryOnButton tryOn={tryOn} className="items-start" />
+                    <GarmentCardsTryOnButton
+                      cards={cardsTryOn}
+                      onEdit={scrollToGarmentCards}
+                      className="min-w-0 flex-1 basis-full"
+                    />
                   </div>
                 </div>
 
-                {tryOnGarment ? (
-                  <div className="min-w-0">
-                    <p className="eyebrow">Garment</p>
-                    <p className="mt-2 truncate text-sm font-medium text-foreground">
-                      {tryOnGarment.title}
-                    </p>
-                    {tryOnGarment.sourceUrl ? (
-                      <a
-                        href={tryOnGarment.sourceUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="block truncate text-xs text-muted-foreground underline-offset-4 hover:underline"
-                      >
-                        {tryOnGarment.sourceUrl}
-                      </a>
-                    ) : null}
-                  </div>
-                ) : null}
-
-                <ClothingLinkPanel preview={product} onPreview={handleProductSelect} />
-                {tryOnGarment ? <GarmentTypePicker tryOn={tryOn} /> : null}
+                <div id="add-garments" className="scroll-mt-24">
+                  <GarmentUploadCards garments={garments} onChange={setGarments} />
+                </div>
               </div>
             }
           />
@@ -958,7 +901,7 @@ function Studio() {
             <div className="space-y-4">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-md border border-primary/20 bg-primary/5 p-4">
                 <div className="flex items-center gap-3">
-                  <div className="flex size-10 items-center justify-center rounded-md border border-gold/60 bg-transparent text-gold-ink">
+                  <div className="flex size-10 items-center justify-center rounded-md border border-cobalt-border bg-transparent text-cobalt-text">
                     <Palette className="size-5" />
                   </div>
                   <div>
@@ -966,7 +909,7 @@ function Studio() {
                       <h3 className="font-display text-base font-semibold">
                         Bespoke Garment Palette & Color Studio
                       </h3>
-                      <span className="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full bg-primary/10 text-gold-ink">
+                      <span className="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full bg-primary/10 text-cobalt-text">
                         Dynamic Wheel
                       </span>
                     </div>
@@ -983,7 +926,7 @@ function Studio() {
                     variant="outline"
                     size="sm"
                     onClick={() => setShowColorStudio(!showColorStudio)}
-                    className="text-xs gap-1.5 cursor-pointer border-primary/30 text-gold-ink hover:bg-primary/10"
+                    className="text-xs gap-1.5 cursor-pointer border-primary/30 text-cobalt-text hover:bg-primary/10"
                   >
                     <Palette className="size-3.5" />
                     <span>{showColorStudio ? "Hide Atelier Studio" : "Open Color Studio"}</span>
@@ -994,25 +937,12 @@ function Studio() {
               {showColorStudio && (
                 <ColorStudioPanel
                   userPhotoUrl={photo}
-                  garmentPhotoUrl={product?.imageDataUrl}
-                  garmentTitle={product?.title || "Bespoke Silhouette"}
                   theme={garmentTheme}
                   onThemeChange={setGarmentTheme}
                   extractedPalette={extractedPalette}
                   onPaletteExtracted={setExtractedPalette}
                   baseColorHex={baseColorHex}
                   onBaseColorChange={setBaseColorHex}
-                  onCustomGarmentGenerated={setCustomGarmentDataUrl}
-                  onApplyAndClose={() => {
-                    if (!product && customGarmentDataUrl) {
-                      setProduct({
-                        title: "Bespoke Tailored Garment",
-                        siteName: "Color Atelier",
-                        sourceUrl: "",
-                        imageDataUrl: customGarmentDataUrl,
-                      });
-                    }
-                  }}
                 />
               )}
             </div>
@@ -1020,6 +950,58 @@ function Studio() {
         </div>
       ) : null}
     </main>
+  );
+}
+
+/** Garment column while building a look: the chosen pieces, each labelled */
+function OutfitFrame({ outfit }: { outfit: OutfitPayload }) {
+  const pieces = OUTFIT_SLOTS.filter((slot) => outfit[slot]);
+  return (
+    <div className="min-w-0 space-y-3">
+      <div className="flex min-h-8 items-center justify-between gap-3">
+        <p className={FRAME_LABEL}>Your look</p>
+        <p className="text-[11px] text-muted-foreground">
+          {pieces.length} of {OUTFIT_SLOTS.length} pieces
+        </p>
+      </div>
+      <div data-frame="garment" className={cn(IMAGE_FRAME, "bg-foreground/10")}>
+        {pieces.length > 0 ? (
+          <div className="absolute inset-0 grid auto-rows-fr grid-cols-2 gap-px overflow-y-auto bg-border">
+            {pieces.map((slot) => {
+              const item = outfit[slot]!;
+              const image = itemImage(item);
+              return (
+                <figure key={slot} className="relative min-h-0 bg-secondary">
+                  {image ? (
+                    <img
+                      src={image}
+                      alt={OUTFIT_SLOT_LABELS[slot]}
+                      className="absolute inset-0 size-full object-contain p-3 pt-8"
+                    />
+                  ) : (
+                    <div className="absolute inset-0 flex items-center justify-center p-3">
+                      <span className="max-w-full truncate rounded-full border border-border px-3 py-1 text-xs text-foreground">
+                        {linkDomain(item.src)}
+                      </span>
+                    </div>
+                  )}
+                  <figcaption className="absolute top-2.5 left-3 text-[11px] font-medium uppercase tracking-[0.2em] text-muted-foreground">
+                    {OUTFIT_SLOT_LABELS[slot]}
+                  </figcaption>
+                </figure>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 p-6 text-center">
+            <Shirt className="size-8 text-muted-foreground" />
+            <p className="text-sm text-muted-foreground">
+              Add a top, pants, jacket or sweater to build your look.
+            </p>
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
 

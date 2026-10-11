@@ -352,7 +352,7 @@ function ClosetPage() {
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-border/60 pb-6">
           <div>
             <div className="flex items-center gap-2">
-              <p className="eyebrow text-primary">Smart Outfit Engine</p>
+              <p className="eyebrow text-cobalt-text">Smart Outfit Engine</p>
               <Badge variant="outline" className="text-[10px] bg-secondary/80 font-mono">
                 Personal Wardrobe
               </Badge>
@@ -371,7 +371,7 @@ function ClosetPage() {
               asChild
               variant="outline"
               size="default"
-              className="gap-2 font-medium border-gold/30 bg-gold/10 hover:bg-gold/10 text-gold-ink cursor-pointer"
+              className="gap-2 font-medium border-cobalt-border bg-cobalt-tint hover:bg-cobalt-tint text-cobalt-text cursor-pointer"
             >
               <Link to="/generate">
                 <Sparkles className="size-4" />
@@ -382,7 +382,7 @@ function ClosetPage() {
               id="add-new-item-header-btn"
               onClick={() => setIsAddModalOpen(true)}
               size="default"
-              className="gap-2 font-semibold shadow-sm cursor-pointer bg-gold text-background hover:bg-gold/90 border border-gold"
+              className="gap-2 font-semibold shadow-sm cursor-pointer bg-cobalt-tint text-cobalt-text border border-cobalt-border hover:border-cobalt-bright hover:shadow-cobalt-glow"
             >
               <Plus className="size-4 stroke-[2.5]" />
               <span>+ Add New Item</span>
@@ -544,13 +544,13 @@ function ClosetPage() {
         {/* ========================================================================= */}
         {isLoading ? (
           <div className="flex flex-col items-center justify-center py-24 space-y-4">
-            <Loader2 className="size-8 animate-spin text-primary" />
+            <Loader2 className="size-8 animate-spin text-cobalt" />
             <p className="text-sm text-muted-foreground">Loading your digital wardrobe...</p>
           </div>
         ) : items.length === 0 ? (
           /* Clean Empty Closet State for newly registered / 0-item user */
           <div className="rounded-2xl border border-dashed border-border bg-card/60 p-12 sm:p-16 text-center space-y-6 shadow-xs max-w-2xl mx-auto my-6">
-            <div className="mx-auto flex size-16 items-center justify-center rounded-full bg-gold/10 text-gold-ink border border-gold/30">
+            <div className="mx-auto flex size-16 items-center justify-center rounded-full bg-cobalt-tint text-cobalt-text border border-cobalt-border">
               <Shirt className="size-8" />
             </div>
             <div className="space-y-2">
@@ -567,7 +567,7 @@ function ClosetPage() {
                 id="add-new-item-empty-btn"
                 onClick={() => setIsAddModalOpen(true)}
                 size="default"
-                className="gap-2 font-semibold shadow-sm cursor-pointer bg-gold text-background hover:bg-gold/90 border border-gold w-full sm:w-auto"
+                className="gap-2 font-semibold shadow-sm cursor-pointer bg-cobalt-tint text-cobalt-text border border-cobalt-border hover:border-cobalt-bright hover:shadow-cobalt-glow w-full sm:w-auto"
               >
                 <Plus className="size-4 stroke-[2.5]" />
                 <span>+ Add New Item</span>
@@ -578,7 +578,7 @@ function ClosetPage() {
                 size="default"
                 className="gap-2 cursor-pointer text-xs w-full sm:w-auto border-border/80 hover:bg-secondary"
               >
-                <Sparkles className="size-3.5 text-gold-ink" />
+                <Sparkles className="size-3.5 text-cobalt-text" />
                 <span>Load Starter Outfits</span>
               </Button>
             </div>
@@ -622,7 +622,7 @@ function ClosetPage() {
               <Button
                 onClick={() => setIsAddModalOpen(true)}
                 size="sm"
-                className="gap-1.5 cursor-pointer text-xs bg-gold text-background hover:bg-gold/90"
+                className="gap-1.5 cursor-pointer text-xs bg-cobalt-tint text-cobalt-text border border-cobalt-border hover:border-cobalt-bright hover:shadow-cobalt-glow"
               >
                 <Plus className="size-3.5" />
                 <span>+ Add New Item</span>
@@ -635,7 +635,7 @@ function ClosetPage() {
         <section className="rounded-xl border border-border bg-gradient-to-r from-card via-secondary/20 to-card p-6 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-xs">
           <div className="space-y-1 text-center sm:text-left">
             <h3 className="text-lg font-display font-medium text-foreground flex items-center justify-center sm:justify-start gap-2">
-              <Sparkles className="size-4 text-gold-ink" />
+              <Sparkles className="size-4 text-cobalt-text" />
               <span>Ready for Virtual Fitting?</span>
             </h3>
             <p className="text-xs text-muted-foreground max-w-xl">

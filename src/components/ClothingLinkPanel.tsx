@@ -173,7 +173,7 @@ export function ClothingLinkPanel({
           <button
             type="button"
             onClick={() => setShowClosetPicker(!showClosetPicker)}
-            className="flex cursor-pointer items-center gap-1 text-gold-ink hover:underline"
+            className="flex cursor-pointer items-center gap-1 text-cobalt-text hover:underline"
           >
             <Shirt className="size-3" />
             <span>{showClosetPicker ? "Hide closet" : "Pick from my closet"}</span>
@@ -201,7 +201,7 @@ export function ClothingLinkPanel({
         <div className="space-y-3 rounded-md border border-border bg-secondary/30 p-4">
           <div className="flex items-center justify-between gap-2">
             <span className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
-              <Sparkles className="size-3.5 text-gold-ink" />
+              <Sparkles className="size-3.5 text-cobalt-text" />
               <span>Items from your Closet ({wardrobeItems.length})</span>
             </span>
             <Button asChild variant="link" size="sm" className="h-auto p-0 text-xs">
@@ -247,7 +247,7 @@ export function ClothingLinkPanel({
       {!preview && !loading && wardrobeItems.length > 0 && (
         <div className="space-y-2 rounded-lg border border-border/70 bg-secondary/20 p-3.5">
           <p className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
-            <Sparkles className="size-3.5 text-gold-ink" />
+            <Sparkles className="size-3.5 text-cobalt-text" />
             <span>Try on a sample garment immediately:</span>
           </p>
           <div className="flex flex-wrap gap-2">
@@ -282,7 +282,7 @@ export function ClothingLinkPanel({
               </>
             ) : (
               <>
-                <Sparkles className="size-3.5 shrink-0 text-gold-ink" />
+                <Sparkles className="size-3.5 shrink-0 text-cobalt-text" />
                 {preview.imageCandidates.length} photos on this page. We picked the clearest front
                 view of the garment; tap another to use it instead.
               </>
@@ -301,13 +301,13 @@ export function ClothingLinkPanel({
                   className={cn(
                     "relative shrink-0 cursor-pointer overflow-hidden rounded-md border transition-colors",
                     selected
-                      ? "border-gold ring-1 ring-gold"
-                      : "border-border hover:border-gold/60",
+                      ? "border-cobalt-border ring-1 ring-cobalt"
+                      : "border-border hover:border-cobalt-border",
                   )}
                 >
                   <img src={dataUrl} alt="" className="h-24 w-16 object-cover" />
                   {index === 0 && !rankingPhotos ? (
-                    <span className="absolute inset-x-0 bottom-0 bg-background/85 py-0.5 text-center text-[9px] font-medium uppercase tracking-[0.15em] text-gold-ink">
+                    <span className="absolute inset-x-0 bottom-0 bg-background/85 py-0.5 text-center text-[9px] font-medium uppercase tracking-[0.15em] text-cobalt-text">
                       Best
                     </span>
                   ) : null}

@@ -99,8 +99,8 @@ export function MoodBoardPaletteExtractor({
       {/* Header & Upload Controls */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <div className="flex items-center gap-1.5 text-xs font-semibold text-gold-ink">
-            <Sparkles className="size-3.5 text-gold-ink" />
+          <div className="flex items-center gap-1.5 text-xs font-semibold text-cobalt-text">
+            <Sparkles className="size-3.5 text-cobalt-text" />
             <span>Automatic Color Extraction</span>
           </div>
           <h3 className="font-display text-xl">Mood Board & Photo Palette</h3>
@@ -140,7 +140,7 @@ export function MoodBoardPaletteExtractor({
               disabled={isExtracting}
               className="text-xs gap-1.5 cursor-pointer"
             >
-              <ImageIcon className="size-3.5 text-gold-ink" />
+              <ImageIcon className="size-3.5 text-cobalt-text" />
               <span>From My Photo</span>
             </Button>
           )}
@@ -154,7 +154,7 @@ export function MoodBoardPaletteExtractor({
               disabled={isExtracting}
               className="text-xs gap-1.5 cursor-pointer"
             >
-              <Layers className="size-3.5 text-gold-ink" />
+              <Layers className="size-3.5 text-cobalt-text" />
               <span>From Garment</span>
             </Button>
           )}
@@ -217,7 +217,7 @@ export function MoodBoardPaletteExtractor({
             variant="default"
             size="sm"
             onClick={handleAutoApplyMoodBoard}
-            className="text-xs h-7 gap-1.5 cursor-pointer border border-gold bg-transparent text-gold-ink hover:bg-gold/10"
+            className="text-xs h-7 gap-1.5 cursor-pointer border border-cobalt-border bg-transparent text-cobalt-text hover:bg-cobalt-tint"
           >
             <span>Auto-Harmonize Garment</span>
           </Button>
@@ -271,7 +271,7 @@ export function MoodBoardPaletteExtractor({
                     </span>
                   )}
                   {isTrims && (
-                    <span className="text-[9px] font-medium px-1 rounded border border-gold/40 text-gold-ink">
+                    <span className="text-[9px] font-medium px-1 rounded border border-cobalt-border text-cobalt-text">
                       Trims
                     </span>
                   )}
@@ -293,7 +293,7 @@ export function MoodBoardPaletteExtractor({
                     type="button"
                     onClick={() => onUpdateGarmentTheme({ mainBody: color.hex })}
                     title="Apply to Main Body"
-                    className="text-[9px] py-0.5 rounded text-center hover:bg-gold/10 hover:text-gold-ink font-medium text-muted-foreground transition-colors cursor-pointer"
+                    className="text-[9px] py-0.5 rounded text-center hover:bg-cobalt-tint hover:text-cobalt-text font-medium text-muted-foreground transition-colors cursor-pointer"
                   >
                     Body
                   </button>
@@ -301,7 +301,7 @@ export function MoodBoardPaletteExtractor({
                     type="button"
                     onClick={() => onUpdateGarmentTheme({ trims: color.hex })}
                     title="Apply to Trims"
-                    className="text-[9px] py-0.5 rounded text-center hover:bg-gold/10 hover:text-gold-ink font-medium text-muted-foreground transition-colors cursor-pointer"
+                    className="text-[9px] py-0.5 rounded text-center hover:bg-cobalt-tint hover:text-cobalt-text font-medium text-muted-foreground transition-colors cursor-pointer"
                   >
                     Trim
                   </button>
@@ -309,7 +309,7 @@ export function MoodBoardPaletteExtractor({
                     type="button"
                     onClick={() => onUpdateGarmentTheme({ buttons: color.hex })}
                     title="Apply to Buttons"
-                    className="text-[9px] py-0.5 rounded text-center hover:bg-gold/10 hover:text-gold-ink font-medium text-muted-foreground transition-colors cursor-pointer"
+                    className="text-[9px] py-0.5 rounded text-center hover:bg-cobalt-tint hover:text-cobalt-text font-medium text-muted-foreground transition-colors cursor-pointer"
                   >
                     Btn
                   </button>
@@ -317,7 +317,7 @@ export function MoodBoardPaletteExtractor({
                     type="button"
                     onClick={() => onUpdateGarmentTheme({ stitching: color.hex })}
                     title="Apply to Stitching"
-                    className="text-[9px] py-0.5 rounded text-center hover:bg-gold/10 hover:text-gold-ink font-medium text-muted-foreground transition-colors cursor-pointer"
+                    className="text-[9px] py-0.5 rounded text-center hover:bg-cobalt-tint hover:text-cobalt-text font-medium text-muted-foreground transition-colors cursor-pointer"
                   >
                     Stitch
                   </button>

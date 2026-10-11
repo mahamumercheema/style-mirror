@@ -276,7 +276,7 @@ export function AuthModal() {
 
       {/* Development only (no email service configured): show the code so it can be tested */}
       {devOtpCode && import.meta.env.DEV ? (
-        <div className="flex items-center justify-between rounded-lg border border-gold/30 bg-gold/10 px-3 py-2 text-[13px] text-gold-ink">
+        <div className="flex items-center justify-between rounded-lg border border-cobalt-border bg-cobalt-tint px-3 py-2 text-[13px] text-cobalt-text">
           <span>
             Dev code: <code className="font-mono font-semibold">{devOtpCode}</code>
           </span>
@@ -370,7 +370,7 @@ export function AuthModal() {
             handled by the auth context; no target label is shown). Stops short of the close
             button in the corner. */}
         {(gateReason || redirectRoute) && (
-          <div className="mb-5 mr-9 flex items-center gap-2.5 rounded-lg border border-gold/30 bg-gold/10 px-3 py-2 text-[14px] leading-snug text-gold-ink">
+          <div className="mb-5 mr-9 flex items-center gap-2.5 rounded-lg border border-cobalt-border bg-cobalt-tint px-3 py-2 text-[14px] leading-snug text-cobalt-text">
             <ShieldCheck className="size-4 shrink-0" />
             <p>Log in or create an account to continue.</p>
           </div>

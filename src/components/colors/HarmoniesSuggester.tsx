@@ -53,8 +53,8 @@ export function HarmoniesSuggester({
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
         <div>
-          <div className="flex items-center gap-1.5 text-xs font-semibold text-gold-ink">
-            <Sparkles className="size-3.5 text-gold-ink" />
+          <div className="flex items-center gap-1.5 text-xs font-semibold text-cobalt-text">
+            <Sparkles className="size-3.5 text-cobalt-text" />
             <span>Harmonic Color Engine</span>
           </div>
           <h4 className="font-display text-lg">Dynamically Suggested Harmonies</h4>
@@ -70,7 +70,7 @@ export function HarmoniesSuggester({
           type="button"
           size="sm"
           onClick={() => handleApplyHarmony(activeHarmonyData)}
-          className="h-auto max-w-full gap-1.5 whitespace-normal py-2 text-xs cursor-pointer border border-gold bg-transparent text-gold-ink hover:bg-gold/10 self-start sm:self-auto sm:whitespace-nowrap"
+          className="h-auto max-w-full gap-1.5 whitespace-normal py-2 text-xs cursor-pointer border border-cobalt-border bg-transparent text-cobalt-text hover:bg-cobalt-tint self-start sm:self-auto sm:whitespace-nowrap"
         >
           <span>Apply Active Scheme to Garment</span>
         </Button>
@@ -90,7 +90,7 @@ export function HarmoniesSuggester({
               className={cn(
                 "group flex items-center gap-2 rounded-lg px-3 py-2 text-left font-medium transition-all shrink-0 cursor-pointer",
                 isSelected
-                  ? "border border-gold bg-gold/10 text-gold-ink "
+                  ? "border border-cobalt-border bg-cobalt-tint text-cobalt-text "
                   : "bg-secondary/40 text-muted-foreground hover:bg-secondary hover:text-foreground",
               )}
             >
@@ -107,7 +107,9 @@ export function HarmoniesSuggester({
               <span
                 className={cn(
                   "text-[10px] px-1.5 py-0.5 rounded-full font-mono",
-                  isSelected ? "bg-gold/15 text-gold-ink" : "bg-secondary text-muted-foreground",
+                  isSelected
+                    ? "bg-cobalt-tint text-cobalt-text"
+                    : "bg-secondary text-muted-foreground",
                 )}
               >
                 {tab.badge}
@@ -134,7 +136,7 @@ export function HarmoniesSuggester({
             variant="outline"
             size="sm"
             onClick={() => handleApplyHarmony(activeHarmonyData)}
-            className="text-xs gap-1.5 cursor-pointer shrink-0 border-primary/30 text-gold-ink hover:bg-primary/10"
+            className="text-xs gap-1.5 cursor-pointer shrink-0 border-primary/30 text-cobalt-text hover:bg-primary/10"
           >
             <Check className="size-3.5" />
             <span>Apply to All Parts</span>
@@ -181,7 +183,7 @@ export function HarmoniesSuggester({
           <div className="rounded-lg border border-border bg-secondary/30 p-2.5 space-y-2">
             <div className="flex items-center justify-between text-[11px]">
               <span className="font-medium text-foreground">Trims & Collar</span>
-              <span className="text-[10px] text-gold-ink font-mono">
+              <span className="text-[10px] text-cobalt-text font-mono">
                 {activeHarmony === "complementary" ? "180°" : "Harmony"}
               </span>
             </div>
