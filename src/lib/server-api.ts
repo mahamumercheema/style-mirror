@@ -5,11 +5,12 @@ import {
   handleResendCode,
   handleRequestPasswordReset,
   handleResetPassword,
-  handleRequestEmailOtp,
-  handleVerifyEmailOtp,
+  handleLogout,
   verifySessionToken,
+  getSessionUser,
   type AuthResult,
 } from "./server-auth";
+import { DatabaseNotConfiguredError } from "./db";
 import {
   getStoredWardrobeItems,
   saveWardrobeItem,
@@ -50,40 +51,68 @@ export async function handleApiRouter(request: Request): Promise<Response | null
 
     let result: AuthResult;
 
-    switch (pathname) {
-      case "/api/auth/register":
-      case "/api/auth/register-intent":
-        result = await handleRegisterIntent(body);
-        break;
-      case "/api/auth/verify-code":
-        result = await handleVerifyCode(body);
-        break;
-      case "/api/auth/resend-code":
-        result = await handleResendCode(body);
-        break;
-      case "/api/auth/login":
-        result = await handleLogin(body);
-        break;
-      case "/api/auth/forgot-password":
-      case "/api/auth/request-password-reset":
-        result = await handleRequestPasswordReset(body);
-        break;
-      case "/api/auth/reset-password":
-        result = await handleResetPassword(body);
-        break;
-      case "/api/auth/request-otp":
-      case "/api/auth/login-2fa":
-        result = await handleRequestEmailOtp(body);
-        break;
-      case "/api/auth/verify-otp":
-      case "/api/auth/verify-2fa":
-        result = await handleVerifyEmailOtp(body);
-        break;
-      default:
-        return new Response(JSON.stringify({ error: "Auth endpoint not found" }), {
-          status: 404,
-          headers: { "Content-Type": "application/json" },
-        });
+    try {
+      switch (pathname) {
+        case "/api/auth/register":
+        case "/api/auth/register-intent":
+          result = await handleRegisterIntent(body);
+          break;
+        case "/api/auth/verify-code":
+          result = await handleVerifyCode(body);
+          break;
+        case "/api/auth/resend-code":
+          result = await handleResendCode(body);
+          break;
+        case "/api/auth/login":
+          result = await handleLogin(body);
+          break;
+        case "/api/auth/forgot-password":
+        case "/api/auth/request-password-reset":
+          result = await handleRequestPasswordReset(body);
+          break;
+        case "/api/auth/reset-password":
+          result = await handleResetPassword(body);
+          break;
+        case "/api/auth/logout":
+          result = await handleLogout(request.headers.get("authorization"));
+          break;
+        case "/api/auth/session": {
+          // Is the saved sign-in (Authorization: Bearer <token>) still a live session?
+          const user = await getSessionUser(request.headers.get("authorization"));
+          result = user
+            ? { status: 200, body: { success: true, user } }
+            : {
+                status: 401,
+                body: { success: false, error: "Session expired. Please log in again." },
+              };
+          break;
+        }
+        default:
+          return new Response(JSON.stringify({ error: "Auth endpoint not found" }), {
+            status: 404,
+            headers: { "Content-Type": "application/json" },
+          });
+      }
+    } catch (error) {
+      // Database missing or unreachable: a clear message, never connection details
+      const notConfigured = error instanceof DatabaseNotConfiguredError;
+      console.error(
+        "Auth request failed:",
+        notConfigured
+          ? "MONGODB_URI is not set"
+          : error instanceof Error
+            ? error.name
+            : "unknown error",
+      );
+      result = {
+        status: 503,
+        body: {
+          success: false,
+          error: notConfigured
+            ? "Accounts aren't set up on this server yet. Please try again later."
+            : "We couldn't reach the account service. Please try again in a moment.",
+        },
+      };
     }
 
     return new Response(JSON.stringify(result.body), {
@@ -94,7 +123,7 @@ export async function handleApiRouter(request: Request): Promise<Response | null
 
   // 2. Authentication Verification for Protected Endpoints
   const authHeader = request.headers.get("authorization");
-  const authSession = verifySessionToken(authHeader);
+  const authSession = await verifySessionToken(authHeader).catch(() => null);
 
   // Protected endpoints require valid session
   if (

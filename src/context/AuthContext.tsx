@@ -2,14 +2,14 @@ import { useRouter } from "@tanstack/react-router";
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { toast } from "sonner";
 import {
+  apiCheckSession,
+  apiLogout,
   apiLogin,
   apiRegisterIntent,
   apiVerifyCode,
   apiResendCode,
   apiForgotPassword,
   apiResetPassword,
-  apiRequestEmailOtp,
-  apiVerifyEmailOtp,
 } from "@/lib/auth.functions";
 import {
   transferGuestWardrobeToAccount,
@@ -166,16 +166,48 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return false;
   };
 
-  // Initialize active user from local storage
+  // Restore the saved user, but only once the server confirms its session. A saved user the
+  // server doesn't recognise (e.g. the old demo "Google" sign-in, or a session lost when the
+  // server restarted) is signed out instead of being shown as logged in.
   useEffect(() => {
     if (typeof window === "undefined") return;
+    let cancelled = false;
+    const signOutStoredUser = () => {
+      localStorage.removeItem(USER_STORAGE_KEY);
+      localStorage.removeItem(TOKEN_STORAGE_KEY);
+      if (!cancelled) setUser(null);
+    };
     try {
       const storedUser = localStorage.getItem(USER_STORAGE_KEY);
-      if (storedUser) {
-        setUser(JSON.parse(storedUser));
+      const storedToken = localStorage.getItem(TOKEN_STORAGE_KEY);
+      const parsed = storedUser ? (JSON.parse(storedUser) as User) : null;
+      if (parsed?.id === "guest_user") {
+        setUser(parsed);
+      } else if (parsed && storedToken) {
+        void apiCheckSession(storedToken).then((result) => {
+          if (cancelled) return;
+          if (result.status === "valid") {
+            const confirmed: User = {
+              id: result.user.id,
+              email: result.user.email,
+              name: result.user.name,
+              createdAt: result.user.createdAt,
+              emailVerified: result.user.emailVerified,
+              twoFactorVerified: result.user.twoFactorVerified,
+            };
+            setUser(confirmed);
+            localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(confirmed));
+          } else if (result.status === "invalid") {
+            signOutStoredUser();
+          }
+          // Unreachable server: stay signed out for now without discarding the saved sign-in
+        });
+      } else if (parsed) {
+        signOutStoredUser();
       }
     } catch (err) {
       console.error("Failed to parse stored user", err);
+      signOutStoredUser();
     }
 
     try {
@@ -193,6 +225,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch {
       // Ignore URL parsing errors
     }
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   // Cooldown countdown timer for resending verification code (60 seconds)
@@ -517,6 +552,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = () => {
     setUser(null);
     if (typeof window !== "undefined") {
+      // End the session on the server too, so the token can't be reused
+      const token = localStorage.getItem(TOKEN_STORAGE_KEY);
+      if (token) void apiLogout(token);
       localStorage.removeItem(USER_STORAGE_KEY);
       localStorage.removeItem(TOKEN_STORAGE_KEY);
     }

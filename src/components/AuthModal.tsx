@@ -158,8 +158,8 @@ export function AuthModal() {
       return;
     }
 
-    if (!password || password.length < 6) {
-      setSignUpError("Password must be at least 6 characters long.");
+    if (!password || password.length < 8) {
+      setSignUpError("Password must be at least 8 characters long.");
       return;
     }
 
@@ -240,8 +240,8 @@ export function AuthModal() {
       return;
     }
 
-    if (!newPass || newPass.length < 6) {
-      setResetError("New password must be at least 6 characters long.");
+    if (!newPass || newPass.length < 8) {
+      setResetError("New password must be at least 8 characters long.");
       return;
     }
 
@@ -574,7 +574,7 @@ export function AuthModal() {
                 <div className="space-y-1.5 text-left">
                   <Label htmlFor="reset-new-password" className={MODAL_LABEL}>
                     New Password *{" "}
-                    <span className="font-normal text-muted-foreground">(min. 6 characters)</span>
+                    <span className="font-normal text-muted-foreground">(min. 8 characters)</span>
                   </Label>
                   <div className="relative">
                     <KeyRound className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
@@ -589,7 +589,7 @@ export function AuthModal() {
                       }}
                       className={cn(MODAL_INPUT, "pl-10 pr-10")}
                       autoComplete="new-password"
-                      minLength={6}
+                      minLength={8}
                       required
                     />
                     <button
@@ -625,7 +625,7 @@ export function AuthModal() {
                       }}
                       className={cn(MODAL_INPUT, "pl-10")}
                       autoComplete="new-password"
-                      minLength={6}
+                      minLength={8}
                       required
                     />
                   </div>
@@ -770,7 +770,7 @@ export function AuthModal() {
                 <div className="space-y-1.5 text-left">
                   <Label htmlFor="signup-password" className={MODAL_LABEL}>
                     Password *{" "}
-                    <span className="font-normal text-muted-foreground">(min. 6 characters)</span>
+                    <span className="font-normal text-muted-foreground">(min. 8 characters)</span>
                   </Label>
                   <div className="relative">
                     <Lock className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
@@ -785,7 +785,7 @@ export function AuthModal() {
                       }}
                       className={cn(MODAL_INPUT, "pl-10 pr-10")}
                       autoComplete="new-password"
-                      minLength={6}
+                      minLength={8}
                       required
                     />
                     <button
@@ -821,7 +821,7 @@ export function AuthModal() {
                       }}
                       className={cn(MODAL_INPUT, "pl-10")}
                       autoComplete="new-password"
-                      minLength={6}
+                      minLength={8}
                       required
                     />
                   </div>

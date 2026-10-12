@@ -16,14 +16,17 @@ services:
     envVars:
       - key: NODE_VERSION
         value: "22"
+      # MongoDB Atlas connection string for accounts and sign-in (required for accounts)
+      - key: MONGODB_URI
+        sync: false
       # Hugging Face token for the AI try-on (required for try-on)
       - key: HF_TOKEN
         sync: false
       # Google Gemini key for the AI Stylist (optional)
       - key: GEMINI_API_KEY
         sync: false
-      # Email service for sign-in codes (optional; without it email sign-in is turned off,
-      # and Google sign-in and guest mode still work)
+      # Email service for sign-up and password-reset codes (required for new accounts and
+      # password reset; without it existing accounts can still sign in, and guest mode works)
       - key: SMTP_HOST
         sync: false
       - key: SMTP_PORT

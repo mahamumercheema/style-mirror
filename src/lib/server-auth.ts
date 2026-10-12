@@ -1,27 +1,17 @@
+/**
+ * Account sign-up, sign-in, password reset and sessions, stored in MongoDB (see db.ts).
+ *
+ * - Passwords and emailed codes are stored only as bcrypt hashes.
+ * - Sign-in tokens are random 32-byte values; only their SHA-256 hash is stored, so a database
+ *   leak can't be used to sign in. Sessions expire after 30 days.
+ * - Codes expire after 10 minutes, allow 5 attempts and can be resent every 60 seconds.
+ * - 10 wrong passwords in a row pause sign-in for that account for 15 minutes.
+ */
 import crypto from "node:crypto";
 import bcrypt from "bcryptjs";
 import nodemailer from "nodemailer";
 
-export interface EmailVerificationRecord {
-  email: string;
-  password_hash: string;
-  code_hash: string;
-  name: string;
-  expires_at: number; // 10-minute validity
-  attempts: number; // max 5 allowed
-  created_at: number;
-  last_sent_at: number; // 60-second resend cooldown
-}
-
-/** Standard Email + Password User */
-export interface UserRecord {
-  id: string;
-  email: string;
-  name: string;
-  password_hash: string;
-  is_verified: boolean;
-  created_at: string;
-}
+import { collections, type UserDoc } from "./db";
 
 export interface AuthUser {
   id: string;
@@ -52,71 +42,96 @@ export interface AuthResult {
   body: AuthResponseBody;
 }
 
-/** 60-second resend cooldown timer for email OTP */
-const RESEND_COOLDOWN_MS = 60_000;
-
 const IS_DEV = import.meta.env.DEV;
+const RESEND_COOLDOWN_MS = 60_000;
+const CODE_VALIDITY_MS = 10 * 60_000;
+/** Pending sign-ups and reset requests are deleted a day after they were last sent */
+const RECORD_LIFETIME_MS = 24 * 60 * 60_000;
+const MAX_CODE_ATTEMPTS = 5;
+const SESSION_LIFETIME_MS = 30 * 24 * 60 * 60_000;
+const MAX_FAILED_LOGINS = 10;
+const LOGIN_LOCK_MS = 15 * 60_000;
+const MIN_PASSWORD_LENGTH = 8;
 
-function emailUnavailable(): AuthResult | null {
-  return null;
-}
-
-// In-memory persistent database collections
-const emailVerifications = new Map<string, EmailVerificationRecord>();
-const users = new Map<string, UserRecord>();
-
-export interface PasswordResetRecord {
-  email: string;
-  code_hash: string;
-  expires_at: number; // 10-minute validity
-  attempts: number; // max 5 allowed
-  created_at: number;
-  last_sent_at: number; // 60-second resend cooldown
-}
-
-export const passwordResetRequests = new Map<string, PasswordResetRecord>();
-
-// Preseed demo accounts with hashed passwords for convenience
-const DEFAULT_PASSWORD_HASH = bcrypt.hashSync("password123", 10);
-users.set("amna.laaj21@gmail.com", {
-  id: "usr_amna_laaj",
-  email: "amna.laaj21@gmail.com",
-  name: "Amna",
-  password_hash: DEFAULT_PASSWORD_HASH,
-  is_verified: true,
-  created_at: new Date().toISOString(),
+const fail = (
+  status: number,
+  error: string,
+  extra: Partial<AuthResponseBody> = {},
+): AuthResult => ({
+  status,
+  body: { success: false, error, ...extra },
 });
 
-export interface ActiveSession {
-  token: string;
-  userId: string;
-  email: string;
-  createdAt: number;
-}
-
-export const activeSessions = new Map<string, ActiveSession>();
-
-export function registerSession(token: string, userId: string, email: string): ActiveSession {
-  const session: ActiveSession = {
-    token,
-    userId,
-    email,
-    createdAt: Date.now(),
+function toAuthUser(user: UserDoc): AuthUser {
+  return {
+    id: user._id,
+    email: user.email,
+    name: user.name,
+    is_verified: true,
+    emailVerified: true,
+    twoFactorVerified: true,
+    createdAt: user.created_at.toISOString(),
   };
-  activeSessions.set(token, session);
-  return session;
 }
 
-export function verifySessionToken(
-  authHeaderOrToken: string | null | undefined,
-): ActiveSession | null {
+const hashToken = (token: string) => crypto.createHash("sha256").update(token).digest("hex");
+
+/** Starts a 30-day session for the user and returns its token (only its hash is stored). */
+async function createSession(userId: string) {
+  const { sessions } = await collections();
+  const token = "vtr_" + crypto.randomBytes(32).toString("base64url");
+  const now = new Date();
+  await sessions.insertOne({
+    _id: hashToken(token),
+    user_id: userId,
+    created_at: now,
+    expires_at: new Date(now.getTime() + SESSION_LIFETIME_MS),
+  });
+  return token;
+}
+
+function readToken(authHeaderOrToken: string | null | undefined) {
   if (!authHeaderOrToken) return null;
   const token = authHeaderOrToken.replace(/^Bearer\s+/i, "").trim();
-  if (!token) return null;
-  const session = activeSessions.get(token);
-  if (session) return session;
+  return token.startsWith("vtr_") && token.length <= 200 ? token : null;
+}
 
-  return null;
+/** The live session for a token (or "Bearer <token>" header), or null. */
+export async function verifySessionToken(
+  authHeaderOrToken: string | null | undefined,
+): Promise<{ userId: string } | null> {
+  const token = readToken(authHeaderOrToken);
+  if (!token) return null;
+  const { sessions } = await collections();
+  const session = await sessions.findOne({ _id: hashToken(token) });
+  if (!session || session.expires_at.getTime() <= Date.now()) return null;
+  return { userId: session.user_id };
+}
+
+/**
+ * The signed-in user for a session token, or null when the token is unknown, expired or from an
+ * older version of the app.
+ */
+export async function getSessionUser(
+  authHeaderOrToken: string | null | undefined,
+): Promise<AuthUser | null> {
+  const session = await verifySessionToken(authHeaderOrToken);
+  if (!session) return null;
+  const { users } = await collections();
+  const user = await users.findOne({ _id: session.userId });
+  return user ? toAuthUser(user) : null;
+}
+
+/** Ends a session (sign out). Unknown tokens are ignored. */
+export async function handleLogout(
+  authHeaderOrToken: string | null | undefined,
+): Promise<AuthResult> {
+  const token = readToken(authHeaderOrToken);
+  if (token) {
+    const { sessions } = await collections();
+    await sessions.deleteOne({ _id: hashToken(token) });
+  }
+  return { status: 200, body: { success: true, message: "Signed out." } };
 }
 
 /**
@@ -129,6 +144,25 @@ export function sanitizeEmail(email: unknown): string {
     .toLowerCase()
     .replace(/[^\w.@+-]/g, "");
 }
+
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+/**
+ * Codes are emailed via SMTP. In production without an email sender, sign-up and password
+ * reset can't work, so they're refused with a clear message instead of silently doing nothing.
+ */
+function emailUnavailable(): AuthResult | null {
+  if (getTransporter() || IS_DEV) return null;
+  return fail(
+    503,
+    "Email isn't set up on this server yet, so verification codes can't be sent. Please try again later.",
+  );
+}
+
+const secondsLeft = (lastSent: Date) =>
+  Math.ceil((RESEND_COOLDOWN_MS - (Date.now() - lastSent.getTime())) / 1000);
+
+const newCode = () => crypto.randomInt(100000, 1000000).toString();
 
 /**
  * Create a configured Nodemailer transporter with SMTP or fallback
@@ -266,9 +300,8 @@ export async function sendPasswordResetEmail(toEmail: string, otpCode: string): 
 }
 
 /**
- * Routine Log In (Email + Password only)
- * Authenticates directly against the user record.
- * DO NOT send email OTP during routine Log In.
+ * Sign in with email and password. A wrong email and a wrong password get the same message so
+ * the form can't be used to find out who has an account.
  */
 export async function handleLogin(body: {
   email?: string | undefined;
@@ -276,69 +309,52 @@ export async function handleLogin(body: {
 }): Promise<AuthResult> {
   const email = sanitizeEmail(body.email);
   const password = typeof body.password === "string" ? body.password : "";
+  if (!email || !password) return fail(400, "Please enter your email and password.");
 
-  if (!email || !password) {
-    return {
-      status: 400,
-      body: {
-        success: false,
-        error: "Please enter your email and password.",
-      },
-    };
+  const { users } = await collections();
+  const user = await users.findOne({ email });
+  if (!user) {
+    // Same work as a real check, so response time doesn't reveal whether the account exists
+    await bcrypt.compare(password, DUMMY_HASH);
+    return fail(401, "Invalid email or password.");
   }
 
-  const user = users.get(email);
-  if (!user || !user.is_verified) {
-    return {
-      status: 401,
-      body: {
-        success: false,
-        error: "Invalid email or password.",
-      },
-    };
+  if (user.locked_until && user.locked_until.getTime() > Date.now()) {
+    const minutes = Math.ceil((user.locked_until.getTime() - Date.now()) / 60_000);
+    return fail(
+      429,
+      `Too many wrong passwords. Sign-in for this account is paused for ${minutes} more minute${minutes === 1 ? "" : "s"}, or reset your password.`,
+      { locked: true },
+    );
   }
 
-  // Compare password against stored hash
-  if (user.password_hash) {
-    const isMatch = await bcrypt.compare(password, user.password_hash);
-    if (!isMatch) {
-      return {
-        status: 401,
-        body: {
-          success: false,
-          error: "Invalid email or password.",
-        },
-      };
-    }
+  if (!(await bcrypt.compare(password, user.password_hash))) {
+    const failed = user.failed_logins + 1;
+    await users.updateOne(
+      { _id: user._id },
+      failed >= MAX_FAILED_LOGINS
+        ? { $set: { failed_logins: 0, locked_until: new Date(Date.now() + LOGIN_LOCK_MS) } }
+        : { $set: { failed_logins: failed } },
+    );
+    return fail(401, "Invalid email or password.");
   }
 
-  // Generate active session immediately (no OTP needed for routine login)
-  const token = "vtr_tok_" + crypto.randomBytes(24).toString("hex");
-  registerSession(token, user.id, user.email);
-
+  if (user.failed_logins || user.locked_until) {
+    await users.updateOne({ _id: user._id }, { $set: { failed_logins: 0, locked_until: null } });
+  }
+  const token = await createSession(user._id);
   return {
     status: 200,
-    body: {
-      success: true,
-      message: "Logged in successfully.",
-      token,
-      user: {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-        is_verified: true,
-        emailVerified: true,
-        twoFactorVerified: true,
-        createdAt: user.created_at,
-      },
-    },
+    body: { success: true, message: "Logged in successfully.", token, user: toAuthUser(user) },
   };
 }
 
+/** A bcrypt hash of a random value, used to keep failed sign-ins for unknown emails slow too */
+const DUMMY_HASH = bcrypt.hashSync(crypto.randomBytes(16).toString("hex"), 10);
+
 /**
- * Endpoint 1: Register Intent (sign-up step 1):
- * Collects email + password, validates password, generates 6-digit numeric OTP,
- * and saves pending user.
+ * Sign-up step 1: validates the details and emails a 6-digit code. The account is created only
+ * when the code is confirmed (step 2).
  */
 export async function handleRegisterIntent(body: {
   email?: string | undefined;
@@ -355,346 +371,228 @@ export async function handleRegisterIntent(body: {
       ? body.name.trim().slice(0, 80)
       : email.split("@")[0] || "User";
 
-  // 1. Validate email format
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!email || !emailRegex.test(email)) {
-    return {
-      status: 400,
-      body: { success: false, error: "Please provide a valid email address." },
-    };
+  if (!email || !EMAIL_PATTERN.test(email)) {
+    return fail(400, "Please provide a valid email address.");
+  }
+  if (password.length < MIN_PASSWORD_LENGTH) {
+    return fail(400, `Password must be at least ${MIN_PASSWORD_LENGTH} characters long.`);
+  }
+  if (password.length > 200) return fail(400, "Password is too long.");
+
+  const { users, verifications } = await collections();
+  if (await users.findOne({ email }, { projection: { _id: 1 } })) {
+    return fail(409, "An account with this email address already exists. Please log in instead.");
   }
 
-  // 2. Validate password strength
-  if (!password || password.length < 6) {
-    return {
-      status: 400,
-      body: { success: false, error: "Password must be at least 6 characters long." },
-    };
+  const pending = await verifications.findOne({ _id: email });
+  if (pending && Date.now() - pending.last_sent_at.getTime() < RESEND_COOLDOWN_MS) {
+    const wait = secondsLeft(pending.last_sent_at);
+    return fail(429, `Please wait ${wait} seconds before requesting another code.`, {
+      retryAfter: wait,
+    });
   }
 
-  // 3. Check if user already exists
-  const existingUser = users.get(email);
-  if (existingUser && existingUser.is_verified) {
-    return {
-      status: 409,
-      body: {
-        success: false,
-        error: "An account with this email address already exists. Please log in instead.",
-      },
-    };
+  const code = newCode();
+  const now = new Date();
+  await verifications.replaceOne(
+    { _id: email },
+    {
+      name,
+      password_hash: await bcrypt.hash(password, 12),
+      code_hash: await bcrypt.hash(code, 10),
+      expires_at: new Date(now.getTime() + CODE_VALIDITY_MS),
+      attempts: 0,
+      last_sent_at: now,
+      purge_at: new Date(now.getTime() + RECORD_LIFETIME_MS),
+    },
+    { upsert: true },
+  );
+
+  if (!(await sendOtpEmail(email, code))) {
+    return fail(502, "We couldn't send the verification email. Please try again shortly.");
   }
-
-  // 4. Check the resend cooldown on existing verification attempts (60s)
-  const existingVerification = emailVerifications.get(email);
-  const now = Date.now();
-  if (existingVerification && now - existingVerification.last_sent_at < RESEND_COOLDOWN_MS) {
-    const waitSec = Math.ceil(
-      (RESEND_COOLDOWN_MS - (now - existingVerification.last_sent_at)) / 1000,
-    );
-    return {
-      status: 429,
-      body: {
-        success: false,
-        error: `Please wait ${waitSec} seconds before requesting another code.`,
-        retryAfter: waitSec,
-      },
-    };
-  }
-
-  // 5. Generate cryptographically secure 6-digit numeric OTP code
-  const otpCode = crypto.randomInt(100000, 1000000).toString();
-
-  // 6. Hash password and OTP code before storing
-  const passwordHash = await bcrypt.hash(password, 10);
-  const codeHash = await bcrypt.hash(otpCode, 10);
-
-  // 7. Store in email_verifications table/map with unverified / pending state
-  emailVerifications.set(email, {
-    email,
-    password_hash: passwordHash,
-    code_hash: codeHash,
-    name,
-    expires_at: now + 10 * 60 * 1000, // 10-minute validity
-    attempts: 0,
-    created_at: now,
-    last_sent_at: now,
-  });
-
-  // 8. Send plain-text OTP code via email service
-  await sendOtpEmail(email, otpCode);
-
-  // 9. Return success response (without exposing devOtpCode in response)
   return {
     status: 200,
-    body: {
-      success: true,
-      message: "Verification code sent to your email.",
-      email,
-    },
+    body: { success: true, message: "Verification code sent to your email.", email },
   };
 }
 
-/**
- * Endpoint 2: Verify Code
- * Triggered on Step 2 submit of Sign Up. Activates account upon valid OTP.
- */
+/** Sign-up step 2: confirms the emailed code, creates the account and signs it in. */
 export async function handleVerifyCode(body: {
   email?: string | undefined;
   code?: string | undefined;
 }): Promise<AuthResult> {
   const email = sanitizeEmail(body.email);
   const code = typeof body.code === "string" ? body.code.trim() : "";
-
   if (!email || !code) {
-    return {
-      status: 400,
-      body: {
-        success: false,
-        error: "Email address and 6-digit verification code are required.",
-      },
-    };
+    return fail(400, "Email address and 6-digit verification code are required.");
   }
 
-  const record = emailVerifications.get(email);
+  const { users, verifications } = await collections();
+  const record = await verifications.findOne({ _id: email });
   if (!record) {
-    return {
-      status: 404,
-      body: {
-        success: false,
-        error: "No pending verification found for this email. Please restart the sign-up process.",
-      },
-    };
+    return fail(
+      404,
+      "No pending verification found for this email. Please restart the sign-up process.",
+    );
+  }
+  if (Date.now() > record.expires_at.getTime()) {
+    return fail(400, "Verification code has expired. Please click 'Resend Code'.", {
+      expired: true,
+    });
+  }
+  if (record.attempts >= MAX_CODE_ATTEMPTS) {
+    return fail(
+      429,
+      "Too many failed attempts (maximum 5 exceeded). Please request a new verification code.",
+      { locked: true },
+    );
   }
 
-  const now = Date.now();
-
-  // Check expiration (10 minutes)
-  if (now > record.expires_at) {
-    return {
-      status: 400,
-      body: {
-        success: false,
-        error: "Verification code has expired. Please click 'Resend Code'.",
-        expired: true,
-      },
-    };
+  if (!(await bcrypt.compare(code, record.code_hash))) {
+    const attempts = record.attempts + 1;
+    await verifications.updateOne({ _id: email }, { $set: { attempts } });
+    const remaining = MAX_CODE_ATTEMPTS - attempts;
+    return fail(
+      400,
+      remaining > 0
+        ? `Invalid verification code. ${remaining} attempt(s) remaining.`
+        : "Maximum attempts reached. Please request a new code.",
+      { attempts, remainingAttempts: remaining },
+    );
   }
 
-  // Check maximum failed attempts (max 5)
-  if (record.attempts >= 5) {
-    return {
-      status: 429,
-      body: {
-        success: false,
-        error:
-          "Too many failed attempts (maximum 5 exceeded). Please request a new verification code.",
-        locked: true,
-      },
-    };
-  }
-
-  // Compare submitted code with code_hash using bcrypt
-  const isMatch = await bcrypt.compare(code, record.code_hash);
-  if (!isMatch) {
-    record.attempts += 1;
-    const remaining = 5 - record.attempts;
-    return {
-      status: 400,
-      body: {
-        success: false,
-        error:
-          remaining > 0
-            ? `Invalid verification code. ${remaining} attempt(s) remaining.`
-            : "Maximum attempts reached. Please request a new code.",
-        attempts: record.attempts,
-        remainingAttempts: remaining,
-      },
-    };
-  }
-
-  // Verification succeeded!
-  // Create / activate user account with hashed password
-  const userId = "usr_" + crypto.randomBytes(6).toString("hex");
-  const newUser: UserRecord = {
-    id: userId,
-    email: record.email,
+  const user: UserDoc = {
+    _id: "usr_" + crypto.randomBytes(12).toString("hex"),
+    email,
     name: record.name,
     password_hash: record.password_hash,
-    is_verified: true,
-    created_at: new Date().toISOString(),
+    created_at: new Date(),
+    failed_logins: 0,
+    locked_until: null,
   };
+  try {
+    await users.insertOne(user);
+  } catch (error) {
+    // Duplicate email (unique index): the same sign-up was confirmed twice
+    if ((error as { code?: number }).code === 11000) {
+      await verifications.deleteOne({ _id: email });
+      return fail(409, "An account with this email address already exists. Please log in instead.");
+    }
+    throw error;
+  }
+  await verifications.deleteOne({ _id: email });
 
-  users.set(record.email, newUser);
-
-  // Clear verification entry from email_verifications
-  emailVerifications.delete(record.email);
-
-  // Issue session auth token
-  const token = "vtr_tok_" + crypto.randomBytes(24).toString("hex");
-  registerSession(token, newUser.id, newUser.email);
-
+  const token = await createSession(user._id);
   return {
     status: 200,
     body: {
       success: true,
       message: "Account verified and activated successfully.",
       token,
-      user: {
-        id: newUser.id,
-        email: newUser.email,
-        name: newUser.name,
-        is_verified: true,
-        emailVerified: true,
-        twoFactorVerified: true,
-        createdAt: newUser.created_at,
-      },
+      user: toAuthUser(user),
     },
   };
 }
 
-/**
- * Endpoint 3: Resend Code
- * Triggered by "Resend Code" button with 60s cooldown
- */
+/** Sends a new sign-up code (60-second cooldown). */
 export async function handleResendCode(body: { email?: string | undefined }): Promise<AuthResult> {
   const unavailable = emailUnavailable();
   if (unavailable) return unavailable;
 
   const email = sanitizeEmail(body.email);
+  if (!email) return fail(400, "Email address is required.");
 
-  if (!email) {
-    return {
-      status: 400,
-      body: { success: false, error: "Email address is required." },
-    };
-  }
-
-  const record = emailVerifications.get(email);
+  const { verifications } = await collections();
+  const record = await verifications.findOne({ _id: email });
   if (!record) {
-    return {
-      status: 404,
-      body: {
-        success: false,
-        error: "No pending verification found for this email. Please sign up first.",
-      },
-    };
+    return fail(404, "No pending verification found for this email. Please sign up first.");
+  }
+  if (Date.now() - record.last_sent_at.getTime() < RESEND_COOLDOWN_MS) {
+    const wait = secondsLeft(record.last_sent_at);
+    return fail(429, `Please wait ${wait} seconds before requesting a new code.`, {
+      retryAfter: wait,
+    });
   }
 
-  // Enforce the 60-second resend cooldown
-  const now = Date.now();
-  const timeElapsed = now - record.last_sent_at;
-  if (timeElapsed < RESEND_COOLDOWN_MS) {
-    const secondsLeft = Math.ceil((RESEND_COOLDOWN_MS - timeElapsed) / 1000);
-    return {
-      status: 429,
-      body: {
-        success: false,
-        error: `Please wait ${secondsLeft} seconds before requesting a new code.`,
-        retryAfter: secondsLeft,
+  const code = newCode();
+  const now = new Date();
+  await verifications.updateOne(
+    { _id: email },
+    {
+      $set: {
+        code_hash: await bcrypt.hash(code, 10),
+        expires_at: new Date(now.getTime() + CODE_VALIDITY_MS),
+        attempts: 0,
+        last_sent_at: now,
+        purge_at: new Date(now.getTime() + RECORD_LIFETIME_MS),
       },
-    };
+    },
+  );
+
+  if (!(await sendOtpEmail(email, code))) {
+    return fail(502, "We couldn't send the verification email. Please try again shortly.");
   }
-
-  // Generate new 6-digit OTP
-  const newOtpCode = crypto.randomInt(100000, 1000000).toString();
-  const newCodeHash = await bcrypt.hash(newOtpCode, 10);
-
-  // Update record: reset attempts to 0, refresh 10-minute expiry
-  record.code_hash = newCodeHash;
-  record.expires_at = now + 10 * 60 * 1000;
-  record.attempts = 0;
-  record.last_sent_at = now;
-
-  // Dispatch email
-  await sendOtpEmail(email, newOtpCode);
-
   return {
     status: 200,
-    body: {
-      success: true,
-      message: "Verification code sent to your email.",
-      email,
-    },
+    body: { success: true, message: "Verification code sent to your email.", email },
   };
 }
 
 /**
- * Password Reset Step 1: Request Reset
- * Validates email existence in database, generates 6-digit numeric OTP,
- * stores it with a 10-minute validity timestamp, and sends it to the user.
+ * Password reset step 1: emails a 6-digit code. The reply is the same whether or not the email
+ * has an account, so the form can't be used to find out who is registered.
  */
 export async function handleRequestPasswordReset(body: {
   email?: string | undefined;
 }): Promise<AuthResult> {
+  const unavailable = emailUnavailable();
+  if (unavailable) return unavailable;
+
   const email = sanitizeEmail(body.email);
+  if (!email || !EMAIL_PATTERN.test(email)) return fail(400, "Please enter a valid email address.");
 
-  if (!email || !email.includes("@")) {
-    return {
-      status: 400,
-      body: {
-        success: false,
-        error: "Please enter a valid email address.",
-      },
-    };
-  }
-
-  const user = users.get(email);
-  if (!user || !user.is_verified) {
-    return {
-      status: 404,
-      body: {
-        success: false,
-        error: "No account found with this email address. Please check your email or sign up.",
-      },
-    };
-  }
-
-  // Check resend cooldown (60s)
-  const existingRequest = passwordResetRequests.get(email);
-  const now = Date.now();
-  if (existingRequest && now - existingRequest.last_sent_at < RESEND_COOLDOWN_MS) {
-    const waitSec = Math.ceil((RESEND_COOLDOWN_MS - (now - existingRequest.last_sent_at)) / 1000);
-    return {
-      status: 429,
-      body: {
-        success: false,
-        error: `Please wait ${waitSec} seconds before requesting another reset code.`,
-        retryAfter: waitSec,
-      },
-    };
-  }
-
-  // Generate 6-digit numeric OTP code
-  const otpCode = crypto.randomInt(100000, 1000000).toString();
-  const codeHash = await bcrypt.hash(otpCode, 10);
-
-  // Store in passwordResetRequests map with 10-minute expiry
-  passwordResetRequests.set(email, {
-    email,
-    code_hash: codeHash,
-    expires_at: now + 10 * 60 * 1000,
-    attempts: 0,
-    created_at: now,
-    last_sent_at: now,
-  });
-
-  // Send password reset email
-  await sendPasswordResetEmail(email, otpCode);
-
-  return {
+  const sent: AuthResult = {
     status: 200,
     body: {
       success: true,
-      message: "Password reset code sent to your email.",
+      message: "If an account exists for this email, a reset code has been sent to it.",
       email,
     },
   };
+
+  const { users, resets } = await collections();
+  const existing = await resets.findOne({ _id: email });
+  if (existing && Date.now() - existing.last_sent_at.getTime() < RESEND_COOLDOWN_MS) {
+    const wait = secondsLeft(existing.last_sent_at);
+    return fail(429, `Please wait ${wait} seconds before requesting another reset code.`, {
+      retryAfter: wait,
+    });
+  }
+  if (!(await users.findOne({ email }, { projection: { _id: 1 } }))) return sent;
+
+  const code = newCode();
+  const now = new Date();
+  await resets.replaceOne(
+    { _id: email },
+    {
+      code_hash: await bcrypt.hash(code, 10),
+      expires_at: new Date(now.getTime() + CODE_VALIDITY_MS),
+      attempts: 0,
+      last_sent_at: now,
+      purge_at: new Date(now.getTime() + RECORD_LIFETIME_MS),
+    },
+    { upsert: true },
+  );
+  if (!(await sendPasswordResetEmail(email, code))) {
+    return fail(502, "We couldn't send the reset email. Please try again shortly.");
+  }
+  return sent;
 }
 
 /**
- * Password Reset Step 2 & 3: Verify Code & Set New Password
- * Validates the 6-digit OTP code against the record, hashes the new password with bcrypt,
- * updates the user database, and clears the reset request.
+ * Password reset step 2: checks the code, sets the new password and signs the account out
+ * everywhere (all existing sessions end).
  */
 export async function handleResetPassword(body: {
   email?: string | undefined;
@@ -706,99 +604,57 @@ export async function handleResetPassword(body: {
   const newPassword = typeof body.new_password === "string" ? body.new_password : "";
 
   if (!email || !code) {
-    return {
-      status: 400,
-      body: {
-        success: false,
-        error: "Email address and 6-digit verification code are required.",
-      },
-    };
+    return fail(400, "Email address and 6-digit verification code are required.");
   }
-
-  if (!newPassword || newPassword.length < 6) {
-    return {
-      status: 400,
-      body: {
-        success: false,
-        error: "New password must be at least 6 characters long.",
-      },
-    };
+  if (newPassword.length < MIN_PASSWORD_LENGTH) {
+    return fail(400, `New password must be at least ${MIN_PASSWORD_LENGTH} characters long.`);
   }
+  if (newPassword.length > 200) return fail(400, "Password is too long.");
 
-  const record = passwordResetRequests.get(email);
+  const { users, resets, sessions } = await collections();
+  const record = await resets.findOne({ _id: email });
   if (!record) {
-    return {
-      status: 404,
-      body: {
-        success: false,
-        error: "No active password reset request found for this email. Please request a new code.",
-      },
-    };
+    return fail(
+      404,
+      "No active password reset request found for this email. Please request a new code.",
+    );
+  }
+  if (Date.now() > record.expires_at.getTime()) {
+    return fail(400, "Reset code has expired. Please request a new code.", { expired: true });
+  }
+  if (record.attempts >= MAX_CODE_ATTEMPTS) {
+    return fail(429, "Too many failed attempts. Please request a new reset code.", {
+      locked: true,
+    });
   }
 
-  const now = Date.now();
-
-  // Check expiration (10 minutes)
-  if (now > record.expires_at) {
-    return {
-      status: 400,
-      body: {
-        success: false,
-        error: "Reset code has expired. Please request a new code.",
-        expired: true,
-      },
-    };
+  if (!(await bcrypt.compare(code, record.code_hash))) {
+    const attempts = record.attempts + 1;
+    await resets.updateOne({ _id: email }, { $set: { attempts } });
+    const remaining = MAX_CODE_ATTEMPTS - attempts;
+    return fail(
+      400,
+      remaining > 0
+        ? `Invalid verification code. ${remaining} attempt(s) remaining.`
+        : "Maximum attempts reached. Please request a new reset code.",
+      { attempts, remainingAttempts: remaining },
+    );
   }
 
-  // Check maximum failed attempts (max 5)
-  if (record.attempts >= 5) {
-    return {
-      status: 429,
-      body: {
-        success: false,
-        error: "Too many failed attempts. Please request a new reset code.",
-        locked: true,
+  const user = await users.findOne({ email });
+  if (!user) return fail(404, "User account not found. Please sign up.");
+
+  await users.updateOne(
+    { _id: user._id },
+    {
+      $set: {
+        password_hash: await bcrypt.hash(newPassword, 12),
+        failed_logins: 0,
+        locked_until: null,
       },
-    };
-  }
-
-  // Compare submitted code with code_hash using bcrypt
-  const isMatch = await bcrypt.compare(code, record.code_hash);
-  if (!isMatch) {
-    record.attempts += 1;
-    const remaining = 5 - record.attempts;
-    return {
-      status: 400,
-      body: {
-        success: false,
-        error:
-          remaining > 0
-            ? `Invalid verification code. ${remaining} attempt(s) remaining.`
-            : "Maximum attempts reached. Please request a new reset code.",
-        attempts: record.attempts,
-        remainingAttempts: remaining,
-      },
-    };
-  }
-
-  // Update password in user database
-  const user = users.get(email);
-  if (!user) {
-    return {
-      status: 404,
-      body: {
-        success: false,
-        error: "User account not found. Please sign up.",
-      },
-    };
-  }
-
-  const newPasswordHash = await bcrypt.hash(newPassword, 10);
-  user.password_hash = newPasswordHash;
-  users.set(email, user);
-
-  // Clear password reset record
-  passwordResetRequests.delete(email);
+    },
+  );
+  await Promise.all([resets.deleteOne({ _id: email }), sessions.deleteMany({ user_id: user._id })]);
 
   return {
     status: 200,
@@ -806,169 +662,6 @@ export async function handleResetPassword(body: {
       success: true,
       message: "Password updated successfully. Please log in with your new password.",
       email,
-    },
-  };
-}
-
-/**
- * Request Email 2FA OTP for quick sign-in
- */
-export async function handleRequestEmailOtp(body: {
-  email?: string | undefined;
-}): Promise<AuthResult> {
-  const unavailable = emailUnavailable();
-  if (unavailable) return unavailable;
-
-  const email = sanitizeEmail(body.email);
-  if (!email || !email.includes("@")) {
-    return {
-      status: 400,
-      body: { success: false, error: "Please provide a valid email address." },
-    };
-  }
-
-  const existingVerification = emailVerifications.get(email);
-  const now = Date.now();
-  if (existingVerification && now - existingVerification.last_sent_at < RESEND_COOLDOWN_MS) {
-    const waitSec = Math.ceil(
-      (RESEND_COOLDOWN_MS - (now - existingVerification.last_sent_at)) / 1000,
-    );
-    return {
-      status: 429,
-      body: {
-        success: false,
-        error: `Please wait ${waitSec} seconds before requesting another code.`,
-        retryAfter: waitSec,
-      },
-    };
-  }
-
-  const otpCode = crypto.randomInt(100000, 1000000).toString();
-  const codeHash = await bcrypt.hash(otpCode, 10);
-  const existingUser = users.get(email);
-
-  emailVerifications.set(email, {
-    email,
-    code_hash: codeHash,
-    name: existingUser ? existingUser.name : (email.split("@")[0] ?? email),
-    expires_at: now + 10 * 60 * 1000,
-    attempts: 0,
-    created_at: now,
-    last_sent_at: now,
-  });
-
-  await sendOtpEmail(email, otpCode);
-  const hasSmtp = Boolean(getTransporter());
-
-  return {
-    status: 200,
-    body: {
-      success: true,
-      message: hasSmtp ? "2FA code sent to your email" : "2FA code ready (preview mode)",
-      email,
-      isSandbox: !hasSmtp,
-    },
-  };
-}
-
-/**
- * Verify Email 2FA OTP and log in / create session
- */
-export async function handleVerifyEmailOtp(body: {
-  email?: string | undefined;
-  code?: string | undefined;
-}): Promise<AuthResult> {
-  const email = sanitizeEmail(body.email);
-  const code = typeof body.code === "string" ? body.code.trim() : "";
-
-  if (!email || !code) {
-    return {
-      status: 400,
-      body: { success: false, error: "Email address and 6-digit 2FA code are required." },
-    };
-  }
-
-  const record = emailVerifications.get(email);
-  if (!record) {
-    return {
-      status: 404,
-      body: {
-        success: false,
-        error: "No pending 2FA code found for this email. Please request a new code.",
-      },
-    };
-  }
-
-  const now = Date.now();
-  if (now > record.expires_at) {
-    return {
-      status: 400,
-      body: {
-        success: false,
-        error: "2FA code has expired. Please request a new code.",
-        expired: true,
-      },
-    };
-  }
-
-  if (record.attempts >= 5) {
-    return {
-      status: 429,
-      body: {
-        success: false,
-        error: "Too many failed attempts. Please request a new verification code.",
-        locked: true,
-      },
-    };
-  }
-
-  const isMatch = await bcrypt.compare(code, record.code_hash);
-  if (!isMatch) {
-    record.attempts += 1;
-    const remaining = 5 - record.attempts;
-    return {
-      status: 400,
-      body: {
-        success: false,
-        error: `Invalid verification code. ${remaining} attempt${remaining === 1 ? "" : "s"} remaining.`,
-        remainingAttempts: remaining,
-      },
-    };
-  }
-
-  emailVerifications.delete(email);
-
-  let user = users.get(email);
-  if (!user) {
-    const userId = "usr_" + crypto.randomBytes(6).toString("hex");
-    user = {
-      id: userId,
-      email,
-      name: record.name || (email.split("@")[0] ?? email),
-      is_verified: true,
-      created_at: new Date().toISOString(),
-    };
-    users.set(email, user);
-  }
-
-  const token = "vtr_tok_" + crypto.randomBytes(24).toString("hex");
-  registerSession(token, user.id, user.email);
-
-  return {
-    status: 200,
-    body: {
-      success: true,
-      message: "Signed in successfully with Email 2FA.",
-      token,
-      user: {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-        is_verified: true,
-        emailVerified: true,
-        twoFactorVerified: true,
-        createdAt: user.created_at,
-      },
     },
   };
 }

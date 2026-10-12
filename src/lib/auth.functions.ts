@@ -312,69 +312,6 @@ export async function apiResendCode(payload: { email: string }): Promise<Registe
   }
 }
 
-export async function apiRequestEmailOtp(payload: {
-  email: string;
-}): Promise<RegisterIntentResult> {
-  try {
-    const res = await fetch("/api/auth/request-otp", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-    const data = await res.json();
-    if (!res.ok) {
-      return {
-        success: false,
-        error: data.error || "Failed to send 2FA verification code.",
-        retryAfter: data.retryAfter,
-      };
-    }
-    return {
-      success: true,
-      message: data.message || "2FA code sent to your email",
-      isSandbox: data.isSandbox,
-    };
-  } catch (e) {
-    return {
-      success: false,
-      error: (e as Error).message || "Network error. Please try again.",
-    };
-  }
-}
-
-export async function apiVerifyEmailOtp(payload: {
-  email: string;
-  code: string;
-}): Promise<VerifyCodeResult> {
-  try {
-    const res = await fetch("/api/auth/verify-otp", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-    const data = await res.json();
-    if (!res.ok) {
-      return {
-        success: false,
-        error: data.error || "Invalid 2FA code. Please check and try again.",
-        expired: data.expired,
-        locked: data.locked,
-      };
-    }
-    return {
-      success: true,
-      message: data.message,
-      token: data.token,
-      user: data.user,
-    };
-  } catch (e) {
-    return {
-      success: false,
-      error: (e as Error).message || "Network error. Please try again.",
-    };
-  }
-}
-
 export type ForgotPasswordResult = {
   success: boolean;
   error?: string | undefined;
@@ -478,5 +415,41 @@ export async function apiResetPassword(payload: {
         error: (e as Error).message || "Network error. Please try again.",
       };
     }
+  }
+}
+
+/**
+ * Checks a saved sign-in with the server. "invalid" means the server doesn't know the session,
+ * so the saved user must be signed out; "unreachable" means the check couldn't be made.
+ */
+export async function apiCheckSession(
+  token: string,
+): Promise<
+  { status: "valid"; user: AuthUser } | { status: "invalid" } | { status: "unreachable" }
+> {
+  // Same /api/auth route family as sign-in, so it sees the same live sessions
+  try {
+    const res = await fetch("/api/auth/session", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (res.status === 401) return { status: "invalid" };
+    if (!res.ok) return { status: "unreachable" };
+    const data = (await res.json()) as { user?: AuthUser };
+    return data.user ? { status: "valid", user: data.user } : { status: "invalid" };
+  } catch {
+    return { status: "unreachable" };
+  }
+}
+
+/** Ends the session on the server (sign out). Failures are ignored: the browser forgets it anyway. */
+export async function apiLogout(token: string): Promise<void> {
+  try {
+    await fetch("/api/auth/logout", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+  } catch {
+    // Offline: the session still expires on its own
   }
 }
