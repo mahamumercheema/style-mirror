@@ -25,8 +25,7 @@ services:
       # Google Gemini key for the AI Stylist (optional)
       - key: GEMINI_API_KEY
         sync: false
-      # Email service for sign-up and password-reset codes (required for new accounts and
-      # password reset; without it existing accounts can still sign in, and guest mode works)
+      # Email service for password-reset codes (optional; sign-up and sign-in work without it)
       - key: SMTP_HOST
         sync: false
       - key: SMTP_PORT

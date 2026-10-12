@@ -37,8 +37,6 @@ export function AuthModal() {
   const {
     isModalOpen,
     modalView,
-    signUpStep,
-    pendingEmail,
     resendCooldown,
     gateReason,
     redirectRoute,
@@ -47,7 +45,6 @@ export function AuthModal() {
     setModalView,
     loginWithPassword,
     startSignUp,
-    verifyTwoStepCode,
     requestPasswordReset,
     resetPasswordWithCode,
     resendCode,
@@ -69,7 +66,6 @@ export function AuthModal() {
   const [signUpError, setSignUpError] = useState<string | null>(null);
 
   // Sign up form state: Step 2 (6-digit OTP code)
-  const [signUpCode, setSignUpCode] = useState("");
 
   // Forgot password flow state: Step 1 (Request code) & Step 2 (Verify code & set new password)
   const [resetEmail, setResetEmail] = useState("");
@@ -89,7 +85,6 @@ export function AuthModal() {
     setLoginError(null);
     setSignUpError(null);
     setResetError(null);
-    setSignUpCode("");
     setResetCode("");
     if (modalView === "forgot-password") {
       setResetStep(1);
@@ -113,7 +108,6 @@ export function AuthModal() {
 
   const isSignUp = modalView === "signup";
   const isForgotPassword = modalView === "forgot-password";
-  const signUpCodeStep = isSignUp && signUpStep === 2;
 
   // Handle Log In submission: Email + Password directly
   const handleLoginSubmit = async (e: React.FormEvent) => {
@@ -176,28 +170,6 @@ export function AuthModal() {
     } catch (error) {
       console.error("Sign up request failed:", error);
       setSignUpError("Failed to initiate registration. Please try again.");
-    }
-  };
-
-  // Handle Sign Up Step 2 submission: 6-Digit OTP verification
-  const handleVerifyOtpSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSignUpError(null);
-
-    const code = signUpCode.trim();
-    if (code.length !== 6) {
-      setSignUpError("Please enter the complete 6-digit verification code.");
-      return;
-    }
-
-    try {
-      const result = await verifyTwoStepCode(code);
-      if (!result.success && result.error) {
-        setSignUpError(result.error);
-      }
-    } catch (error) {
-      console.error("OTP verification failed:", error);
-      setSignUpError("Failed to verify code. Please try again.");
     }
   };
 
@@ -700,12 +672,10 @@ export function AuthModal() {
                 id="auth-modal-title"
                 className="font-display text-[28px] sm:text-[30px] leading-tight font-semibold text-foreground"
               >
-                {signUpCodeStep ? "Verify Your Email" : "Create Account"}
+                Create Account
               </h2>
               <p className="text-[13px] leading-relaxed text-muted-foreground">
-                {signUpCodeStep
-                  ? `Enter the 6-digit code sent to ${pendingEmail}`
-                  : "Sign up with your email and password to start your digital wardrobe."}
+                Sign up with your email and password to start your digital wardrobe.
               </p>
             </div>
 
@@ -720,209 +690,126 @@ export function AuthModal() {
               </div>
             )}
 
-            {/* STEP 1: Email + Password Registration Form */}
-            {!signUpCodeStep ? (
-              <form onSubmit={handleSignUpStep1Submit} className="space-y-3.5">
-                {/* Optional Name */}
-                <div className="space-y-1.5 text-left">
-                  <Label htmlFor="signup-name" className={MODAL_LABEL}>
-                    Full Name <span className="font-normal text-muted-foreground">(optional)</span>
-                  </Label>
-                  <div className="relative">
-                    <User className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
-                    <Input
-                      id="signup-name"
-                      type="text"
-                      placeholder="e.g. Amna"
-                      value={signUpName}
-                      onChange={(e) => setSignUpName(e.target.value)}
-                      className={cn(MODAL_INPUT, "pl-10")}
-                      autoComplete="name"
-                      maxLength={80}
-                    />
-                  </div>
-                </div>
-
-                {/* Email Address */}
-                <div className="space-y-1.5 text-left">
-                  <Label htmlFor="signup-email" className={MODAL_LABEL}>
-                    Email Address *
-                  </Label>
-                  <div className="relative">
-                    <Mail className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
-                    <Input
-                      id="signup-email"
-                      type="email"
-                      placeholder="you@example.com"
-                      value={signUpEmail}
-                      onChange={(e) => {
-                        setSignUpEmail(e.target.value);
-                        if (signUpError) setSignUpError(null);
-                      }}
-                      className={cn(MODAL_INPUT, "pl-10")}
-                      autoComplete="email"
-                      required
-                    />
-                  </div>
-                </div>
-
-                {/* Password */}
-                <div className="space-y-1.5 text-left">
-                  <Label htmlFor="signup-password" className={MODAL_LABEL}>
-                    Password *{" "}
-                    <span className="font-normal text-muted-foreground">(min. 8 characters)</span>
-                  </Label>
-                  <div className="relative">
-                    <Lock className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
-                    <Input
-                      id="signup-password"
-                      type={showSignUpPassword ? "text" : "password"}
-                      placeholder="Create a strong password"
-                      value={signUpPassword}
-                      onChange={(e) => {
-                        setSignUpPassword(e.target.value);
-                        if (signUpError) setSignUpError(null);
-                      }}
-                      className={cn(MODAL_INPUT, "pl-10 pr-10")}
-                      autoComplete="new-password"
-                      minLength={8}
-                      required
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowSignUpPassword((prev) => !prev)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer p-0.5"
-                      aria-label={showSignUpPassword ? "Hide password" : "Show password"}
-                    >
-                      {showSignUpPassword ? (
-                        <EyeOff className="size-4" />
-                      ) : (
-                        <Eye className="size-4" />
-                      )}
-                    </button>
-                  </div>
-                </div>
-
-                {/* Confirm Password */}
-                <div className="space-y-1.5 text-left">
-                  <Label htmlFor="signup-confirm-password" className={MODAL_LABEL}>
-                    Confirm Password *
-                  </Label>
-                  <div className="relative">
-                    <Lock className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
-                    <Input
-                      id="signup-confirm-password"
-                      type={showSignUpPassword ? "text" : "password"}
-                      placeholder="Re-type your password"
-                      value={signUpConfirmPassword}
-                      onChange={(e) => {
-                        setSignUpConfirmPassword(e.target.value);
-                        if (signUpError) setSignUpError(null);
-                      }}
-                      className={cn(MODAL_INPUT, "pl-10")}
-                      autoComplete="new-password"
-                      minLength={8}
-                      required
-                    />
-                  </div>
-                </div>
-
-                {/* Submit Sign Up Step 1 */}
-                <Button
-                  id="signup-submit-button"
-                  type="submit"
-                  disabled={
-                    isSubmitting || !signUpEmail || !signUpPassword || !signUpConfirmPassword
-                  }
-                  className={cn(
-                    MODAL_BUTTON,
-                    "bg-cobalt-tint text-cobalt-text border border-cobalt-border hover:border-cobalt-bright hover:shadow-cobalt-glow mt-2",
-                  )}
-                >
-                  {isSubmitting ? <Loader2 className="size-4 animate-spin mr-2" /> : null}
-                  <span>
-                    {isSubmitting ? "Sending Verification Code..." : "Sign Up & Send Code"}
-                  </span>
-                </Button>
-              </form>
-            ) : (
-              /* STEP 2: 6-Digit OTP Verification Screen */
-              <form onSubmit={handleVerifyOtpSubmit} className="space-y-4">
-                <div className="space-y-2 text-left">
-                  <Label htmlFor="signup-otp-input" className={MODAL_LABEL}>
-                    Enter 6-Digit Verification Code
-                  </Label>
-
-                  {/*
-                    CRITICAL SECURITY & UX REQUIREMENT:
-                    Disable browser and password manager autofill on the OTP code input step.
-                    autoComplete="off"
-                    data-1p-ignore="true"
-                    data-lpignore="true"
-                  */}
+            {/* Email + password registration: the account is created straight away */}
+            <form onSubmit={handleSignUpStep1Submit} className="space-y-3.5">
+              {/* Optional Name */}
+              <div className="space-y-1.5 text-left">
+                <Label htmlFor="signup-name" className={MODAL_LABEL}>
+                  Full Name <span className="font-normal text-muted-foreground">(optional)</span>
+                </Label>
+                <div className="relative">
+                  <User className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
                   <Input
-                    id="signup-otp-input"
+                    id="signup-name"
                     type="text"
-                    inputMode="numeric"
-                    pattern="[0-9]*"
-                    maxLength={6}
-                    autoComplete="off"
-                    data-1p-ignore="true"
-                    data-lpignore="true"
-                    placeholder="······"
-                    value={signUpCode}
+                    placeholder="e.g. Amna"
+                    value={signUpName}
+                    onChange={(e) => setSignUpName(e.target.value)}
+                    className={cn(MODAL_INPUT, "pl-10")}
+                    autoComplete="name"
+                    maxLength={80}
+                  />
+                </div>
+              </div>
+
+              {/* Email Address */}
+              <div className="space-y-1.5 text-left">
+                <Label htmlFor="signup-email" className={MODAL_LABEL}>
+                  Email Address *
+                </Label>
+                <div className="relative">
+                  <Mail className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+                  <Input
+                    id="signup-email"
+                    type="email"
+                    placeholder="you@example.com"
+                    value={signUpEmail}
                     onChange={(e) => {
-                      setSignUpCode(e.target.value.replace(/\D/g, "").slice(0, 6));
+                      setSignUpEmail(e.target.value);
                       if (signUpError) setSignUpError(null);
                     }}
-                    className="h-14 text-center font-mono text-2xl font-bold tracking-[0.45em] bg-background border-border/90 focus:border-cobalt-border"
-                    autoFocus
+                    className={cn(MODAL_INPUT, "pl-10")}
+                    autoComplete="email"
                     required
                   />
-                  <p className="text-[11px] text-muted-foreground text-center">
-                    Check your email inbox and spam folder. Code expires in 10 minutes.
-                  </p>
                 </div>
+              </div>
 
-                {/* Submit Verify Code */}
-                <Button
-                  id="signup-verify-button"
-                  type="submit"
-                  disabled={isSubmitting || signUpCode.length !== 6}
-                  className={cn(
-                    MODAL_BUTTON,
-                    "bg-cobalt-tint text-cobalt-text border border-cobalt-border hover:border-cobalt-bright hover:shadow-cobalt-glow",
-                  )}
-                >
-                  {isSubmitting ? <Loader2 className="size-4 animate-spin mr-2" /> : null}
-                  <span>{isSubmitting ? "Verifying..." : "Verify & Complete Registration"}</span>
-                </Button>
-
-                {/* Resend Code with 60-second cooldown timer & Change Email */}
-                <div className="flex items-center justify-between text-[12px] pt-1">
-                  <button
-                    type="button"
-                    id="resend-code-btn"
-                    disabled={resendCooldown > 0 || isSubmitting}
-                    onClick={() => void resendCode()}
-                    className="cursor-pointer font-medium text-foreground underline underline-offset-4 hover:text-cobalt-text disabled:cursor-not-allowed disabled:text-muted-foreground disabled:no-underline"
-                  >
-                    {resendCooldown > 0 ? `Resend code in ${resendCooldown}s` : "Resend code"}
-                  </button>
-                  <button
-                    type="button"
-                    id="use-different-email-btn"
-                    onClick={() => {
-                      setSignUpCode("");
-                      backToStep1();
+              {/* Password */}
+              <div className="space-y-1.5 text-left">
+                <Label htmlFor="signup-password" className={MODAL_LABEL}>
+                  Password *{" "}
+                  <span className="font-normal text-muted-foreground">(min. 8 characters)</span>
+                </Label>
+                <div className="relative">
+                  <Lock className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+                  <Input
+                    id="signup-password"
+                    type={showSignUpPassword ? "text" : "password"}
+                    placeholder="Create a strong password"
+                    value={signUpPassword}
+                    onChange={(e) => {
+                      setSignUpPassword(e.target.value);
+                      if (signUpError) setSignUpError(null);
                     }}
-                    className="cursor-pointer text-muted-foreground underline underline-offset-4 hover:text-foreground"
+                    className={cn(MODAL_INPUT, "pl-10 pr-10")}
+                    autoComplete="new-password"
+                    minLength={8}
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowSignUpPassword((prev) => !prev)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer p-0.5"
+                    aria-label={showSignUpPassword ? "Hide password" : "Show password"}
                   >
-                    Change email
+                    {showSignUpPassword ? (
+                      <EyeOff className="size-4" />
+                    ) : (
+                      <Eye className="size-4" />
+                    )}
                   </button>
                 </div>
-              </form>
-            )}
+              </div>
+
+              {/* Confirm Password */}
+              <div className="space-y-1.5 text-left">
+                <Label htmlFor="signup-confirm-password" className={MODAL_LABEL}>
+                  Confirm Password *
+                </Label>
+                <div className="relative">
+                  <Lock className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+                  <Input
+                    id="signup-confirm-password"
+                    type={showSignUpPassword ? "text" : "password"}
+                    placeholder="Re-type your password"
+                    value={signUpConfirmPassword}
+                    onChange={(e) => {
+                      setSignUpConfirmPassword(e.target.value);
+                      if (signUpError) setSignUpError(null);
+                    }}
+                    className={cn(MODAL_INPUT, "pl-10")}
+                    autoComplete="new-password"
+                    minLength={8}
+                    required
+                  />
+                </div>
+              </div>
+
+              {/* Submit Sign Up Step 1 */}
+              <Button
+                id="signup-submit-button"
+                type="submit"
+                disabled={isSubmitting || !signUpEmail || !signUpPassword || !signUpConfirmPassword}
+                className={cn(
+                  MODAL_BUTTON,
+                  "bg-cobalt-tint text-cobalt-text border border-cobalt-border hover:border-cobalt-bright hover:shadow-cobalt-glow mt-2",
+                )}
+              >
+                {isSubmitting ? <Loader2 className="size-4 animate-spin mr-2" /> : null}
+                <span>{isSubmitting ? "Creating your account..." : "Create Account"}</span>
+              </Button>
+            </form>
 
             {/* Switch to Log In */}
             <div className="border-t border-border/80 pt-4 text-center text-[13px] text-muted-foreground">

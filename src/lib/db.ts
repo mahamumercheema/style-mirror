@@ -18,20 +18,6 @@ export type UserDoc = {
   locked_until: Date | null;
 };
 
-/** A pending sign-up: the account is created only once the emailed code is confirmed. */
-export type EmailVerificationDoc = {
-  _id: string; // email
-  name: string;
-  password_hash: string;
-  code_hash: string;
-  /** The code stops working at this time */
-  expires_at: Date;
-  attempts: number;
-  last_sent_at: Date;
-  /** MongoDB deletes the record at this time (a TTL index), well after the code expires */
-  purge_at: Date;
-};
-
 export type PasswordResetDoc = {
   _id: string; // email
   code_hash: string;
@@ -63,7 +49,6 @@ async function connect(uri: string) {
   const db = client.db(process.env["MONGODB_DB"]?.trim() || "atelier_ora");
   await Promise.all([
     db.collection<UserDoc>("users").createIndex({ email: 1 }, { unique: true }),
-    db.collection("email_verifications").createIndex({ purge_at: 1 }, { expireAfterSeconds: 0 }),
     db.collection("password_resets").createIndex({ purge_at: 1 }, { expireAfterSeconds: 0 }),
     db.collection("sessions").createIndex({ expires_at: 1 }, { expireAfterSeconds: 0 }),
     db.collection("sessions").createIndex({ user_id: 1 }),
@@ -86,14 +71,12 @@ export async function getDb(): Promise<Db> {
 
 export async function collections(): Promise<{
   users: Collection<UserDoc>;
-  verifications: Collection<EmailVerificationDoc>;
   resets: Collection<PasswordResetDoc>;
   sessions: Collection<SessionDoc>;
 }> {
   const db = await getDb();
   return {
     users: db.collection<UserDoc>("users"),
-    verifications: db.collection<EmailVerificationDoc>("email_verifications"),
     resets: db.collection<PasswordResetDoc>("password_resets"),
     sessions: db.collection<SessionDoc>("sessions"),
   };

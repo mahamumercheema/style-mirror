@@ -5,9 +5,7 @@ import {
   apiCheckSession,
   apiLogout,
   apiLogin,
-  apiRegisterIntent,
-  apiVerifyCode,
-  apiResendCode,
+  apiRegister,
   apiForgotPassword,
   apiResetPassword,
 } from "@/lib/auth.functions";
@@ -59,7 +57,6 @@ interface AuthContextType {
     password: string,
     name?: string,
   ) => Promise<{ success: boolean; error?: string }>;
-  verifyTwoStepCode: (code: string) => Promise<{ success: boolean; error?: string }>;
   requestPasswordReset: (email: string) => Promise<{ success: boolean; error?: string }>;
   resetPasswordWithCode: (
     email: string,
@@ -95,7 +92,6 @@ export const defaultAuthContext: AuthContextType = {
   loginWithPassword: async () => ({ success: false, error: "Authentication initializing" }),
   loginAsGuest: () => {},
   startSignUp: async () => ({ success: false, error: "Authentication initializing" }),
-  verifyTwoStepCode: async () => ({ success: false, error: "Authentication initializing" }),
   requestPasswordReset: async () => ({ success: false, error: "Authentication initializing" }),
   resetPasswordWithCode: async () => ({ success: false, error: "Authentication initializing" }),
   resendCode: async () => {},
@@ -347,8 +343,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   /**
-   * Sign-Up Step 1:
-   * Collects email + password, registers pending state, sends 6-digit OTP to email.
+   * Sign-up: creates the account and signs it in straight away (no emailed code).
    */
   const startSignUp = async (
     email: string,
@@ -357,59 +352,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   ): Promise<{ success: boolean; error?: string }> => {
     setIsSubmitting(true);
     try {
-      const result = await apiRegisterIntent({
+      const result = await apiRegister({
         email,
         password,
         name: name?.trim() || undefined,
       });
 
-      if (!result.success) {
-        if (result.retryAfter) {
-          setResendCooldown(result.retryAfter);
-        }
-        return {
-          success: false,
-          error: result.error || "Failed to start sign up. Please try again.",
-        };
-      }
-
-      setPendingEmail(email.trim().toLowerCase());
-      setSignUpStep(2);
-      setResendCooldown(RESEND_COOLDOWN_SECONDS);
-
-      toast.success("Verification Code Sent", {
-        description: `Please enter the 6-digit code sent to ${email}`,
-      });
-
-      return { success: true };
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  /**
-   * Sign-Up Step 2:
-   * Validates 6-digit OTP code and creates verified session.
-   */
-  const verifyTwoStepCode = async (code: string): Promise<{ success: boolean; error?: string }> => {
-    if (!pendingEmail) {
-      return {
-        success: false,
-        error: "Verification session missing. Please start the sign up process again.",
-      };
-    }
-
-    setIsSubmitting(true);
-    try {
-      const result = await apiVerifyCode({
-        email: pendingEmail,
-        code,
-      });
-
       if (!result.success || !result.user) {
         return {
           success: false,
-          error: result.error || "Invalid verification code. Please check your email.",
+          error: result.error || "Couldn't create your account. Please try again.",
         };
       }
 
@@ -431,11 +383,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         console.warn("Failed to transfer guest wardrobe on signup:", err);
       }
 
-      toast.success("Account Created!", {
-        description: "Your email has been verified successfully.",
-      });
-
-      setPendingEmail("");
+      toast.success("Account Created!", { description: `Welcome, ${result.user.name}.` });
       closeModal();
       handlePostAuthRedirect();
       return { success: true };
@@ -514,17 +462,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   /**
-   * Resend Code on Step 2 with 60-second cooldown
+   * Resend the password-reset code (60-second cooldown)
    */
   const resendCode = async (): Promise<void> => {
     if (!pendingEmail || resendCooldown > 0 || isSubmitting) return;
 
     setIsSubmitting(true);
     try {
-      const result =
-        modalView === "forgot-password"
-          ? await apiForgotPassword({ email: pendingEmail })
-          : await apiResendCode({ email: pendingEmail });
+      const result = await apiForgotPassword({ email: pendingEmail });
 
       if (!result.success) {
         toast.error("Failed to resend code", {
@@ -599,7 +544,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         loginWithPassword,
         loginAsGuest,
         startSignUp,
-        verifyTwoStepCode,
         requestPasswordReset,
         resetPasswordWithCode,
         resendCode,

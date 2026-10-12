@@ -1,8 +1,6 @@
 import {
   handleLogin,
-  handleRegisterIntent,
-  handleVerifyCode,
-  handleResendCode,
+  handleRegister,
   handleRequestPasswordReset,
   handleResetPassword,
   handleLogout,
@@ -55,13 +53,7 @@ export async function handleApiRouter(request: Request): Promise<Response | null
       switch (pathname) {
         case "/api/auth/register":
         case "/api/auth/register-intent":
-          result = await handleRegisterIntent(body);
-          break;
-        case "/api/auth/verify-code":
-          result = await handleVerifyCode(body);
-          break;
-        case "/api/auth/resend-code":
-          result = await handleResendCode(body);
+          result = await handleRegister(body);
           break;
         case "/api/auth/login":
           result = await handleLogin(body);

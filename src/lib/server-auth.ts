@@ -353,17 +353,14 @@ export async function handleLogin(body: {
 const DUMMY_HASH = bcrypt.hashSync(crypto.randomBytes(16).toString("hex"), 10);
 
 /**
- * Sign-up step 1: validates the details and emails a 6-digit code. The account is created only
- * when the code is confirmed (step 2).
+ * Sign-up: validates the details, creates the account and signs it in straight away (no emailed
+ * code). Passwords are stored only as bcrypt hashes.
  */
-export async function handleRegisterIntent(body: {
+export async function handleRegister(body: {
   email?: string | undefined;
   password?: string | undefined;
   name?: string | undefined;
 }): Promise<AuthResult> {
-  const unavailable = emailUnavailable();
-  if (unavailable) return unavailable;
-
   const email = sanitizeEmail(body.email);
   const password = typeof body.password === "string" ? body.password : "";
   const name =
@@ -379,94 +376,18 @@ export async function handleRegisterIntent(body: {
   }
   if (password.length > 200) return fail(400, "Password is too long.");
 
-  const { users, verifications } = await collections();
-  if (await users.findOne({ email }, { projection: { _id: 1 } })) {
-    return fail(409, "An account with this email address already exists. Please log in instead.");
-  }
-
-  const pending = await verifications.findOne({ _id: email });
-  if (pending && Date.now() - pending.last_sent_at.getTime() < RESEND_COOLDOWN_MS) {
-    const wait = secondsLeft(pending.last_sent_at);
-    return fail(429, `Please wait ${wait} seconds before requesting another code.`, {
-      retryAfter: wait,
-    });
-  }
-
-  const code = newCode();
-  const now = new Date();
-  await verifications.replaceOne(
-    { _id: email },
-    {
-      name,
-      password_hash: await bcrypt.hash(password, 12),
-      code_hash: await bcrypt.hash(code, 10),
-      expires_at: new Date(now.getTime() + CODE_VALIDITY_MS),
-      attempts: 0,
-      last_sent_at: now,
-      purge_at: new Date(now.getTime() + RECORD_LIFETIME_MS),
-    },
-    { upsert: true },
+  const exists = fail(
+    409,
+    "An account with this email address already exists. Please log in instead.",
   );
-
-  if (!(await sendOtpEmail(email, code))) {
-    return fail(502, "We couldn't send the verification email. Please try again shortly.");
-  }
-  return {
-    status: 200,
-    body: { success: true, message: "Verification code sent to your email.", email },
-  };
-}
-
-/** Sign-up step 2: confirms the emailed code, creates the account and signs it in. */
-export async function handleVerifyCode(body: {
-  email?: string | undefined;
-  code?: string | undefined;
-}): Promise<AuthResult> {
-  const email = sanitizeEmail(body.email);
-  const code = typeof body.code === "string" ? body.code.trim() : "";
-  if (!email || !code) {
-    return fail(400, "Email address and 6-digit verification code are required.");
-  }
-
-  const { users, verifications } = await collections();
-  const record = await verifications.findOne({ _id: email });
-  if (!record) {
-    return fail(
-      404,
-      "No pending verification found for this email. Please restart the sign-up process.",
-    );
-  }
-  if (Date.now() > record.expires_at.getTime()) {
-    return fail(400, "Verification code has expired. Please click 'Resend Code'.", {
-      expired: true,
-    });
-  }
-  if (record.attempts >= MAX_CODE_ATTEMPTS) {
-    return fail(
-      429,
-      "Too many failed attempts (maximum 5 exceeded). Please request a new verification code.",
-      { locked: true },
-    );
-  }
-
-  if (!(await bcrypt.compare(code, record.code_hash))) {
-    const attempts = record.attempts + 1;
-    await verifications.updateOne({ _id: email }, { $set: { attempts } });
-    const remaining = MAX_CODE_ATTEMPTS - attempts;
-    return fail(
-      400,
-      remaining > 0
-        ? `Invalid verification code. ${remaining} attempt(s) remaining.`
-        : "Maximum attempts reached. Please request a new code.",
-      { attempts, remainingAttempts: remaining },
-    );
-  }
+  const { users } = await collections();
+  if (await users.findOne({ email }, { projection: { _id: 1 } })) return exists;
 
   const user: UserDoc = {
     _id: "usr_" + crypto.randomBytes(12).toString("hex"),
     email,
-    name: record.name,
-    password_hash: record.password_hash,
+    name,
+    password_hash: await bcrypt.hash(password, 12),
     created_at: new Date(),
     failed_logins: 0,
     locked_until: null,
@@ -474,68 +395,15 @@ export async function handleVerifyCode(body: {
   try {
     await users.insertOne(user);
   } catch (error) {
-    // Duplicate email (unique index): the same sign-up was confirmed twice
-    if ((error as { code?: number }).code === 11000) {
-      await verifications.deleteOne({ _id: email });
-      return fail(409, "An account with this email address already exists. Please log in instead.");
-    }
+    // Duplicate email (unique index): two sign-ups for the same address at once
+    if ((error as { code?: number }).code === 11000) return exists;
     throw error;
   }
-  await verifications.deleteOne({ _id: email });
 
   const token = await createSession(user._id);
   return {
     status: 200,
-    body: {
-      success: true,
-      message: "Account verified and activated successfully.",
-      token,
-      user: toAuthUser(user),
-    },
-  };
-}
-
-/** Sends a new sign-up code (60-second cooldown). */
-export async function handleResendCode(body: { email?: string | undefined }): Promise<AuthResult> {
-  const unavailable = emailUnavailable();
-  if (unavailable) return unavailable;
-
-  const email = sanitizeEmail(body.email);
-  if (!email) return fail(400, "Email address is required.");
-
-  const { verifications } = await collections();
-  const record = await verifications.findOne({ _id: email });
-  if (!record) {
-    return fail(404, "No pending verification found for this email. Please sign up first.");
-  }
-  if (Date.now() - record.last_sent_at.getTime() < RESEND_COOLDOWN_MS) {
-    const wait = secondsLeft(record.last_sent_at);
-    return fail(429, `Please wait ${wait} seconds before requesting a new code.`, {
-      retryAfter: wait,
-    });
-  }
-
-  const code = newCode();
-  const now = new Date();
-  await verifications.updateOne(
-    { _id: email },
-    {
-      $set: {
-        code_hash: await bcrypt.hash(code, 10),
-        expires_at: new Date(now.getTime() + CODE_VALIDITY_MS),
-        attempts: 0,
-        last_sent_at: now,
-        purge_at: new Date(now.getTime() + RECORD_LIFETIME_MS),
-      },
-    },
-  );
-
-  if (!(await sendOtpEmail(email, code))) {
-    return fail(502, "We couldn't send the verification email. Please try again shortly.");
-  }
-  return {
-    status: 200,
-    body: { success: true, message: "Verification code sent to your email.", email },
+    body: { success: true, message: "Account created.", token, user: toAuthUser(user) },
   };
 }
 

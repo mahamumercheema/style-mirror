@@ -2,9 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import {
   handleLogin,
-  handleRegisterIntent,
-  handleVerifyCode,
-  handleResendCode,
+  handleRegister,
   handleRequestPasswordReset,
   handleResetPassword,
   type AuthUser,
@@ -32,7 +30,7 @@ export const loginServerFn = createServerFn({ method: "POST" })
     return handleLogin(data);
   });
 
-export const registerIntentServerFn = createServerFn({ method: "POST" })
+export const registerServerFn = createServerFn({ method: "POST" })
   .validator((data) =>
     z
       .object({
@@ -43,32 +41,7 @@ export const registerIntentServerFn = createServerFn({ method: "POST" })
       .parse(data),
   )
   .handler(async ({ data }) => {
-    return handleRegisterIntent(data);
-  });
-
-export const verifyCodeServerFn = createServerFn({ method: "POST" })
-  .validator((data) =>
-    z
-      .object({
-        email: z.string(),
-        code: z.string(),
-      })
-      .parse(data),
-  )
-  .handler(async ({ data }) => {
-    return handleVerifyCode(data);
-  });
-
-export const resendCodeServerFn = createServerFn({ method: "POST" })
-  .validator((data) =>
-    z
-      .object({
-        email: z.string(),
-      })
-      .parse(data),
-  )
-  .handler(async ({ data }) => {
-    return handleResendCode(data);
+    return handleRegister(data);
   });
 
 export const forgotPasswordServerFn = createServerFn({ method: "POST" })
@@ -110,22 +83,8 @@ export type LoginResult = {
   user?: AuthUser | undefined;
 };
 
-export type RegisterIntentResult = {
-  success: boolean;
-  error?: string | undefined;
-  message?: string | undefined;
-  retryAfter?: number | undefined;
-};
-
-export type VerifyCodeResult = {
-  success: boolean;
-  error?: string | undefined;
-  message?: string | undefined;
-  token?: string | undefined;
-  user?: AuthUser | undefined;
-  expired?: boolean | undefined;
-  locked?: boolean | undefined;
-};
+/** Sign-up creates the account and signs it in, so it returns a session like sign-in */
+export type RegisterResult = LoginResult & { retryAfter?: number | undefined };
 
 export async function apiLogin(payload: { email: string; password: string }): Promise<LoginResult> {
   try {
@@ -171,13 +130,13 @@ export async function apiLogin(payload: { email: string; password: string }): Pr
   }
 }
 
-export async function apiRegisterIntent(payload: {
+export async function apiRegister(payload: {
   email: string;
   password: string;
   name?: string | undefined;
-}): Promise<RegisterIntentResult> {
+}): Promise<RegisterResult> {
   try {
-    const res = await fetch("/api/auth/register-intent", {
+    const res = await fetch("/api/auth/register", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
@@ -186,74 +145,16 @@ export async function apiRegisterIntent(payload: {
     if (!res.ok) {
       return {
         success: false,
-        error: data.error || "Failed to send verification code. Please try again.",
-        retryAfter: data.retryAfter,
+        error: data.error || "Couldn't create your account. Please try again.",
       };
     }
-    return {
-      success: true,
-      message: data.message || "Verification code sent to your email",
-    };
+    return { success: true, message: data.message, token: data.token, user: data.user };
   } catch {
     // Fallback to serverFn
     try {
-      const res = await registerIntentServerFn({ data: payload });
+      const res = await registerServerFn({ data: payload });
       if (res.status >= 400) {
-        return {
-          success: false,
-          error: res.body.error || "Failed to send verification code.",
-          retryAfter: res.body.retryAfter,
-        };
-      }
-      return {
-        success: true,
-        message: res.body.message || "Verification code sent to your email",
-      };
-    } catch (e) {
-      return {
-        success: false,
-        error: (e as Error).message || "Network error. Please try again.",
-      };
-    }
-  }
-}
-
-export async function apiVerifyCode(payload: {
-  email: string;
-  code: string;
-}): Promise<VerifyCodeResult> {
-  try {
-    const res = await fetch("/api/auth/verify-code", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-    const data = await res.json();
-    if (!res.ok) {
-      return {
-        success: false,
-        error: data.error || "Verification failed. Please check the code.",
-        expired: data.expired,
-        locked: data.locked,
-      };
-    }
-    return {
-      success: true,
-      message: data.message,
-      token: data.token,
-      user: data.user,
-    };
-  } catch {
-    // Fallback to serverFn
-    try {
-      const res = await verifyCodeServerFn({ data: payload });
-      if (res.status >= 400) {
-        return {
-          success: false,
-          error: res.body.error || "Verification failed.",
-          expired: res.body.expired,
-          locked: res.body.locked,
-        };
+        return { success: false, error: res.body.error || "Couldn't create your account." };
       }
       return {
         success: true,
@@ -262,52 +163,7 @@ export async function apiVerifyCode(payload: {
         user: res.body.user,
       };
     } catch (e) {
-      return {
-        success: false,
-        error: (e as Error).message || "Network error. Please try again.",
-      };
-    }
-  }
-}
-
-export async function apiResendCode(payload: { email: string }): Promise<RegisterIntentResult> {
-  try {
-    const res = await fetch("/api/auth/resend-code", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-    const data = await res.json();
-    if (!res.ok) {
-      return {
-        success: false,
-        error: data.error || "Failed to resend code.",
-        retryAfter: data.retryAfter,
-      };
-    }
-    return {
-      success: true,
-      message: data.message || "Verification code sent to your email",
-    };
-  } catch {
-    try {
-      const res = await resendCodeServerFn({ data: payload });
-      if (res.status >= 400) {
-        return {
-          success: false,
-          error: res.body.error || "Failed to resend code.",
-          retryAfter: res.body.retryAfter,
-        };
-      }
-      return {
-        success: true,
-        message: res.body.message || "Verification code sent to your email",
-      };
-    } catch (e) {
-      return {
-        success: false,
-        error: (e as Error).message || "Network error. Please try again.",
-      };
+      return { success: false, error: (e as Error).message || "Network error. Please try again." };
     }
   }
 }
