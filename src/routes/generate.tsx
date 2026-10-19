@@ -80,7 +80,6 @@ export const Route = createFileRoute("/generate")({
   component: GenerateRouteWrapper,
 });
 
-
 const VIBE_PRESETS = [
   {
     id: "Royal Regal Glam",

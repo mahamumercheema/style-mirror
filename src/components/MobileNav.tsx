@@ -98,8 +98,19 @@ export function MobileNav() {
                 {isAuthenticated && user ? (
                   <>
                     <div className="flex items-center gap-3 rounded-lg border border-border/80 bg-secondary/50 p-3">
-                      <div className="flex size-9 items-center justify-center rounded-full border border-cobalt-border bg-cobalt-tint text-xs font-semibold text-cobalt-text">
-                        {user.email.substring(0, 2).toUpperCase()}
+                      <div className="relative flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-cobalt-border bg-secondary text-xs font-semibold uppercase text-cobalt-text">
+                        {user.avatarUrl ? (
+                          <img
+                            src={user.avatarUrl}
+                            alt={user.name || user.email || "Profile avatar"}
+                            className="size-full rounded-full object-cover"
+                          />
+                        ) : (
+                          (user.name?.trim()
+                            ? user.name.trim().slice(0, 2)
+                            : user.email.slice(0, 2)
+                          ).toUpperCase()
+                        )}
                       </div>
                       <div className="min-w-0 flex-1">
                         <p className="text-xs font-medium text-foreground truncate">{user.name}</p>

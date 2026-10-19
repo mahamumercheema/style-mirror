@@ -21,6 +21,7 @@ export interface AuthUser {
   emailVerified: boolean;
   twoFactorVerified: boolean;
   createdAt: string;
+  avatarUrl?: string | null;
 }
 
 export interface AuthResponseBody {

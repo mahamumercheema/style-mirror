@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Link } from "@tanstack/react-router";
@@ -9,7 +10,21 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { LogIn, LogOut, ShieldCheck, UserPlus, User, Shirt, Camera } from "lucide-react";
+import { LogIn, LogOut, UserPlus, User, Shirt, Camera } from "lucide-react";
+
+function getUserInitials(user: { name?: string; email?: string }): string {
+  if (user.name?.trim()) {
+    const parts = user.name.trim().split(/\s+/).filter(Boolean);
+    if (parts.length >= 2 && parts[0] && parts[parts.length - 1]) {
+      return `${parts[0][0]}${parts[parts.length - 1]![0]}`.toUpperCase();
+    }
+    return user.name.trim().slice(0, 2).toUpperCase();
+  }
+  if (user.email?.trim()) {
+    return user.email.trim().slice(0, 2).toUpperCase();
+  }
+  return "U";
+}
 
 export function HeaderAuthButtons({
   onDark: _onDark = false,
@@ -20,33 +35,55 @@ export function HeaderAuthButtons({
   showAccountMenu?: boolean;
 }) {
   const { user, isAuthenticated, openLogin, openSignUp, logout } = useAuth();
+  const [imageError, setImageError] = useState(false);
 
+  useEffect(() => {
+    setImageError(false);
+  }, [user?.avatarUrl]);
+
+  // Check if the user object exists in the current authentication state
   if (showAccountMenu && isAuthenticated && user) {
-    const initials = user.email.substring(0, 2).toUpperCase();
+    const initials = getUserInitials(user);
 
     return (
-      <div className="flex items-center gap-2.5">
+      <div className="flex items-center">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button
-              id="header-user-menu-btn"
-              variant="outline"
-              size="sm"
-              className="gap-2 h-9 px-3 rounded-full border-border bg-card hover:bg-muted font-normal text-xs"
+            <button
+              id="header-user-avatar-btn"
+              type="button"
+              className="relative flex size-9 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-full border border-cobalt-border bg-card shadow-sm transition-all hover:scale-105 hover:ring-2 hover:ring-cobalt/40 focus:outline-none focus:ring-2 focus:ring-cobalt/60"
+              aria-label={`User menu for ${user.email}`}
             >
-              <span className="flex size-5 items-center justify-center rounded-full border border-cobalt-border text-[10px] font-semibold text-cobalt-text">
-                {initials}
-              </span>
-              <span className="max-w-[130px] truncate text-foreground font-medium sm:inline">
-                {user.email}
-              </span>
-            </Button>
+              {user.avatarUrl && !imageError ? (
+                <img
+                  src={user.avatarUrl}
+                  alt={user.name || user.email || "Profile avatar"}
+                  onError={() => setImageError(true)}
+                  className="size-full rounded-full object-cover"
+                />
+              ) : (
+                <span className="flex size-full items-center justify-center rounded-full bg-secondary/80 text-xs font-semibold uppercase tracking-wider text-cobalt-text">
+                  {initials}
+                </span>
+              )}
+            </button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56 p-1.5">
-            <DropdownMenuLabel className="font-normal">
+          <DropdownMenuContent
+            align="end"
+            className="w-56 p-1.5 shadow-lg border-border bg-popover text-popover-foreground"
+          >
+            <DropdownMenuLabel className="font-normal px-2.5 py-2">
               <div className="flex flex-col space-y-1">
-                <p className="text-xs font-semibold leading-none text-foreground">{user.name}</p>
-                <p className="text-[11px] leading-none text-muted-foreground truncate">
+                {user.name && (
+                  <p className="text-xs font-semibold leading-none text-foreground truncate">
+                    {user.name}
+                  </p>
+                )}
+                <p
+                  className="text-[11px] leading-none text-muted-foreground truncate"
+                  title={user.email}
+                >
                   {user.email}
                 </p>
               </div>

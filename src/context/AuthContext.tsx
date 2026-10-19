@@ -22,6 +22,7 @@ export interface User {
   createdAt: string;
   emailVerified: boolean;
   twoFactorVerified: boolean;
+  avatarUrl?: string | null;
 }
 
 export type AuthModalView = "login" | "signup" | "forgot-password";
@@ -190,6 +191,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               createdAt: result.user.createdAt,
               emailVerified: result.user.emailVerified,
               twoFactorVerified: result.user.twoFactorVerified,
+              avatarUrl: (result.user as { avatarUrl?: string | null }).avatarUrl ?? null,
             };
             setUser(confirmed);
             localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(confirmed));
