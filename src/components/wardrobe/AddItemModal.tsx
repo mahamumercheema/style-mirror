@@ -17,7 +17,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Check, Heart, Loader2, Sparkles, UploadCloud, X } from "lucide-react";
+import { Check, Heart, Loader2, UploadCloud, X } from "lucide-react";
 import { toast } from "sonner";
 
 interface AddItemModalProps {
@@ -387,7 +387,7 @@ export function AddItemModal({
                             variant="outline"
                             className="text-[10px] bg-emerald-500/10 text-emerald-300 border-emerald-500/30 gap-1"
                           >
-                            <Sparkles className="size-2.5 text-emerald-300" />
+                            <Check className="size-2.5 text-emerald-300" />
                             <span>Background Automatically Removed</span>
                           </Badge>
                         ) : (

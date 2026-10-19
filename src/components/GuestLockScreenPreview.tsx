@@ -1,15 +1,6 @@
 import React from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
-import {
-  Lock,
-  Sparkles,
-  Shirt,
-  Wand2,
-  ShieldCheck,
-  ArrowRight,
-  UserPlus,
-  LogIn,
-} from "lucide-react";
+import { Lock, Shirt, Wand2, ShieldCheck, ArrowRight, UserPlus, LogIn } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
 import { cn } from "@/lib/utils";

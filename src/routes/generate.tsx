@@ -31,7 +31,6 @@ import { useAuth } from "@/context/AuthContext";
 import { GuestLockScreenPreview } from "@/components/GuestLockScreenPreview";
 import {
   ArrowRight,
-  Sparkles,
   Shirt,
   SunMedium,
   Moon,
@@ -81,56 +80,6 @@ export const Route = createFileRoute("/generate")({
   component: GenerateRouteWrapper,
 });
 
-const PRESET_OCCASIONS = [
-  {
-    id: "Wedding / Festive / Fancy",
-    label: "Wedding / Festive",
-    icon: "✨",
-    desc: "Barat, Walima, Mehendi, Sangeet",
-  },
-  {
-    id: "Dinner / Party",
-    label: "Dinner & Date Night",
-    icon: "🍸",
-    desc: "Evening parties, fine dining, celebrations",
-  },
-  {
-    id: "Office / Work",
-    label: "Office & Work",
-    icon: "💼",
-    desc: "Executive business, boardroom, smart corporate",
-  },
-  {
-    id: "Casual / Daily",
-    label: "Casual & Daily",
-    icon: "☀️",
-    desc: "Brunch, city stroll, relaxed weekend",
-  },
-  {
-    id: "Formal",
-    label: "Formal Gala",
-    icon: "🎩",
-    desc: "Black tie, red carpet, high-stakes events",
-  },
-  {
-    id: "Traditional / Religious",
-    label: "Traditional & Family",
-    icon: "🪷",
-    desc: "Eid, family gatherings, cultural festivities",
-  },
-  {
-    id: "Party / Night Out",
-    label: "Party & Night Out",
-    icon: "🎉",
-    desc: "Cocktail lounge, rooftop soirées, nightlife",
-  },
-  {
-    id: "Summer Vacation",
-    label: "Resort & Vacation",
-    icon: "🌴",
-    desc: "Travel, beach club, sunny getaways",
-  },
-];
 
 const VIBE_PRESETS = [
   {
@@ -240,9 +189,7 @@ function GeneratePage() {
   const [categories, setCategories] = useState<CategoryEntity[]>([]);
 
   // Form Controls
-  const [selectedOccasion, setSelectedOccasion] = useState<string>("Wedding / Festive / Fancy");
-  const [customOccasionInput, setCustomOccasionInput] = useState<string>("");
-  const [isCustomOccasion, setIsCustomOccasion] = useState<boolean>(false);
+  const [occasionInput, setOccasionInput] = useState<string>("");
   const [selectedTimeOfDay, setSelectedTimeOfDay] = useState<string>("Evening");
   const [selectedSeason, setSelectedSeason] = useState<string>("All Season");
   const [selectedVibe, setSelectedVibe] = useState<string>("Royal Regal Glam");
@@ -279,7 +226,7 @@ function GeneratePage() {
       setProfile(prof);
 
       if (prof.preferences?.defaultOccasion) {
-        setSelectedOccasion(prof.preferences.defaultOccasion);
+        setOccasionInput(prof.preferences.defaultOccasion);
       }
       if (prof.preferences?.styleAesthetics?.[0]) {
         setSelectedVibe(prof.preferences.styleAesthetics[0]);
@@ -339,13 +286,10 @@ function GeneratePage() {
     return wardrobe;
   }, [isGuest, wardrobe, useOnlyUploadedFilter, uploadedWardrobe]);
 
-  // Current active occasion string (either selected preset or custom entered)
+  // Current active occasion string
   const effectiveOccasion = useMemo(() => {
-    if (isCustomOccasion && customOccasionInput.trim()) {
-      return customOccasionInput.trim();
-    }
-    return selectedOccasion;
-  }, [isCustomOccasion, customOccasionInput, selectedOccasion]);
+    return occasionInput.trim() || "Special Occasion";
+  }, [occasionInput]);
 
   // Items from gallery matching the current occasion
   const occasionMatchedItems = useMemo(() => {
@@ -535,7 +479,7 @@ function GeneratePage() {
           <div className="rounded-xl border border-cobalt-border bg-cobalt-tint p-4 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-center gap-3">
               <div className="flex size-10 items-center justify-center rounded-xl bg-cobalt-tint text-cobalt-text shrink-0 border border-cobalt-border">
-                <Sparkles className="size-5 text-cobalt" />
+                <Shirt className="size-5 text-cobalt" />
               </div>
               <div>
                 <div className="flex items-center gap-2 flex-wrap">
@@ -672,7 +616,7 @@ function GeneratePage() {
         {isGuest && activeGalleryItems.length === 0 && (
           <div className="rounded-2xl border-2 border-dashed border-cobalt-border bg-cobalt-tint p-6 sm:p-8 text-center space-y-4">
             <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-cobalt-tint text-cobalt-text border border-cobalt-border">
-              <Sparkles className="size-6 text-cobalt" />
+              <Shirt className="size-6 text-cobalt" />
             </div>
             <div className="space-y-1.5 max-w-lg mx-auto">
               <h3 className="text-lg font-display font-semibold text-foreground">
@@ -810,8 +754,7 @@ function GeneratePage() {
 
                   {/* Active Occasion Target Indicator */}
                   <div className="rounded-lg bg-cobalt-tint border border-cobalt-border p-2.5 flex items-center justify-between text-xs text-foreground/90">
-                    <div className="flex items-center gap-1.5">
-                      <Sparkles className="size-3.5 text-cobalt shrink-0" />
+                    <div>
                       <span>
                         Target: <strong className="text-cobalt-text">{effectiveOccasion}</strong>
                       </span>
@@ -1018,7 +961,7 @@ function GeneratePage() {
               /* Loading State */
               <div className="rounded-2xl border border-dashed border-cobalt-border bg-cobalt-tint p-12 text-center space-y-6">
                 <div className="relative mx-auto flex size-16 items-center justify-center rounded-full bg-card shadow-xs border border-cobalt-border">
-                  <Sparkles className="size-8 text-cobalt animate-pulse" />
+                  <Loader2 className="size-8 text-cobalt animate-spin" />
                 </div>
                 <div className="space-y-2">
                   <h3 className="text-xl font-display font-medium text-foreground">
@@ -1046,7 +989,7 @@ function GeneratePage() {
                         variant="outline"
                         className="text-[10px] bg-card border-cobalt-border text-cobalt-text gap-1 animate-pulse"
                       >
-                        <Sparkles className="size-2.5 text-cobalt" />
+                        <Loader2 className="size-2.5 text-cobalt animate-spin" />
                         <span>Auto-cleaning backgrounds...</span>
                       </Badge>
                     )}
@@ -1126,7 +1069,7 @@ function GeneratePage() {
                           variant="outline"
                           className="text-xs border-emerald-500/30 bg-emerald-500/10/60 text-emerald-300 font-medium flex items-center gap-1"
                         >
-                          <Sparkles className="size-3 text-emerald-300" />
+                          <Check className="size-3 text-emerald-300" />
                           <span>Backgrounds Auto-Removed</span>
                         </Badge>
                       </div>
@@ -1304,7 +1247,7 @@ function GeneratePage() {
                       <div className="rounded-xl border border-cobalt-border bg-gradient-to-r from-cobalt-tint to-transparent p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
                         <div className="flex items-center gap-3">
                           <div className="flex size-9 items-center justify-center rounded-full bg-cobalt text-primary-foreground shrink-0 shadow-xs">
-                            <Sparkles className="size-4" />
+                            <Shirt className="size-4" />
                           </div>
                           <div>
                             <p className="text-xs font-semibold text-foreground">
@@ -1350,7 +1293,7 @@ function GeneratePage() {
               /* Initial State */
               <div className="rounded-2xl border border-border bg-card p-10 text-center space-y-5 shadow-xs">
                 <div className="mx-auto flex size-14 items-center justify-center rounded-full bg-cobalt-tint text-cobalt border border-cobalt-border shadow-cobalt-glow">
-                  <Sparkles className="size-7" />
+                  <Shirt className="size-7" />
                 </div>
                 <div className="space-y-1.5 max-w-md mx-auto">
                   <h3 className="text-xl font-display font-medium text-foreground">

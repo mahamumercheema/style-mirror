@@ -16,7 +16,6 @@ import {
   Save,
   ShieldCheck,
   Shirt,
-  Sparkles,
   User,
   UserPlus,
   Wand2,
@@ -535,8 +534,7 @@ function Studio() {
                       height.
                     </p>
                   </div>
-                  <div className="flex items-center gap-2 pt-2 text-xs text-muted-foreground">
-                    <Sparkles className="size-3.5 text-accent-foreground" />
+                  <div className="pt-2 text-xs text-muted-foreground">
                     <span>Processing locally in your browser</span>
                   </div>
                 </div>

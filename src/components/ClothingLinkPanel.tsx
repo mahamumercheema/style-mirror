@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { Crop, Link2, Loader2, Shirt, Sparkles, Upload } from "lucide-react";
+import { Crop, Link2, Loader2, Shirt, Upload } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 
 import { GarmentCropDialog } from "@/components/GarmentCropDialog";
@@ -200,9 +200,8 @@ export function ClothingLinkPanel({
       {showClosetPicker && (
         <div className="space-y-3 rounded-md border border-border bg-secondary/30 p-4">
           <div className="flex items-center justify-between gap-2">
-            <span className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
-              <Sparkles className="size-3.5 text-cobalt-text" />
-              <span>Items from your Closet ({wardrobeItems.length})</span>
+            <span className="text-xs font-semibold text-foreground">
+              Items from your Closet ({wardrobeItems.length})
             </span>
             <Button asChild variant="link" size="sm" className="h-auto p-0 text-xs">
               <Link to="/closet">Manage Full Closet →</Link>
@@ -246,9 +245,8 @@ export function ClothingLinkPanel({
 
       {!preview && !loading && wardrobeItems.length > 0 && (
         <div className="space-y-2 rounded-lg border border-border/70 bg-secondary/20 p-3.5">
-          <p className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
-            <Sparkles className="size-3.5 text-cobalt-text" />
-            <span>Try on a sample garment immediately:</span>
+          <p className="text-xs font-semibold text-foreground">
+            Try on a sample garment immediately:
           </p>
           <div className="flex flex-wrap gap-2">
             {wardrobeItems.slice(0, 4).map((item) => (
@@ -282,7 +280,6 @@ export function ClothingLinkPanel({
               </>
             ) : (
               <>
-                <Sparkles className="size-3.5 shrink-0 text-cobalt-text" />
                 {preview.imageCandidates.length} photos on this page. We picked the clearest front
                 view of the garment; tap another to use it instead.
               </>

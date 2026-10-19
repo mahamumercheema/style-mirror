@@ -26,7 +26,6 @@ import {
   Ruler,
   Save,
   Shirt,
-  Sparkles,
   User,
   X,
   Compass,
@@ -576,9 +575,8 @@ function ProfilePage() {
               return (
                 <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 text-xs space-y-2.5">
                   <div className="flex items-center justify-between">
-                    <span className="font-semibold text-foreground flex items-center gap-1.5">
-                      <Sparkles className="size-3.5 text-cobalt" />
-                      <span>{activeShape.title} Silhouette</span>
+                    <span className="font-semibold text-foreground">
+                      {activeShape.title} Silhouette
                     </span>
                     <span className="text-[10px] text-cobalt-text font-mono">Active Fit</span>
                   </div>
@@ -931,7 +929,6 @@ function ProfilePage() {
                 <div className="rounded-lg border border-border/80 bg-secondary/30 p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
                   <div className="space-y-0.5">
                     <span className="font-medium text-foreground flex items-center gap-1.5">
-                      <Sparkles className="size-3 text-cobalt" />
                       <span>Proportional Ratio Analysis:</span>
                       <strong className="text-cobalt-text font-semibold">
                         {calculatedSilhouette.suggestedShape}

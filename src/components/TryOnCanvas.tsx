@@ -11,7 +11,6 @@ import {
   ChevronLeft,
   ChevronRight,
   SlidersHorizontal,
-  Sparkles,
   Upload,
   Check,
   Layers,
@@ -895,10 +894,7 @@ export function TryOnCanvas({
           {/* Interactive Sliding Toggle Bar between Look A and Look B */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 rounded-lg bg-secondary/40 border border-border/50 p-2 text-xs">
             <div className="flex items-center gap-2">
-              <span className="font-semibold text-foreground flex items-center gap-1">
-                <Sparkles className="size-3.5 text-cobalt-text" />
-                <span>Comparison Sliding Toggle:</span>
-              </span>
+              <span className="font-semibold text-foreground">Comparison Sliding Toggle:</span>
               <span className="text-[11px] text-muted-foreground">
                 {viewMode === "split"
                   ? "Drag slider horizontally across your photo"
@@ -1013,12 +1009,9 @@ export function TryOnCanvas({
             {/* Right Synced View: Look B */}
             <div className="space-y-1.5">
               <div className="flex items-center justify-between px-1">
-                <span className="text-xs font-semibold text-cobalt-text flex items-center gap-1.5">
-                  <Sparkles className="size-3 text-cobalt-text" />
-                  <span>
-                    {rightLookTitle}:{" "}
-                    {comparisonType === "size" ? `Size ${lookBSizeId.toUpperCase()}` : lookBTitle}
-                  </span>
+                <span className="text-xs font-semibold text-cobalt-text">
+                  {rightLookTitle}:{" "}
+                  {comparisonType === "size" ? `Size ${lookBSizeId.toUpperCase()}` : lookBTitle}
                 </span>
                 <span className="text-[10px] uppercase tracking-wider font-semibold px-2 py-0.5 rounded-full bg-primary text-primary-foreground">
                   {comparisonType === "size" ? `Fit ${lookBSizeId.toUpperCase()}` : `Outfit B`}
@@ -1062,7 +1055,6 @@ export function TryOnCanvas({
                 </div>
 
                 <div className="absolute top-3 right-3 z-10 pointer-events-none flex items-center gap-1.5 rounded-full bg-primary/90 px-2.5 py-1 text-[11px] font-medium text-primary-foreground backdrop-blur-md shadow-xs">
-                  <Sparkles className="size-3 text-cobalt-text" />
                   <span>
                     Right:{" "}
                     {comparisonType === "size"

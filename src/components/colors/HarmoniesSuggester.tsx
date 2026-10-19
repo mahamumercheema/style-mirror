@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { Sparkles, Check, ArrowRight } from "lucide-react";
+import { Check, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   calculateColorHarmonies,
@@ -53,8 +53,7 @@ export function HarmoniesSuggester({
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
         <div>
-          <div className="flex items-center gap-1.5 text-xs font-semibold text-cobalt-text">
-            <Sparkles className="size-3.5 text-cobalt-text" />
+          <div className="text-xs font-semibold text-cobalt-text">
             <span>Harmonic Color Engine</span>
           </div>
           <h4 className="font-display text-lg">Dynamically Suggested Harmonies</h4>

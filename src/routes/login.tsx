@@ -3,7 +3,7 @@ import { useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { AtelierOraLogo } from "@/components/AtelierOraLogo";
 import { Button } from "@/components/ui/button";
-import { ShieldCheck, Sparkles } from "lucide-react";
+import { ShieldCheck, LogIn } from "lucide-react";
 
 export const Route = createFileRoute("/login")({
   head: () => ({
@@ -77,7 +77,7 @@ function LoginPage() {
               }
               className="w-full gap-2 cursor-pointer font-medium bg-cobalt-tint text-cobalt-text border border-cobalt-border hover:border-cobalt-bright hover:shadow-cobalt-glow"
             >
-              <Sparkles className="size-4" />
+              <LogIn className="size-4" />
               <span>Log In with Password</span>
             </Button>
             <div className="flex items-center justify-between text-xs pt-1 px-1 text-muted-foreground">

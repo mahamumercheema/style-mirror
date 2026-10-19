@@ -9,7 +9,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { LogIn, LogOut, ShieldCheck, UserPlus, User, Shirt, Sparkles } from "lucide-react";
+import { LogIn, LogOut, ShieldCheck, UserPlus, User, Shirt, Camera } from "lucide-react";
 
 export function HeaderAuthButtons({
   onDark: _onDark = false,
@@ -60,7 +60,7 @@ export function HeaderAuthButtons({
             </DropdownMenuItem>
             <DropdownMenuItem asChild className="cursor-pointer gap-2 text-xs">
               <Link to="/studio">
-                <Sparkles className="size-3.5 text-cobalt-text" />
+                <Camera className="size-3.5 text-cobalt-text" />
                 <span>Fitting Studio</span>
               </Link>
             </DropdownMenuItem>

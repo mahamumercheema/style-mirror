@@ -1,13 +1,5 @@
 import { useState } from "react";
-import {
-  Palette,
-  Sparkles,
-  Layers,
-  CheckCircle2,
-  SlidersHorizontal,
-  Shirt,
-  Eye,
-} from "lucide-react";
+import { Palette, Layers, CheckCircle2, SlidersHorizontal, Shirt, Eye } from "lucide-react";
 import { ColorWheel } from "@/components/colors/ColorWheel";
 import { MoodBoardPaletteExtractor } from "@/components/colors/MoodBoardPaletteExtractor";
 import { HarmoniesSuggester } from "@/components/colors/HarmoniesSuggester";
@@ -140,9 +132,8 @@ export function ColorStudioPanel({
           {/* Quick Harmonies Strip below customizer */}
           <div className="surface p-4 rounded-md border border-border/80 bg-secondary/15 space-y-3">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-foreground flex items-center gap-1.5">
-                <Sparkles className="size-3.5 text-cobalt-text" />
-                <span>Quick Harmony Presets for Base ({baseColorHex}):</span>
+              <span className="text-xs font-semibold text-foreground">
+                Quick Harmony Presets for Base ({baseColorHex}):
               </span>
               <button
                 type="button"

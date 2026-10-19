@@ -9,7 +9,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Edit3, Heart, MoreVertical, Shirt, Sparkles, Trash2, ExternalLink } from "lucide-react";
+import { Edit3, Heart, MoreVertical, Shirt, Trash2, ExternalLink } from "lucide-react";
 
 interface WardrobeItemCardProps {
   item: WardrobeItemWithDetails;
@@ -187,9 +187,6 @@ export function WardrobeItemCard({
                 key={occ.id}
                 className="inline-flex items-center gap-1 rounded-full bg-secondary/80 px-2 py-0.5 text-[10px] text-secondary-foreground font-medium"
               >
-                {occ.name?.includes("Wedding") && (
-                  <Sparkles className="size-2.5 text-cobalt-text" />
-                )}
                 <span className="truncate max-w-[100px]">{occ.name}</span>
               </span>
             ))}

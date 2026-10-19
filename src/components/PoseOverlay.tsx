@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { AlertTriangle, CheckCircle2, Eye, EyeOff, Sparkles, Wand2 } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Eye, EyeOff, Wand2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -170,8 +170,7 @@ export function PoseOverlay({
       ) : null}
 
       <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border p-4 text-xs text-muted-foreground">
-        <div className="flex items-center gap-2">
-          <Sparkles className="size-3.5 text-cobalt-text" />
+        <div>
           <span>Real-time pose detected on your device</span>
         </div>
         <div className="flex items-center gap-2">

@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { Upload, Image as ImageIcon, Sparkles, Layers, Check, RefreshCw } from "lucide-react";
+import { Upload, Image as ImageIcon, Layers, Check, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   extractColorPaletteFromImage,
@@ -99,8 +99,7 @@ export function MoodBoardPaletteExtractor({
       {/* Header & Upload Controls */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <div className="flex items-center gap-1.5 text-xs font-semibold text-cobalt-text">
-            <Sparkles className="size-3.5 text-cobalt-text" />
+          <div className="text-xs font-semibold text-cobalt-text">
             <span>Automatic Color Extraction</span>
           </div>
           <h3 className="font-display text-xl">Mood Board & Photo Palette</h3>
