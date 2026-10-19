@@ -1,10 +1,17 @@
 import { useState } from "react";
-import { AlertTriangle, Info, PencilLine, RotateCcw, Ruler } from "lucide-react";
+import {
+  AlertTriangle,
+  Check,
+  Info,
+  PencilLine,
+  RefreshCw,
+  RotateCcw,
+  Ruler,
+  Save,
+} from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import {
   formatLength,
@@ -22,137 +29,105 @@ import {
 import type { Measurements } from "@/lib/pose";
 import { cn } from "@/lib/utils";
 
-/** Manual entry fields. min/max are in cm; values are always stored in cm. */
-const MANUAL_FIELDS: {
+/**
+ * Unified Core Measurements with combined circumference + front-width data.
+ * Eliminates redundant split fields and provides a clean, single-frame view.
+ */
+const COMBINED_FIELDS: {
   key: ManualKey;
   label: string;
   hint: string;
   min: number;
   max: number;
-  aiValue: (r: ResolvedMeasurements) => ResolvedValue | null;
+  getValue: (r: ResolvedMeasurements) => ResolvedValue | null;
+  getSecondary: (r: ResolvedMeasurements, unit: LengthUnit) => string | null;
+  checkLowConfidence: (r: ResolvedMeasurements) => boolean;
 }[] = [
   {
     key: "height",
     label: "Height",
-    hint: "Stand barefoot against a wall; measure floor to the top of your head",
+    hint: "Floor to head",
     min: 100,
     max: 230,
-    aiValue: (r) => r.height,
+    getValue: (r) => r.height,
+    getSecondary: () => "Scale baseline",
+    checkLowConfidence: () => false,
   },
   {
     key: "shoulderWidth",
-    label: "Shoulder width",
-    hint: "Across the back, from the outer edge of one shoulder to the other",
+    label: "Shoulders",
+    hint: "Outer edge to edge",
     min: 25,
     max: 70,
-    aiValue: (r) => r.shoulderWidth,
+    getValue: (r) => r.shoulderWidth,
+    getSecondary: (r, u) =>
+      r.shoulderWidth?.source === "user" ? "Manual entry" : "Garment sizing key",
+    checkLowConfidence: (r) => isLow(r.shoulderWidth),
   },
   {
     key: "bust",
-    label: "Bust circumference",
-    hint: "Wrap the tape around the fullest part of your chest, under the arms, kept level",
+    label: "Bust",
+    hint: "Fullest chest circumference",
     min: 60,
     max: 200,
-    aiValue: (r) => r.bustCircumference,
+    getValue: (r) => r.bustCircumference,
+    getSecondary: (r, u) =>
+      r.bustWidth ? `Front: ${formatLength(r.bustWidth.cm, u)}` : "Circumference",
+    checkLowConfidence: (r) => isLow(r.bustCircumference) || isLow(r.bustWidth),
   },
   {
     key: "waist",
-    label: "Waist circumference",
-    hint: "Wrap the tape around your natural waist, the narrowest point",
+    label: "Waist",
+    hint: "Natural waistline",
     min: 40,
     max: 200,
-    aiValue: (r) => r.waistCircumference,
+    getValue: (r) => r.waistCircumference,
+    getSecondary: (r, u) =>
+      r.waistWidth ? `Front: ${formatLength(r.waistWidth.cm, u)}` : "Circumference",
+    checkLowConfidence: (r) => isLow(r.waistCircumference) || isLow(r.waistWidth),
   },
   {
     key: "hips",
-    label: "Hip circumference",
-    hint: "Wrap the tape around the fullest part of your hips and seat",
+    label: "Hips",
+    hint: "Fullest seat circumference",
     min: 50,
     max: 200,
-    aiValue: (r) => r.hipCircumference,
+    getValue: (r) => r.hipCircumference,
+    getSecondary: (r, u) =>
+      r.hipWidth ? `Front: ${formatLength(r.hipWidth.cm, u)}` : "Circumference",
+    checkLowConfidence: (r) => isLow(r.hipCircumference) || isLow(r.hipWidth),
   },
   {
     key: "torsoLength",
-    label: "Torso length",
-    hint: "From the top of your shoulder straight down to your hip bone",
+    label: "Torso Length",
+    hint: "Shoulder to hip",
     min: 30,
     max: 90,
-    aiValue: (r) => r.torsoLength,
+    getValue: (r) => r.torsoLength,
+    getSecondary: () => "Shoulder to hip",
+    checkLowConfidence: (r) => isLow(r.torsoLength),
   },
   {
     key: "inseam",
     label: "Inseam",
-    hint: "Along the inside of your leg, from the crotch to the ankle",
+    hint: "Crotch to ankle",
     min: 40,
     max: 130,
-    aiValue: (r) => r.legLength,
+    getValue: (r) => r.legLength,
+    getSecondary: () => "Leg length",
+    checkLowConfidence: (r) => isLow(r.legLength),
   },
   {
     key: "armLength",
-    label: "Arm length",
-    hint: "Arm relaxed, from the outer shoulder edge down to the wrist bone",
+    label: "Arm Length",
+    hint: "Shoulder to wrist",
     min: 35,
     max: 100,
-    aiValue: (r) => r.armLength,
+    getValue: (r) => r.armLength,
+    getSecondary: () => "Arm reach",
+    checkLowConfidence: (r) => isLow(r.armLength),
   },
 ];
-
-function Stat({
-  label,
-  value,
-  hint,
-  lowConfidence,
-}: {
-  label: string;
-  value: string;
-  hint?: string | undefined;
-  lowConfidence?: boolean | undefined;
-}) {
-  return (
-    <div
-      className={cn(
-        "rounded-md bg-secondary/60 p-4",
-        lowConfidence && "ring-1 ring-cobalt/50 border border-cobalt-border",
-      )}
-    >
-      <p className="eyebrow">{label}</p>
-      <p className="mt-2 font-display text-3xl leading-none">{value}</p>
-      {hint ? <p className="mt-1.5 text-xs text-muted-foreground">{hint}</p> : null}
-      {lowConfidence ? (
-        <p className="mt-1.5 flex items-center gap-1 text-[11px] font-medium text-cobalt-text">
-          <AlertTriangle className="size-3" />
-          Low confidence — consider entering it manually
-        </p>
-      ) : null}
-    </div>
-  );
-}
-
-function UnitToggle({
-  unit,
-  onChange,
-}: {
-  unit: LengthUnit;
-  onChange: (unit: LengthUnit) => void;
-}) {
-  return (
-    <ToggleGroup
-      type="single"
-      size="sm"
-      variant="outline"
-      value={unit}
-      onValueChange={(value) => value && onChange(value as LengthUnit)}
-      aria-label="Measurement units"
-    >
-      <ToggleGroupItem value="cm" className="px-3 text-xs">
-        cm
-      </ToggleGroupItem>
-      <ToggleGroupItem value="in" className="px-3 text-xs">
-        in
-      </ToggleGroupItem>
-    </ToggleGroup>
-  );
-}
 
 const isLow = (value: ResolvedValue | null) =>
   Boolean(value && value.source === "ai" && value.confidence < LOW_CONFIDENCE);
@@ -184,6 +159,8 @@ export function MeasurementsCard({
   onManualChange,
   onManualEnabledChange,
   onRecalibrate,
+  onSaveToProfile,
+  isSyncingProfile,
 }: {
   measurements: Measurements;
   resolved: ResolvedMeasurements;
@@ -192,10 +169,10 @@ export function MeasurementsCard({
   onManualChange: (next: ManualMeasurements) => void;
   onManualEnabledChange: (enabled: boolean) => void;
   onRecalibrate: () => void;
+  onSaveToProfile?: () => void;
+  isSyncingProfile?: boolean;
 }) {
   const calibrated = measurements.calibrated;
-
-  // Display unit only — every value is stored and passed around in cm
   const [unit, setUnitState] = useState<LengthUnit>(readUnitPreference);
 
   const [drafts, setDrafts] = useState<Partial<Record<ManualKey, string>>>(() =>
@@ -207,7 +184,6 @@ export function MeasurementsCard({
   const setUnit = (next: LengthUnit) => {
     setUnitState(next);
     saveUnitPreference(next);
-    // Re-express typed values in the new unit
     setDrafts((prev) => {
       const converted: Partial<Record<ManualKey, string>> = { ...prev };
       for (const key of Object.keys(manual) as ManualKey[]) {
@@ -249,270 +225,254 @@ export function MeasurementsCard({
       : curve.averageCm < 5
         ? "Moderate curve"
         : "Pronounced curve";
-  const hasAnyValue = Boolean(calibrated) || (manualEnabled && Object.keys(manual).length > 0);
+
+  const hasManualOverrides = Object.keys(manual).length > 0;
 
   return (
-    // Unboxed; columns follow the width it's given (a narrow side column or full width)
-    <section className="@container space-y-5">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <p className="eyebrow">Step 02 — Body read</p>
-          <h2 className="mt-1 text-2xl font-display">Your measurements</h2>
+    <div className="rounded-xl border border-border bg-card p-5 sm:p-6 shadow-xs space-y-5">
+      {/* Unified Frame Header */}
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/80 pb-4">
+        <div className="space-y-0.5">
+          <div className="flex items-center gap-2">
+            <h2 className="font-display text-xl font-semibold text-foreground">
+              Your Measurements
+            </h2>
+            {calibrated ? (
+              <span className="text-[11px] font-medium text-cobalt-text">
+                · {Math.round(calibrated.heightCm)} cm baseline
+              </span>
+            ) : (
+              <span className="text-[11px] font-medium text-muted-foreground">· Estimated</span>
+            )}
+          </div>
+          <p className="text-xs text-muted-foreground">
+            {manualEnabled
+              ? "Edit your tape measurements below. Values immediately update your fit."
+              : "Calibrated proportions read from your pose and silhouette."}
+          </p>
         </div>
+
+        {/* Action Controls */}
         <div className="flex items-center gap-2">
-          {!calibrated ? (
-            <span className="flex items-center gap-1.5 rounded-full border border-cobalt-border px-3 py-1 text-xs font-medium text-cobalt-text">
-              <Info className="size-3.5" />
-              Estimated
-            </span>
-          ) : null}
-          <UnitToggle unit={unit} onChange={setUnit} />
+          {/* Unit Switch */}
+          <ToggleGroup
+            type="single"
+            size="sm"
+            variant="outline"
+            value={unit}
+            onValueChange={(value) => value && setUnit(value as LengthUnit)}
+            aria-label="Measurement units"
+            className="h-8 border-border"
+          >
+            <ToggleGroupItem value="in" className="h-7 px-2.5 text-xs font-medium cursor-pointer">
+              in
+            </ToggleGroupItem>
+            <ToggleGroupItem value="cm" className="h-7 px-2.5 text-xs font-medium cursor-pointer">
+              cm
+            </ToggleGroupItem>
+          </ToggleGroup>
+
+          {/* Inline Edit Toggle */}
+          <Button
+            type="button"
+            variant={manualEnabled ? "secondary" : "outline"}
+            size="sm"
+            onClick={() => onManualEnabledChange(!manualEnabled)}
+            className="h-8 gap-1.5 text-xs font-medium cursor-pointer"
+          >
+            {manualEnabled ? (
+              <>
+                <Check className="size-3.5 text-emerald-400" />
+                <span>Done</span>
+              </>
+            ) : (
+              <>
+                <PencilLine className="size-3.5 text-cobalt-text" />
+                <span>Customize</span>
+              </>
+            )}
+          </Button>
         </div>
       </div>
 
-      {calibrated ? (
-        <p className="flex gap-2 rounded-md bg-accent/12 p-3 text-xs text-muted-foreground">
-          <Info className="mt-0.5 size-4 shrink-0 text-cobalt-text" />
-          <span>
-            Scaled from your {Math.round(calibrated.heightCm)} cm height using your{" "}
-            {calibrated.scaleMethod === "silhouette"
-              ? "head-to-heel outline"
-              : calibrated.scaleMethod === "landmarks"
-                ? "head and ankle landmarks"
-                : "visible body (feet not detected — less accurate)"}
-            . Photo-based measurements are typically within a few centimeters; widths are seen from
-            the front only.
-          </span>
-        </p>
-      ) : (
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-cobalt-border p-3 text-xs text-cobalt-text">
-          <span>
-            These proportions aren't calibrated yet. Add your height to get measurements in
-            centimeters.
-          </span>
-          <Button size="sm" variant="outline" onClick={onRecalibrate} className="h-7 text-xs">
-            <Ruler className="size-3.5" />
-            Measure with my height
+      {/* Uncalibrated banner (if height has not been calibrated yet) */}
+      {!calibrated && (
+        <div className="flex items-center justify-between gap-3 rounded-lg border border-cobalt-border bg-cobalt-tint p-3 text-xs text-cobalt-text">
+          <div className="flex items-center gap-2">
+            <Info className="size-4 shrink-0" />
+            <span>Calibrate with your exact height to lock accurate real-world dimensions.</span>
+          </div>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={onRecalibrate}
+            className="h-7 shrink-0 text-xs font-medium border-cobalt-border text-cobalt-text hover:bg-cobalt-tint cursor-pointer"
+          >
+            <Ruler className="size-3.5 mr-1" />
+            Calibrate Height
           </Button>
         </div>
       )}
 
-      {hasAnyValue ? (
-        <div className="grid gap-3 @sm:grid-cols-2 @3xl:grid-cols-3">
-          <Stat
-            label="Height"
-            value={fmt(resolved.height)}
-            hint="Reference baseline for the scale"
-          />
-          <Stat
-            label="Shoulder width (outer edge)"
-            value={fmt(resolved.shoulderWidth)}
-            hint={
-              resolved.shoulderWidth?.source === "user"
-                ? "You entered this"
-                : calibrated
-                  ? `Joint-to-joint ${formatLength(calibrated.shoulderJointWidth.cm * (resolved.height ? resolved.height.cm / calibrated.heightCm : 1), unit)} + edge allowance`
-                  : undefined
-            }
-            lowConfidence={isLow(resolved.shoulderWidth)}
-          />
-          <Stat
-            label="Bust width (front view)"
-            value={fmt(resolved.bustWidth)}
-            hint={
-              resolved.bustWidth?.basis === "approximation"
-                ? resolved.bustWidth.source === "user"
-                  ? "Estimated from your bust circumference"
-                  : "Estimated from shoulders and hips — arms hid the chest outline"
-                : "Straight line across the chest, as seen from the front"
-            }
-            lowConfidence={isLow(resolved.bustWidth)}
-          />
-          <Stat
-            label="Bust (around)"
-            value={fmt(resolved.bustCircumference)}
-            hint={
-              resolved.bustCircumference?.source === "user" &&
-              resolved.bustCircumference.basis === "user"
-                ? "You entered this"
-                : "Estimated from front width — enter a tape measurement to be exact"
-            }
-          />
-          <Stat
-            label="Waist width (front view)"
-            value={fmt(resolved.waistWidth)}
-            hint={
-              resolved.waistWidth?.basis === "approximation"
-                ? resolved.waistWidth.source === "user"
-                  ? "Estimated from your waist circumference"
-                  : "Rough estimate — arms hid the waist outline"
-                : "Straight line across, as seen from the front"
-            }
-            lowConfidence={isLow(resolved.waistWidth)}
-          />
-          <Stat
-            label="Waist (around)"
-            value={fmt(resolved.waistCircumference)}
-            hint={
-              resolved.waistCircumference?.source === "user" &&
-              resolved.waistCircumference.basis === "user"
-                ? "You entered this"
-                : "Estimated from front width — enter a tape measurement to be exact"
-            }
-          />
-          <Stat
-            label="Hip width (front view)"
-            value={fmt(resolved.hipWidth)}
-            hint={
-              resolved.hipWidth?.basis === "approximation"
-                ? resolved.hipWidth.source === "user"
-                  ? "Estimated from your hip circumference"
-                  : "Rough estimate — arms hid the hip outline"
-                : "Straight line across, as seen from the front"
-            }
-            lowConfidence={isLow(resolved.hipWidth)}
-          />
-          <Stat
-            label="Hips (around)"
-            value={fmt(resolved.hipCircumference)}
-            hint={
-              resolved.hipCircumference?.source === "user" &&
-              resolved.hipCircumference.basis === "user"
-                ? "You entered this"
-                : "Estimated from front width — enter a tape measurement to be exact"
-            }
-          />
-          <Stat
-            label="Hip curve (outward bulge per side)"
-            value={curve ? `+${formatLength(Math.max(0, curve.averageCm), unit)}` : "—"}
-            hint={
-              curve
-                ? `${curveShape} · L ${formatLength(curve.leftCm, unit)} / R ${formatLength(curve.rightCm, unit)} · waist:hip width ${curve.waistToHipWidthRatio.toFixed(2)}`
-                : undefined
-            }
-            lowConfidence={Boolean(
-              curve && curve.source === "ai" && curve.confidence < LOW_CONFIDENCE,
-            )}
-          />
-          <Stat
-            label="Torso length"
-            value={fmt(resolved.torsoLength)}
-            hint={resolved.torsoLength?.source === "user" ? "You entered this" : "Shoulder to hip"}
-            lowConfidence={isLow(resolved.torsoLength)}
-          />
-          <Stat
-            label="Inseam / leg length"
-            value={fmt(resolved.legLength)}
-            hint={resolved.legLength?.source === "user" ? "You entered this" : "Hip to ankle"}
-            lowConfidence={isLow(resolved.legLength)}
-          />
-          <Stat
-            label="Arm length"
-            value={fmt(resolved.armLength)}
-            hint={resolved.armLength?.source === "user" ? "You entered this" : "Shoulder to wrist"}
-            lowConfidence={isLow(resolved.armLength)}
-          />
-          <Stat
-            label="Body silhouette"
-            value={measurements.bodyType}
-            hint={`Shoulder:hip ratio ${measurements.shoulderToHipRatio.toFixed(2)}`}
-          />
-        </div>
-      ) : null}
+      {/* Unified Measurements Grid: 2 clean balanced columns, combined fields */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+        {COMBINED_FIELDS.map((field) => {
+          const resolvedVal = field.getValue(resolved);
+          const isUserCustom = manual[field.key] !== undefined;
+          const isLowConf = !isUserCustom && field.checkLowConfidence(resolved);
+          const secondary = field.getSecondary(resolved, unit);
+          const draft = drafts[field.key] ?? "";
+          const isInvalid = draft !== "" && !isUserCustom;
 
-      {/* Manual entry / override */}
-      <div className="rounded-lg border border-border bg-card/60 p-4 space-y-4">
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <PencilLine className="size-4 text-cobalt-text" />
-            <div>
-              <Label htmlFor="manual-toggle" className="text-sm font-medium cursor-pointer">
-                Manually enter measurements
-              </Label>
-              <p className="text-xs text-muted-foreground">
-                Your numbers replace the AI estimates. Shoulder width also sets the garment size on
-                the try-on canvas.
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-3">
-            {manualEnabled ? <UnitToggle unit={unit} onChange={setUnit} /> : null}
-            <Switch
-              id="manual-toggle"
-              checked={manualEnabled}
-              onCheckedChange={onManualEnabledChange}
-            />
-          </div>
-        </div>
+          return (
+            <div
+              key={field.key}
+              className={cn(
+                "group relative rounded-lg border border-border/80 bg-secondary/25 p-3 transition-colors hover:border-border",
+                isUserCustom && "border-cobalt-border/60 bg-cobalt-tint/20",
+                isInvalid && "border-destructive/60",
+              )}
+            >
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <span className="text-xs font-semibold text-foreground tracking-tight">
+                    {field.label}
+                  </span>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">
+                    {secondary || field.hint}
+                  </p>
+                </div>
 
-        {manualEnabled ? (
-          <div className="space-y-4 border-t border-border/70 pt-4">
-            <div className="grid gap-4 @sm:grid-cols-2">
-              {MANUAL_FIELDS.map((field) => {
-                const draft = drafts[field.key] ?? "";
-                const applied = manual[field.key] !== undefined;
-                const invalid = draft !== "" && !applied;
-                const ai = field.aiValue(resolved);
-                return (
-                  <div key={field.key} className="space-y-1.5">
-                    <div className="flex items-center justify-between gap-2">
-                      <Label htmlFor={`manual-${field.key}`} className="text-xs">
-                        {field.label} <span className="text-muted-foreground">({unit})</span>
-                      </Label>
-                      {applied ? (
-                        <button
-                          type="button"
-                          onClick={() => clearField(field.key)}
-                          className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground"
-                        >
-                          <RotateCcw className="size-3" />
-                          Use AI estimate
-                        </button>
-                      ) : null}
-                    </div>
-                    <Input
-                      id={`manual-${field.key}`}
-                      type="number"
-                      inputMode="decimal"
-                      step="0.1"
-                      placeholder={ai && ai.source === "ai" ? `AI: ${toUnit(ai.cm, unit)}` : ""}
-                      value={draft}
-                      onChange={(e) => setField(field.key, e.target.value, field.min, field.max)}
-                      className={cn(invalid && "border-destructive")}
-                    />
-                    <p
-                      className={cn(
-                        "text-[11px]",
-                        invalid ? "text-destructive" : "text-muted-foreground",
-                      )}
+                {/* Status indicator or Reset button */}
+                <div className="flex items-center gap-1.5 shrink-0">
+                  {isLowConf && (
+                    <span
+                      title="Low confidence estimate — consider customizing"
+                      className="inline-flex items-center gap-1 text-[10px] text-amber-400 font-medium"
                     >
-                      {invalid
-                        ? `Enter ${toUnit(field.min, unit)}–${toUnit(field.max, unit)} ${unit}`
-                        : field.hint}
-                    </p>
+                      <AlertTriangle className="size-3" />
+                    </span>
+                  )}
+                  {isUserCustom && (
+                    <div className="flex items-center gap-1">
+                      <span className="text-[10px] font-medium text-cobalt-text px-1.5 py-0.5 rounded-sm bg-cobalt-tint">
+                        Custom
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => clearField(field.key)}
+                        title="Reset to AI estimate"
+                        className="cursor-pointer p-0.5 text-muted-foreground hover:text-foreground"
+                      >
+                        <RotateCcw className="size-3" />
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Value display or Inline input */}
+              {manualEnabled ? (
+                <div className="mt-2.5 flex items-center gap-2">
+                  <div className="relative flex-1">
+                    <Input
+                      id={`field-${field.key}`}
+                      type="number"
+                      step="0.1"
+                      inputMode="decimal"
+                      value={draft}
+                      placeholder={
+                        resolvedVal && resolvedVal.source === "ai"
+                          ? String(toUnit(resolvedVal.cm, unit))
+                          : ""
+                      }
+                      onChange={(e) => setField(field.key, e.target.value, field.min, field.max)}
+                      className={cn(
+                        "h-8 text-xs font-medium tabular-nums pr-8",
+                        isInvalid && "border-destructive focus-visible:ring-destructive",
+                      )}
+                    />
+                    <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[11px] text-muted-foreground font-mono pointer-events-none">
+                      {unit}
+                    </span>
                   </div>
-                );
-              })}
+                </div>
+              ) : (
+                <div className="mt-2 flex items-baseline justify-between">
+                  <span className="font-display text-2xl font-semibold tabular-nums text-foreground tracking-tight">
+                    {fmt(resolvedVal)}
+                  </span>
+                </div>
+              )}
             </div>
-            {Object.keys(manual).length > 0 ? (
-              <Button variant="ghost" size="sm" onClick={clearAll} className="h-8 text-xs">
-                <RotateCcw className="size-3.5" />
-                Switch all back to AI estimates
-              </Button>
-            ) : null}
-          </div>
-        ) : null}
+          );
+        })}
       </div>
 
-      {calibrated ? (
-        <button
-          type="button"
-          onClick={onRecalibrate}
-          className="text-xs text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
-        >
-          Re-measure with a different height
-        </button>
-      ) : null}
-    </section>
+      {/* Unified Footer: Proportions Summary & Quick Actions */}
+      <div className="border-t border-border/80 pt-4 flex flex-wrap items-center justify-between gap-3 text-xs">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-muted-foreground">
+          <div className="flex items-center gap-1.5">
+            <span className="text-foreground font-medium">Silhouette:</span>
+            <span className="text-foreground">{measurements.bodyType}</span>
+            <span className="text-[11px]">
+              (Ratio {measurements.shoulderToHipRatio.toFixed(2)})
+            </span>
+          </div>
+
+          {curve && (
+            <div className="flex items-center gap-1.5">
+              <span className="text-foreground font-medium">Hip Curve:</span>
+              <span>
+                +{formatLength(Math.max(0, curve.averageCm), unit)} · {curveShape}
+              </span>
+            </div>
+          )}
+        </div>
+
+        {/* Footer Actions */}
+        <div className="flex flex-wrap items-center gap-3">
+          {hasManualOverrides && (
+            <button
+              type="button"
+              onClick={clearAll}
+              className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground cursor-pointer transition-colors"
+            >
+              <RotateCcw className="size-3" />
+              <span>Reset all to AI</span>
+            </button>
+          )}
+
+          {calibrated && (
+            <button
+              type="button"
+              onClick={onRecalibrate}
+              className="flex items-center gap-1 text-[11px] text-cobalt-text hover:underline underline-offset-4 cursor-pointer"
+            >
+              <Ruler className="size-3" />
+              <span>Re-measure height</span>
+            </button>
+          )}
+
+          {onSaveToProfile && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={isSyncingProfile}
+              onClick={onSaveToProfile}
+              className="h-7 px-2.5 text-xs gap-1.5 cursor-pointer border-cobalt-border text-cobalt-text hover:bg-cobalt-tint"
+            >
+              {isSyncingProfile ? (
+                <RefreshCw className="size-3 animate-spin" />
+              ) : (
+                <Save className="size-3" />
+              )}
+              <span>Save to Profile</span>
+            </Button>
+          )}
+        </div>
+      </div>
+    </div>
   );
 }

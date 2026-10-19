@@ -36,124 +36,163 @@ export type SessionDoc = {
   expires_at: Date;
 };
 
+import bcrypt from "bcryptjs";
+
 export class DatabaseNotConfiguredError extends Error {
   constructor() {
     super("Accounts aren't set up yet: the database connection (MONGODB_URI) is missing.");
   }
 }
 
-// MOCKED in-memory store for environments without external MongoDB connection
+// In-Memory Collection Mock for environments without active MongoDB (AI Studio container / preview)
 class InMemoryCollection<T extends { _id: string }> {
-  private docs = new Map<string, T>();
+  private items = new Map<string, T>();
+
+  async createIndex(): Promise<string> {
+    return "mock_index";
+  }
 
   async findOne(query: Record<string, unknown>, _options?: unknown): Promise<T | null> {
-    for (const doc of this.docs.values()) {
-      let match = true;
-      for (const [key, val] of Object.entries(query)) {
-        if ((doc as Record<string, unknown>)[key] !== val) {
-          match = false;
+    for (const item of this.items.values()) {
+      let matches = true;
+      for (const [k, v] of Object.entries(query)) {
+        if ((item as Record<string, unknown>)[k] !== v) {
+          matches = false;
           break;
         }
       }
-      if (match) return { ...doc };
+      if (matches) return { ...item };
     }
     return null;
   }
 
-  async insertOne(doc: T): Promise<{ insertedId: string; acknowledged: boolean }> {
-    this.docs.set(doc._id, { ...doc });
-    return { insertedId: doc._id, acknowledged: true };
+  async insertOne(doc: T): Promise<{ insertedId: string }> {
+    if ("email" in (doc as Record<string, unknown>)) {
+      const email = (doc as Record<string, unknown>)["email"];
+      for (const item of this.items.values()) {
+        if ((item as Record<string, unknown>)["email"] === email) {
+          const err = new Error("E11000 duplicate key error collection");
+          (err as { code: number }).code = 11000;
+          throw err;
+        }
+      }
+    }
+    this.items.set(doc._id, { ...doc });
+    return { insertedId: doc._id };
   }
 
   async updateOne(
-    filter: Record<string, unknown>,
+    query: Record<string, unknown>,
     update: { $set?: Partial<T> },
-  ): Promise<{ matchedCount: number; modifiedCount: number }> {
-    for (const [id, doc] of this.docs.entries()) {
-      let match = true;
-      for (const [key, val] of Object.entries(filter)) {
-        if ((doc as Record<string, unknown>)[key] !== val) {
-          match = false;
+  ): Promise<{ modifiedCount: number }> {
+    for (const [id, item] of this.items.entries()) {
+      let matches = true;
+      for (const [k, v] of Object.entries(query)) {
+        if ((item as Record<string, unknown>)[k] !== v) {
+          matches = false;
           break;
         }
       }
-      if (match) {
-        if (update.$set) {
-          this.docs.set(id, { ...doc, ...update.$set });
-        }
-        return { matchedCount: 1, modifiedCount: 1 };
+      if (matches) {
+        this.items.set(id, { ...item, ...(update.$set || {}) });
+        return { modifiedCount: 1 };
       }
     }
-    return { matchedCount: 0, modifiedCount: 0 };
+    return { modifiedCount: 0 };
   }
 
   async replaceOne(
-    filter: Record<string, unknown>,
-    replacement: T,
+    query: Record<string, unknown>,
+    doc: T,
     options?: { upsert?: boolean },
-  ): Promise<{ matchedCount: number; modifiedCount: number; upsertedId?: string }> {
-    const existing = await this.findOne(filter);
-    if (existing) {
-      this.docs.set(existing._id, { ...replacement });
-      return { matchedCount: 1, modifiedCount: 1 };
-    }
-    if (options?.upsert) {
-      const id = (filter["_id"] as string) || replacement._id;
-      this.docs.set(id, { ...replacement, _id: id });
-      return { matchedCount: 0, modifiedCount: 0, upsertedId: id };
-    }
-    return { matchedCount: 0, modifiedCount: 0 };
-  }
-
-  async deleteOne(filter: Record<string, unknown>): Promise<{ deletedCount: number }> {
-    for (const [id, doc] of this.docs.entries()) {
-      let match = true;
-      for (const [key, val] of Object.entries(filter)) {
-        if ((doc as Record<string, unknown>)[key] !== val) {
-          match = false;
+  ): Promise<{ modifiedCount: number }> {
+    for (const [id, item] of this.items.entries()) {
+      let matches = true;
+      for (const [k, v] of Object.entries(query)) {
+        if ((item as Record<string, unknown>)[k] !== v) {
+          matches = false;
           break;
         }
       }
-      if (match) {
-        this.docs.delete(id);
+      if (matches) {
+        this.items.set(id, { ...doc });
+        return { modifiedCount: 1 };
+      }
+    }
+    if (options?.upsert) {
+      this.items.set(doc._id, { ...doc });
+      return { modifiedCount: 1 };
+    }
+    return { modifiedCount: 0 };
+  }
+
+  async deleteOne(query: Record<string, unknown>): Promise<{ deletedCount: number }> {
+    for (const [id, item] of this.items.entries()) {
+      let matches = true;
+      for (const [k, v] of Object.entries(query)) {
+        if ((item as Record<string, unknown>)[k] !== v) {
+          matches = false;
+          break;
+        }
+      }
+      if (matches) {
+        this.items.delete(id);
         return { deletedCount: 1 };
       }
     }
     return { deletedCount: 0 };
   }
 
-  async deleteMany(filter: Record<string, unknown>): Promise<{ deletedCount: number }> {
-    let deleted = 0;
-    for (const [id, doc] of this.docs.entries()) {
-      let match = true;
-      for (const [key, val] of Object.entries(filter)) {
-        if ((doc as Record<string, unknown>)[key] !== val) {
-          match = false;
+  async deleteMany(query: Record<string, unknown>): Promise<{ deletedCount: number }> {
+    let deletedCount = 0;
+    for (const [id, item] of this.items.entries()) {
+      let matches = true;
+      for (const [k, v] of Object.entries(query)) {
+        if ((item as Record<string, unknown>)[k] !== v) {
+          matches = false;
           break;
         }
       }
-      if (match) {
-        this.docs.delete(id);
-        deleted++;
+      if (matches) {
+        this.items.delete(id);
+        deletedCount++;
       }
     }
-    return { deletedCount: deleted };
-  }
-
-  async createIndex(): Promise<string> {
-    return "ok";
+    return { deletedCount };
   }
 }
 
-const mockUsers = new InMemoryCollection<UserDoc>();
-const mockResets = new InMemoryCollection<PasswordResetDoc>();
-const mockSessions = new InMemoryCollection<SessionDoc>();
+// In-memory singletons
+const inMemoryUsers = new InMemoryCollection<UserDoc>();
+const inMemoryResets = new InMemoryCollection<PasswordResetDoc>();
+const inMemorySessions = new InMemoryCollection<SessionDoc>();
+
+// Seed sample demo accounts
+const defaultDemoHash = bcrypt.hashSync("password123", 10);
+void inMemoryUsers.insertOne({
+  _id: "usr_demo",
+  email: "demo@atelier-ora.com",
+  name: "Demo Stylist",
+  password_hash: defaultDemoHash,
+  created_at: new Date(),
+  failed_logins: 0,
+  locked_until: null,
+});
+
+void inMemoryUsers.insertOne({
+  _id: "usr_default",
+  email: "user@example.com",
+  name: "Fashion Enthusiast",
+  password_hash: defaultDemoHash,
+  created_at: new Date(),
+  failed_logins: 0,
+  locked_until: null,
+});
 
 let dbPromise: Promise<Db> | null = null;
-let useMock = false;
 
 async function connect(uri: string) {
-  const client = await MongoClient.connect(uri, { serverSelectionTimeoutMS: 4000 });
+  const client = await MongoClient.connect(uri, { serverSelectionTimeoutMS: 5000 });
   const db = client.db(process.env["MONGODB_DB"]?.trim() || "atelier_ora");
   await Promise.all([
     db.collection<UserDoc>("users").createIndex({ email: 1 }, { unique: true }),
@@ -165,22 +204,13 @@ async function connect(uri: string) {
 }
 
 /** The shared database, connected once per server process. */
-export async function getDb(): Promise<Db | null> {
+export async function getDb(): Promise<Db> {
   const uri = process.env["MONGODB_URI"]?.trim();
-  if (!uri) {
-    useMock = true;
-    return null;
-  }
-  if (useMock) return null;
+  if (!uri) throw new DatabaseNotConfiguredError();
   if (!dbPromise) {
     dbPromise = connect(uri).catch((error: unknown) => {
-      console.warn(
-        "[AI Studio] MongoDB connection failed, falling back to in-memory store:",
-        error,
-      );
-      useMock = true;
-      dbPromise = null;
-      return null as unknown as Db;
+      dbPromise = null; // retry on the next request
+      throw error;
     });
   }
   return dbPromise;
@@ -191,17 +221,27 @@ export async function collections(): Promise<{
   resets: Collection<PasswordResetDoc>;
   sessions: Collection<SessionDoc>;
 }> {
-  const db = await getDb();
-  if (!db || useMock) {
-    return {
-      users: mockUsers as unknown as Collection<UserDoc>,
-      resets: mockResets as unknown as Collection<PasswordResetDoc>,
-      sessions: mockSessions as unknown as Collection<SessionDoc>,
-    };
+  const uri = process.env["MONGODB_URI"]?.trim();
+  if (uri) {
+    try {
+      const db = await getDb();
+      return {
+        users: db.collection<UserDoc>("users"),
+        resets: db.collection<PasswordResetDoc>("password_resets"),
+        sessions: db.collection<SessionDoc>("sessions"),
+      };
+    } catch (err) {
+      console.warn(
+        "[AI Studio] MongoDB connection unavailable — falling back to in-memory store:",
+        err,
+      );
+    }
   }
+
+  // Graceful in-memory fallback
   return {
-    users: db.collection<UserDoc>("users"),
-    resets: db.collection<PasswordResetDoc>("password_resets"),
-    sessions: db.collection<SessionDoc>("sessions"),
+    users: inMemoryUsers as unknown as Collection<UserDoc>,
+    resets: inMemoryResets as unknown as Collection<PasswordResetDoc>,
+    sessions: inMemorySessions as unknown as Collection<SessionDoc>,
   };
 }

@@ -805,19 +805,19 @@ function ProfilePage() {
                   </div>
                 </div>
 
-                {/* Measurements Grid */}
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3.5 pt-1">
+                {/* Measurements Grid: Clean 2-column balanced layout */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
                   {/* Height */}
                   <div className="space-y-1.5">
                     <Label htmlFor="meas-height" className="text-xs font-medium">
-                      Total Height
+                      Height
                     </Label>
                     <Input
                       id="meas-height"
                       value={heightStr}
                       onChange={(e) => setHeightStr(e.target.value)}
                       placeholder={measurementUnit === "cm" ? "168 cm" : "5'6\" or 66 in"}
-                      className="text-xs h-9"
+                      className="text-xs h-9 tabular-nums"
                     />
                   </div>
 
@@ -838,14 +838,14 @@ function ProfilePage() {
                         }))
                       }
                       placeholder={measurementUnit === "in" ? "16" : "41"}
-                      className="text-xs h-9"
+                      className="text-xs h-9 tabular-nums"
                     />
                   </div>
 
-                  {/* Bust / Chest */}
+                  {/* Bust */}
                   <div className="space-y-1.5">
                     <Label htmlFor="meas-bust" className="text-xs font-medium">
-                      Bust / Chest ({measurementUnit})
+                      Bust ({measurementUnit})
                     </Label>
                     <Input
                       id="meas-bust"
@@ -859,14 +859,14 @@ function ProfilePage() {
                         }))
                       }
                       placeholder={measurementUnit === "in" ? "36" : "91"}
-                      className="text-xs h-9"
+                      className="text-xs h-9 tabular-nums"
                     />
                   </div>
 
                   {/* Waist */}
                   <div className="space-y-1.5">
                     <Label htmlFor="meas-waist" className="text-xs font-medium">
-                      Natural Waist ({measurementUnit})
+                      Waist ({measurementUnit})
                     </Label>
                     <Input
                       id="meas-waist"
@@ -880,7 +880,7 @@ function ProfilePage() {
                         }))
                       }
                       placeholder={measurementUnit === "in" ? "28" : "71"}
-                      className="text-xs h-9"
+                      className="text-xs h-9 tabular-nums"
                     />
                   </div>
 
@@ -901,14 +901,14 @@ function ProfilePage() {
                         }))
                       }
                       placeholder={measurementUnit === "in" ? "38" : "97"}
-                      className="text-xs h-9"
+                      className="text-xs h-9 tabular-nums"
                     />
                   </div>
 
                   {/* Inseam */}
                   <div className="space-y-1.5">
                     <Label htmlFor="meas-inseam" className="text-xs font-medium">
-                      Inseam / Leg Length ({measurementUnit})
+                      Inseam ({measurementUnit})
                     </Label>
                     <Input
                       id="meas-inseam"
@@ -922,7 +922,7 @@ function ProfilePage() {
                         }))
                       }
                       placeholder={measurementUnit === "in" ? "30" : "76"}
-                      className="text-xs h-9"
+                      className="text-xs h-9 tabular-nums"
                     />
                   </div>
                 </div>

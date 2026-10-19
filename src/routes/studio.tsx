@@ -710,29 +710,9 @@ function Studio() {
                     onManualChange={setManual}
                     onManualEnabledChange={setManualEnabled}
                     onRecalibrate={() => setStatus("idle")}
+                    onSaveToProfile={handleSaveMeasurementsToProfile}
+                    isSyncingProfile={isSyncingProfile}
                   />
-
-                  {/* Phase 4: Save Calibrated Proportions to User Profile */}
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <span className="text-xs text-muted-foreground">
-                      Keep these calibrated body dimensions synced:
-                    </span>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      disabled={isSyncingProfile}
-                      onClick={handleSaveMeasurementsToProfile}
-                      className="h-8 gap-1.5 text-xs cursor-pointer border-primary/30 text-cobalt-text hover:bg-primary/10"
-                    >
-                      {isSyncingProfile ? (
-                        <RefreshCw className="size-3 animate-spin" />
-                      ) : (
-                        <Save className="size-3" />
-                      )}
-                      <span>Save to Profile</span>
-                    </Button>
-                  </div>
 
                   <div className="space-y-4 border-t border-border pt-8">
                     <div>
