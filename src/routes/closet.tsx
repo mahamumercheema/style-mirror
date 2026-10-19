@@ -8,7 +8,6 @@ import {
   updateWardrobeItem,
   deleteWardrobeItem,
   toggleFavoriteWardrobeItem,
-  seedSampleWardrobe,
   MOCK_WARDROBE_ITEMS,
   DEFAULT_CATEGORIES,
   DEFAULT_OCCASIONS,
@@ -30,18 +29,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/context/AuthContext";
 import { GuestLockScreenPreview } from "@/components/GuestLockScreenPreview";
-import {
-  ArrowRight,
-  Filter,
-  Heart,
-  Loader2,
-  Plus,
-  RotateCcw,
-  Search,
-  Shirt,
-  Sparkles,
-  AlertCircle,
-} from "lucide-react";
+import { Heart, Loader2, Plus, RotateCcw, Search, Shirt, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/closet")({
@@ -336,17 +324,6 @@ function ClosetPage() {
     setSearchQuery("");
   };
 
-  const handleSeedDefaults = () => {
-    try {
-      const seeded = seedSampleWardrobe(activeUserId);
-      setItems(Array.isArray(seeded) ? seeded : []);
-      toast.success("Loaded starter outfits into your closet!");
-    } catch (err) {
-      console.error("Seed error:", err);
-      toast.error("Could not load starter outfits.");
-    }
-  };
-
   const favoriteCount = items.filter((i) => i.is_favorite).length;
 
   return (
@@ -373,17 +350,6 @@ function ClosetPage() {
           </div>
 
           <div className="flex items-center gap-2.5 flex-wrap sm:flex-nowrap">
-            <Button
-              asChild
-              variant="outline"
-              size="default"
-              className="gap-2 font-medium border-cobalt-border bg-cobalt-tint hover:bg-cobalt-tint text-cobalt-text cursor-pointer"
-            >
-              <Link to="/generate">
-                <Sparkles className="size-4" />
-                <span>AI Stylist</span>
-              </Link>
-            </Button>
             <Button
               id="add-new-item-header-btn"
               onClick={() => setIsAddModalOpen(true)}
@@ -564,11 +530,11 @@ function ClosetPage() {
                 Your closet is empty!
               </h3>
               <p className="text-sm text-muted-foreground max-w-md mx-auto leading-relaxed">
-                Click <span className="font-semibold text-foreground">"+ Add New Item"</span> above
-                to start building your digital wardrobe.
+                Click <span className="font-semibold text-foreground">"+ Add New Item"</span> to
+                start building your digital wardrobe.
               </p>
             </div>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+            <div className="flex items-center justify-center pt-2">
               <Button
                 id="add-new-item-empty-btn"
                 onClick={() => setIsAddModalOpen(true)}
@@ -577,15 +543,6 @@ function ClosetPage() {
               >
                 <Plus className="size-4 stroke-[2.5]" />
                 <span>+ Add New Item</span>
-              </Button>
-              <Button
-                onClick={handleSeedDefaults}
-                variant="outline"
-                size="default"
-                className="gap-2 cursor-pointer text-xs w-full sm:w-auto border-border/80 hover:bg-secondary"
-              >
-                <Sparkles className="size-3.5 text-cobalt-text" />
-                <span>Load Starter Outfits</span>
               </Button>
             </div>
           </div>
@@ -636,26 +593,6 @@ function ClosetPage() {
             </div>
           </div>
         )}
-
-        {/* Direct Link to Fitting Studio Banner */}
-        <section className="rounded-xl border border-border bg-gradient-to-r from-card via-secondary/20 to-card p-6 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-xs">
-          <div className="space-y-1 text-center sm:text-left">
-            <h3 className="text-lg font-display font-medium text-foreground flex items-center justify-center sm:justify-start gap-2">
-              <Sparkles className="size-4 text-cobalt-text" />
-              <span>Ready for Virtual Fitting?</span>
-            </h3>
-            <p className="text-xs text-muted-foreground max-w-xl">
-              Take any item from your closet directly into our TensorFlow MoveNet studio to try it
-              on over your full-body photo.
-            </p>
-          </div>
-          <Button asChild size="default" className="gap-2 shrink-0 cursor-pointer">
-            <Link to="/studio">
-              <span>Open Fitting Room</span>
-              <ArrowRight className="size-4" />
-            </Link>
-          </Button>
-        </section>
       </div>
 
       {/* ========================================================================= */}
