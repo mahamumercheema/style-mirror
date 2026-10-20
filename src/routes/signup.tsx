@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { AtelierOraLogo } from "@/components/AtelierOraLogo";
@@ -21,6 +21,7 @@ export const Route = createFileRoute("/signup")({
 
 function SignUpPage() {
   const { isAuthenticated, openSignUp, isModalOpen } = useAuth();
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -28,7 +29,7 @@ function SignUpPage() {
       const redirectParam = params.get("redirect") || "/closet";
 
       if (isAuthenticated) {
-        window.location.assign(redirectParam);
+        void navigate({ to: redirectParam });
         return;
       }
 

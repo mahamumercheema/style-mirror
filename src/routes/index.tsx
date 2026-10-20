@@ -226,23 +226,19 @@ function Landing() {
             the how-it-works steps. */}
         <div className="relative flex flex-col items-center gap-10 px-6 pt-28 pb-14 md:block md:min-h-[100svh] md:px-0 md:pt-[52svh] md:pb-[6svh]">
           <div className="pointer-events-none flex justify-center md:absolute md:inset-x-0 md:top-0 md:h-[100svh] md:min-h-[560px] md:items-center">
-            <OraWordmark className="fade-rise h-[30vh] w-auto [animation-duration:800ms] md:h-[42vh]" />
+            <OraWordmark className="fade-rise h-[28vh] w-auto [animation-duration:800ms] md:h-[38vh]" />
           </div>
 
           <div className="fade-rise max-w-md text-center md:w-[calc(32%+3rem)] md:max-w-none md:pl-12 md:text-left lg:w-[calc(32%+4rem)] lg:pl-16">
-            <p className="flex items-center justify-center gap-2 text-[0.6875rem] font-medium uppercase tracking-[0.18em] text-cream/75 md:justify-start">
-              <span className="inline-block size-1.5 rounded-full bg-cobalt" />A fitting room in
-              your browser
-            </p>
             <h1 className="mt-5 text-4xl leading-[1.06] text-cream md:text-4xl lg:text-5xl xl:text-6xl">
               <span className="text-cobalt-text">See it on you</span>
               <br />
-              before you buy.
+              before you buy
             </h1>
             <p className="mt-6 text-base leading-relaxed text-cream/80">
-              Upload one full-body photo, get an approximate read of your proportions, manage your
-              Western & ethnic wardrobe, and receive bespoke AI outfit recommendations with hair and
-              makeup inspiration.
+              Try on new looks, experiment with your style, and discover outfits that feel so you.
+              From everyday fits to main-character moments, your next favourite look is just a
+              little imagination away.
             </p>
           </div>
         </div>

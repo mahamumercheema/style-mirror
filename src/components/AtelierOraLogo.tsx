@@ -22,7 +22,7 @@ export function AtelierOraLogo({
         className,
       )}
     >
-      <span className="font-normal">Atelier</span> <span className="font-bold">Ora</span>
+      <span className="font-normal" translate="no">Atelier</span> <span className="font-bold" translate="no">Ora</span>
     </Link>
   );
 }

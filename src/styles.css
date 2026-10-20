@@ -60,13 +60,12 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
-  /* Lato is the typeface for the whole site; the two logos keep Bodoni Moda */
-  --font-display: "Lato", ui-sans-serif, system-ui, sans-serif;
-  --font-sans: "Lato", ui-sans-serif, system-ui, sans-serif;
+  /* Playfair Display for headings, Inter for body/UI, Bodoni Moda for wordmark only */
+  --font-display: "Playfair Display", "Georgia", ui-serif, serif;
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-wordmark: "Bodoni Moda", "Didot", "Bodoni 72", ui-serif, serif;
-  /* Tailwind's built-in serif/mono utilities (font-serif, font-mono) also use Lato */
-  --font-serif: "Lato", ui-sans-serif, system-ui, sans-serif;
-  --font-mono: "Lato", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Playfair Display", "Georgia", ui-serif, serif;
+  --font-mono: "Inter", ui-sans-serif, system-ui, sans-serif;
   --tracking-editorial: 0.18em;
   --shadow-soft: 0 1px 2px oklch(0.25 0.02 60 / 0.04), 0 12px 32px -12px oklch(0.25 0.02 60 / 0.16);
   --shadow-lift: 0 2px 4px oklch(0.25 0.02 60 / 0.05), 0 28px 60px -20px oklch(0.25 0.02 60 / 0.24);
@@ -249,14 +248,21 @@
     border-color: var(--color-border);
   }
 
+  html {
+    /* Prevent sticky header (h-16 = 64px) from obscuring keyboard-focused elements */
+    scroll-padding-top: 4rem;
+  }
+
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);
     font-family: var(--font-sans);
-    /* Only the Lato weights loaded in __root.tsx are used; never fake bold/italic */
     font-synthesis: none;
     -webkit-font-smoothing: antialiased;
   }
+
+  /* Eliminate 300ms tap delay on mobile */
+  a, button { touch-action: manipulation; }
 
   :where(a, button):not(:disabled):hover {
     text-shadow: 0 0 8px rgb(123 143 224 / 0.35);
@@ -384,7 +390,9 @@
   text-transform: uppercase;
   letter-spacing: 0.16em;
   &:focus-visible {
-    outline: none;
+    outline: 2px solid var(--color-cobalt);
+    outline-offset: 3px;
+    border-radius: 2px;
   }
 }
 
@@ -400,7 +408,9 @@
     font-size: 0.875rem;
   }
   &:focus-visible {
-    outline: none;
+    outline: 2px solid var(--color-cobalt);
+    outline-offset: 3px;
+    border-radius: 2px;
   }
 }
 

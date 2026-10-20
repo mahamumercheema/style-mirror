@@ -94,14 +94,30 @@ export function AuthModal() {
     }
   }, [isModalOpen, modalView, loginEmail, resetEmail]);
 
-  // Keyboard accessibility: ESC key to close
+  // Focus trap + ESC to close
   useEffect(() => {
     if (!isModalOpen) return;
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") closeModal();
+    const FOCUSABLE = 'a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])';
+    const trap = (e: KeyboardEvent) => {
+      if (e.key === "Escape") { closeModal(); return; }
+      if (e.key !== "Tab") return;
+      const el = modalRef.current;
+      if (!el) return;
+      const nodes = Array.from(el.querySelectorAll<HTMLElement>(FOCUSABLE));
+      if (!nodes.length) return;
+      const first = nodes[0]!;
+      const last = nodes[nodes.length - 1]!;
+      if (e.shiftKey) {
+        if (document.activeElement === first) { e.preventDefault(); last.focus(); }
+      } else {
+        if (document.activeElement === last) { e.preventDefault(); first.focus(); }
+      }
     };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
+    window.addEventListener("keydown", trap);
+    // Move focus into modal on open
+    const firstFocusable = modalRef.current?.querySelector<HTMLElement>(FOCUSABLE);
+    firstFocusable?.focus();
+    return () => window.removeEventListener("keydown", trap);
   }, [isModalOpen, closeModal]);
 
   if (!isModalOpen) return null;
@@ -299,6 +315,7 @@ export function AuthModal() {
             {resetSuccessMessage && (
               <div
                 id="login-success-alert"
+                role="alert"
                 className="flex items-start gap-2.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-3 text-[13px] text-emerald-400 animate-in fade-in duration-200"
               >
                 <CheckCircle2 className="mt-0.5 size-4 shrink-0" />
@@ -310,6 +327,8 @@ export function AuthModal() {
             {loginError && (
               <div
                 id="login-error-alert"
+                role="alert"
+                tabIndex={-1}
                 className="flex items-start gap-2.5 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-[13px] text-destructive animate-in fade-in duration-200"
               >
                 <AlertCircle className="mt-0.5 size-4 shrink-0" />
@@ -337,6 +356,8 @@ export function AuthModal() {
                     }}
                     className={cn(MODAL_INPUT, "pl-10")}
                     autoComplete="email"
+                    aria-describedby={loginError ? "login-error-alert" : undefined}
+                    aria-invalid={loginError ? true : undefined}
                     autoFocus
                     required
                   />
@@ -364,6 +385,8 @@ export function AuthModal() {
                     }}
                     className={cn(MODAL_INPUT, "pl-10 pr-10")}
                     autoComplete="current-password"
+                    aria-describedby={loginError ? "login-error-alert" : undefined}
+                    aria-invalid={loginError ? true : undefined}
                     required
                   />
                   <button
@@ -460,6 +483,7 @@ export function AuthModal() {
             {resetError && (
               <div
                 id="reset-error-alert"
+                role="alert"
                 className="flex items-start gap-2.5 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-[13px] text-destructive animate-in fade-in duration-200"
               >
                 <AlertCircle className="mt-0.5 size-4 shrink-0" />
@@ -683,6 +707,8 @@ export function AuthModal() {
             {signUpError && (
               <div
                 id="signup-error-alert"
+                role="alert"
+                tabIndex={-1}
                 className="flex items-start gap-2.5 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-[13px] text-destructive animate-in fade-in duration-200"
               >
                 <AlertCircle className="mt-0.5 size-4 shrink-0" />
@@ -730,6 +756,8 @@ export function AuthModal() {
                     }}
                     className={cn(MODAL_INPUT, "pl-10")}
                     autoComplete="email"
+                    aria-describedby={signUpError ? "signup-error-alert" : undefined}
+                    aria-invalid={signUpError ? true : undefined}
                     required
                   />
                 </div>
