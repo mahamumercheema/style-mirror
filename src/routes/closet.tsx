@@ -30,7 +30,6 @@ import { Input } from "@/components/ui/input";
 import { useAuth } from "@/context/AuthContext";
 import { GuestLockScreenPreview } from "@/components/GuestLockScreenPreview";
 import {
-  ArrowRight,
   Filter,
   Heart,
   Loader2,
@@ -629,26 +628,6 @@ function ClosetPage() {
             </div>
           </div>
         )}
-
-        {/* Direct Link to Fitting Studio Banner */}
-        <section className="rounded-xl border border-border bg-gradient-to-r from-card via-secondary/20 to-card p-6 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-xs">
-          <div className="space-y-1 text-center sm:text-left">
-            <h3 className="text-lg font-display font-medium text-foreground flex items-center justify-center sm:justify-start gap-2">
-              <Sparkles className="size-4 text-cobalt-text" />
-              <span>Ready for Virtual Fitting?</span>
-            </h3>
-            <p className="text-xs text-muted-foreground max-w-xl">
-              Take any item from your closet directly into our TensorFlow MoveNet studio to try it
-              on over your full-body photo.
-            </p>
-          </div>
-          <Button asChild size="default" className="gap-2 shrink-0 cursor-pointer">
-            <Link to="/studio">
-              <span>Open Fitting Room</span>
-              <ArrowRight className="size-4" />
-            </Link>
-          </Button>
-        </section>
       </div>
 
       {/* ========================================================================= */}

@@ -284,7 +284,7 @@ function ProfilePage() {
     }
 
     setIsDetectingPose(true);
-    toast.info("Analyzing silhouette landmarks via browser AI MoveNet...");
+    toast.info("Analyzing silhouette landmarks and proportions...");
 
     try {
       const img = new Image();

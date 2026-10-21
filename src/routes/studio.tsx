@@ -529,9 +529,8 @@ function Studio() {
                   <div className="space-y-1">
                     <h3 className="text-xl font-display">{analysisPhase}</h3>
                     <p className="max-w-md text-sm text-muted-foreground">
-                      Cleaning the background, then running TensorFlow MoveNet on your device and
-                      scaling everything to your {heightCm ? `${Math.round(heightCm)} cm` : ""}{" "}
-                      height.
+                      Cleaning the background, calibrating proportions on your device, and scaling
+                      everything to your {heightCm ? `${Math.round(heightCm)} cm` : ""} height.
                     </p>
                   </div>
                   <div className="pt-2 text-xs text-muted-foreground">
