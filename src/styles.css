@@ -262,7 +262,10 @@
   }
 
   /* Eliminate 300ms tap delay on mobile */
-  a, button { touch-action: manipulation; }
+  a,
+  button {
+    touch-action: manipulation;
+  }
 
   :where(a, button):not(:disabled):hover {
     text-shadow: 0 0 8px rgb(123 143 224 / 0.35);

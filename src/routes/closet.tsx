@@ -27,7 +27,6 @@ import { AddItemModal } from "@/components/wardrobe/AddItemModal";
 import { EditItemModal } from "@/components/wardrobe/EditItemModal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/context/AuthContext";
 import { GuestLockScreenPreview } from "@/components/GuestLockScreenPreview";
 import {
@@ -357,13 +356,7 @@ function ClosetPage() {
         {/* ========================================================================= */}
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-border/60 pb-6">
           <div>
-            <div className="flex items-center gap-2">
-              <p className="eyebrow text-cobalt-text">Smart Outfit Engine</p>
-              <Badge variant="outline" className="text-[10px] bg-secondary/80 font-mono">
-                Personal Wardrobe
-              </Badge>
-            </div>
-            <h1 className="mt-1 text-3xl sm:text-4xl md:text-5xl font-display font-semibold tracking-tight text-foreground">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-display font-semibold tracking-tight text-foreground">
               My Closet
             </h1>
             <p className="mt-2 text-sm text-muted-foreground max-w-2xl">

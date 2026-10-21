@@ -97,9 +97,13 @@ export function AuthModal() {
   // Focus trap + ESC to close
   useEffect(() => {
     if (!isModalOpen) return;
-    const FOCUSABLE = 'a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])';
+    const FOCUSABLE =
+      'a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])';
     const trap = (e: KeyboardEvent) => {
-      if (e.key === "Escape") { closeModal(); return; }
+      if (e.key === "Escape") {
+        closeModal();
+        return;
+      }
       if (e.key !== "Tab") return;
       const el = modalRef.current;
       if (!el) return;
@@ -108,9 +112,15 @@ export function AuthModal() {
       const first = nodes[0]!;
       const last = nodes[nodes.length - 1]!;
       if (e.shiftKey) {
-        if (document.activeElement === first) { e.preventDefault(); last.focus(); }
+        if (document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        }
       } else {
-        if (document.activeElement === last) { e.preventDefault(); first.focus(); }
+        if (document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
       }
     };
     window.addEventListener("keydown", trap);
