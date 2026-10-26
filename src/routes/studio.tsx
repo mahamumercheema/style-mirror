@@ -174,47 +174,47 @@ function Studio() {
       if (basePhoto && !photo) {
         setPhoto(basePhoto);
 
-      // Auto-extract dynamic color wheel palette from profile photo
-      void extractColorPaletteFromImage(basePhoto).then((palette) => {
-        if (palette && palette.length > 0) {
-          setExtractedPalette(palette);
-          if (palette[0]) {
-            setBaseColorHex(palette[0].hex);
-            setGarmentTheme((curr) => ({
-              ...curr,
-              mainBody: palette[0]!.hex,
-              trims: palette[1]?.hex || curr.trims,
-              buttons: palette[palette.length - 1]?.hex || curr.buttons,
-              stitching: palette[2]?.hex || curr.stitching,
-            }));
+        // Auto-extract dynamic color wheel palette from profile photo
+        void extractColorPaletteFromImage(basePhoto).then((palette) => {
+          if (palette && palette.length > 0) {
+            setExtractedPalette(palette);
+            if (palette[0]) {
+              setBaseColorHex(palette[0].hex);
+              setGarmentTheme((curr) => ({
+                ...curr,
+                mainBody: palette[0]!.hex,
+                trims: palette[1]?.hex || curr.trims,
+                buttons: palette[palette.length - 1]?.hex || curr.buttons,
+                stitching: palette[2]?.hex || curr.stitching,
+              }));
+            }
           }
-        }
-      });
+        });
 
-      // Auto-initialize pose measurements directly
-      const img = new Image();
-      img.crossOrigin = "anonymous";
-      img.onload = () => {
-        const fallback = createDefaultPoseResult(img);
-        if (userProf.bodyType === "Hourglass") fallback.measurements.bodyType = "Hourglass";
-        else if (userProf.bodyType === "Inverted Triangle")
-          fallback.measurements.bodyType = "Inverted triangle";
-        else if (userProf.bodyType === "Pear") fallback.measurements.bodyType = "Triangle";
-        else if (userProf.bodyType === "Rectangle") fallback.measurements.bodyType = "Rectangle";
+        // Auto-initialize pose measurements directly
+        const img = new Image();
+        img.crossOrigin = "anonymous";
+        img.onload = () => {
+          const fallback = createDefaultPoseResult(img);
+          if (userProf.bodyType === "Hourglass") fallback.measurements.bodyType = "Hourglass";
+          else if (userProf.bodyType === "Inverted Triangle")
+            fallback.measurements.bodyType = "Inverted triangle";
+          else if (userProf.bodyType === "Pear") fallback.measurements.bodyType = "Triangle";
+          else if (userProf.bodyType === "Rectangle") fallback.measurements.bodyType = "Rectangle";
 
-        setOriginal(fallback.measurements);
-        setMeasurements(fallback.measurements);
-        setAnalysisPhoto(basePhoto);
-        setBackgroundRemoved(false);
-        setGuide(fallback.guide);
-        setKeypoints(fallback.keypoints);
-        setSkeletonLines(fallback.skeletonLines);
-        setStatus("done");
-        // Automatically bypass Step 1 and Step 2 directly into Step 3 (Fitting Room)
-        setCurrentStep(3);
-      };
-      img.src = basePhoto;
-    }
+          setOriginal(fallback.measurements);
+          setMeasurements(fallback.measurements);
+          setAnalysisPhoto(basePhoto);
+          setBackgroundRemoved(false);
+          setGuide(fallback.guide);
+          setKeypoints(fallback.keypoints);
+          setSkeletonLines(fallback.skeletonLines);
+          setStatus("done");
+          // Automatically bypass Step 1 and Step 2 directly into Step 3 (Fitting Room)
+          setCurrentStep(3);
+        };
+        img.src = basePhoto;
+      }
     };
     void loadAndApplyProfile();
   }, [user?.id, photo]);
