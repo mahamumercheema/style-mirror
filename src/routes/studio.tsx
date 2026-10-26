@@ -41,7 +41,7 @@ import { useAuth } from "@/context/AuthContext";
 import { GuestLockScreenPreview } from "@/components/GuestLockScreenPreview";
 import { getUserProfile } from "@/lib/wardrobe-service";
 import { apiGetUserProfile, apiUpdateUserProfile } from "@/lib/user.functions";
-import type { UserProfile } from "@/types/wardrobe";
+import type { UserProfile, WardrobeItemWithDetails } from "@/types/wardrobe";
 import { toast } from "sonner";
 import {
   createDefaultPoseResult,
@@ -57,6 +57,7 @@ import {
   OUTFIT_SLOT_LABELS,
   OUTFIT_SLOTS,
   type OutfitPayload,
+  type OutfitSlot,
 } from "@/lib/outfit";
 import {
   extractColorPaletteFromImage,
@@ -66,12 +67,21 @@ import {
 } from "@/lib/color-palette";
 import { cn } from "@/lib/utils";
 
+function parentTypeToSlot(parentType: string | null | undefined): OutfitSlot {
+  if (parentType === "Bottoms") return "pants";
+  if (parentType === "Outerwear") return "jacket";
+  return "top";
+}
+
 function StudioRouteWrapper() {
   // Publicly accessible fitting studio ("Try It Now")
   return <Studio />;
 }
 
 export const Route = createFileRoute("/studio")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    garmentId: typeof search.garmentId === "string" ? search.garmentId : undefined,
+  }),
   head: () => ({
     meta: [
       { title: "Try-on studio — Atelier Ora" },
@@ -96,6 +106,7 @@ export const Route = createFileRoute("/studio")({
 type WorkflowStep = 1 | 2 | 3;
 
 function Studio() {
+  const { garmentId } = Route.useSearch();
   const { user, isAuthenticated, isGuest, openLogin, openSignUp, loginAsGuest } = useAuth();
   const hasStudioAccess = isAuthenticated || isGuest;
   const [photo, setPhoto] = useState<string | null>(null);
@@ -112,6 +123,11 @@ function Studio() {
   const [garments, setGarments] = useState<GarmentUploads>(EMPTY_GARMENT_UPLOADS);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [isSyncingProfile, setIsSyncingProfile] = useState(false);
+  const [preloadedGarment, setPreloadedGarment] = useState<{
+    slot: OutfitSlot;
+    title: string;
+    imageUrl: string;
+  } | null>(null);
 
   // Height calibration, cleaned photo & manual overrides
   const [heightCm, setHeightCm] = useState<number | null>(null);
@@ -202,6 +218,29 @@ function Studio() {
     };
     void loadAndApplyProfile();
   }, [user?.id, photo]);
+
+  // Pre-load a garment when arriving from "Try on in Studio" in My Closet
+  useEffect(() => {
+    if (!garmentId || !user?.id || user.id === "guest_user") return;
+    const token =
+      typeof window !== "undefined"
+        ? (window.localStorage.getItem("vtr_auth_token") ?? user.id)
+        : user.id;
+    fetch("/api/wardrobe", { headers: { Authorization: `Bearer ${token}` } })
+      .then((res) => res.json())
+      .then((data: { items?: WardrobeItemWithDetails[] }) => {
+        const item = data.items?.find((i) => i.id === garmentId);
+        if (!item) return; // deleted or wrong ID — fall back to empty garment cards
+        const slot = parentTypeToSlot(item.category?.parent_type);
+        setGarments((prev) => ({ ...prev, [slot]: item.image_url }));
+        setPreloadedGarment({
+          slot,
+          title: item.title || "Garment",
+          imageUrl: item.thumbnail_url || item.image_url,
+        });
+      })
+      .catch(() => { /* graceful fallback: garment cards stay empty */ });
+  }, [garmentId, user?.id]);
 
   // Try it on sends the photo plus every filled "Add garments" card
   const cardsTryOn = useGarmentCardsTryOn(photo ?? "", garments);
@@ -836,7 +875,36 @@ function Studio() {
                   </div>
                 </div>
 
-                <div id="add-garments" className="scroll-mt-24">
+                <div id="add-garments" className="scroll-mt-24 space-y-4">
+                  {preloadedGarment ? (
+                    <div className="flex items-center gap-3 rounded-md border border-cobalt-border bg-cobalt-tint/20 p-3">
+                      <img
+                        src={preloadedGarment.imageUrl}
+                        alt={preloadedGarment.title}
+                        className="size-14 shrink-0 rounded object-cover"
+                      />
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-medium">{preloadedGarment.title}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {OUTFIT_SLOT_LABELS[preloadedGarment.slot]} · from your closet
+                        </p>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="shrink-0 cursor-pointer"
+                        onClick={() => {
+                          setGarments((prev) => ({
+                            ...prev,
+                            [preloadedGarment.slot]: null,
+                          }));
+                          setPreloadedGarment(null);
+                        }}
+                      >
+                        Change
+                      </Button>
+                    </div>
+                  ) : null}
                   <GarmentUploadCards garments={garments} onChange={setGarments} />
                 </div>
               </div>

@@ -105,7 +105,7 @@ export function WardrobeItemCard({
             size="sm"
             className="w-full h-8 text-xs font-medium border border-cobalt-border bg-black/60 text-cobalt-text hover:bg-black/70 backdrop-blur-xs cursor-pointer gap-1.5"
           >
-            <Link to="/studio">
+            <Link to="/studio" search={{ garmentId: item.id }}>
               <Shirt className="size-3.5" />
               <span>Try On in Studio</span>
             </Link>
