@@ -8,7 +8,7 @@ import {
   getSessionUser,
   type AuthResult,
 } from "./server-auth";
-import { DatabaseNotConfiguredError } from "./db";
+import { DatabaseNotConfiguredError, getDb } from "./db";
 import {
   getStoredWardrobeItems,
   saveWardrobeItem,
@@ -144,7 +144,16 @@ export async function handleApiRouter(request: Request): Promise<Response | null
   // User Profile Endpoints (/api/user/profile)
   if (pathname === "/api/user/profile") {
     if (request.method === "GET") {
-      const profile = getUserProfile(activeUserId);
+      let profile: UserProfile | null = null;
+      try {
+        const db = await getDb();
+        const doc = await db.collection<UserProfile>("profiles").findOne({ id: activeUserId });
+        if (doc) {
+          const { _id: _, ...rest } = doc as UserProfile & { _id: unknown };
+          profile = rest as UserProfile;
+        }
+      } catch { /* MongoDB unavailable */ }
+      if (!profile) profile = getUserProfile(activeUserId);
       return new Response(JSON.stringify({ success: true, profile }), {
         status: 200,
         headers: { "Content-Type": "application/json" },
@@ -158,6 +167,14 @@ export async function handleApiRouter(request: Request): Promise<Response | null
         };
         const targetUserId = userId || activeUserId;
         const updated = saveUserProfile(targetUserId, profileData);
+        try {
+          const db = await getDb();
+          await db.collection("profiles").updateOne(
+            { id: targetUserId },
+            { $set: { ...updated, updated_at: new Date().toISOString() } },
+            { upsert: true },
+          );
+        } catch { /* MongoDB unavailable — local copy already saved */ }
         return new Response(JSON.stringify({ success: true, profile: updated }), {
           status: 200,
           headers: { "Content-Type": "application/json" },

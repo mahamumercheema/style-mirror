@@ -33,7 +33,7 @@ export function HeightCalibrationCard({
     saveUnitPreference(next === "cm" ? "cm" : "in");
   };
   const [cmInput, setCmInput] = useState(initialCm ? String(Math.round(initialCm)) : "");
-  const [ftInput, setFtInput] = useState(initialFtIn ? String(initialFtIn.feet) : "");
+  const [ftInput, setFtInput] = useState(initialFtIn ? String(initialFtIn.feet) : "5");
   const [inInput, setInInput] = useState(initialFtIn ? String(initialFtIn.inches) : "");
 
   const heightCm =

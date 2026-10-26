@@ -74,12 +74,19 @@ export const updateUserProfileServerFn = createServerFn({ method: "POST" })
 // Client-side wrappers with seamless network + local fallback
 // ============================================================================
 
+function getSessionToken(fallback: string): string {
+  if (typeof window !== "undefined") {
+    return window.localStorage.getItem("vtr_auth_token") ?? fallback;
+  }
+  return fallback;
+}
+
 export async function apiGetUserProfile(userId: string = "default_user"): Promise<UserProfile> {
   // Try HTTP endpoint first
   try {
     const res = await fetch(`/api/user/profile?userId=${encodeURIComponent(userId)}`, {
       headers: {
-        Authorization: `Bearer ${userId}`,
+        Authorization: `Bearer ${getSessionToken(userId)}`,
       },
     });
     if (res.ok) {
@@ -114,7 +121,7 @@ export async function apiUpdateUserProfile(
       method: "PATCH",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${userId}`,
+        Authorization: `Bearer ${getSessionToken(userId)}`,
       },
       body: JSON.stringify({ userId, ...data }),
     });

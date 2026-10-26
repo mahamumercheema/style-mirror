@@ -40,7 +40,7 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
 import { GuestLockScreenPreview } from "@/components/GuestLockScreenPreview";
 import { getUserProfile } from "@/lib/wardrobe-service";
-import { apiUpdateUserProfile } from "@/lib/user.functions";
+import { apiGetUserProfile, apiUpdateUserProfile } from "@/lib/user.functions";
 import type { UserProfile } from "@/types/wardrobe";
 import { toast } from "sonner";
 import {
@@ -147,12 +147,16 @@ function Studio() {
   // Phase 4: Automatically load saved base photo and measurement proportions from user profile
   useEffect(() => {
     const activeUserId = user?.id || "guest_user";
-    const userProf = getUserProfile(activeUserId);
-    setProfile(userProf);
+    const loadAndApplyProfile = async () => {
+      const userProf =
+        user?.id && user.id !== "guest_user"
+          ? await apiGetUserProfile(user.id)
+          : getUserProfile(activeUserId);
+      setProfile(userProf);
 
-    const basePhoto = userProf.bodyPhotoUrl || userProf.user_photo_url;
-    if (basePhoto && !photo) {
-      setPhoto(basePhoto);
+      const basePhoto = userProf.bodyPhotoUrl || userProf.user_photo_url;
+      if (basePhoto && !photo) {
+        setPhoto(basePhoto);
 
       // Auto-extract dynamic color wheel palette from profile photo
       void extractColorPaletteFromImage(basePhoto).then((palette) => {
@@ -195,6 +199,8 @@ function Studio() {
       };
       img.src = basePhoto;
     }
+    };
+    void loadAndApplyProfile();
   }, [user?.id, photo]);
 
   // Try it on sends the photo plus every filled "Add garments" card
@@ -204,12 +210,15 @@ function Studio() {
 
   const handleSaveMeasurementsToProfile = async () => {
     if (!measurements) return;
+    if (!user || user.id === "guest_user") {
+      openSignUp(undefined, "Create an account to save your measurements to your profile.");
+      return;
+    }
     setIsSyncingProfile(true);
     try {
-      const activeUserId = user?.id || "guest_user";
       const round = (value: { cm: number } | null) => (value ? Math.round(value.cm) : null);
       const height = round(resolved.height);
-      await apiUpdateUserProfile(activeUserId, {
+      await apiUpdateUserProfile(user.id, {
         bodyPhotoUrl: photo,
         user_photo_url: photo,
         bodyType: measurements.bodyType,
@@ -228,6 +237,7 @@ function Studio() {
             }
           : {}),
       });
+      toast.success("Measurements saved to your profile.");
     } catch {
       toast.error("Failed to sync measurements to profile.");
     } finally {
@@ -667,28 +677,28 @@ function Studio() {
               <div>
                 <p className="eyebrow">Step 02 — Pose analysis</p>
                 <h1 className={PAGE_TITLE}>Body landmarks & proportions</h1>
-                <div className="mt-6 flex flex-wrap items-center gap-2">
+                <div className="mt-6 space-y-2">
+                  {status === "done" ? (
+                    <Button
+                      size="default"
+                      onClick={hasStudioAccess ? handleProceedToFittingRoom : openGateSignUp}
+                      title={hasStudioAccess ? undefined : "Sign up or log in to try on clothes"}
+                      className="w-full gap-2 cursor-pointer"
+                    >
+                      {locked && <Lock className="size-4" />}
+                      <span>Try on clothes</span>
+                      <ArrowRight className="size-4" />
+                    </Button>
+                  ) : null}
                   <Button
-                    variant="outline"
+                    variant="ghost"
                     size="sm"
                     onClick={tryAnotherPhoto}
-                    className="gap-1.5 cursor-pointer"
+                    className="w-full gap-1.5 cursor-pointer text-muted-foreground hover:text-foreground"
                   >
                     <RefreshCw className="size-3.5" />
                     Change photo
                   </Button>
-                  {status === "done" ? (
-                    <Button
-                      size="sm"
-                      onClick={hasStudioAccess ? handleProceedToFittingRoom : openGateSignUp}
-                      title={hasStudioAccess ? undefined : "Sign up or log in to try on clothes"}
-                      className="gap-1.5 cursor-pointer"
-                    >
-                      {locked && <Lock className="size-3.5" />}
-                      <span>Try on clothes</span>
-                      <ArrowRight className="size-3.5" />
-                    </Button>
-                  ) : null}
                 </div>
               </div>
 
