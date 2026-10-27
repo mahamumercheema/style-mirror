@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { AlertTriangle, CheckCircle2, Eye, EyeOff, Wand2 } from "lucide-react";
+import { CheckCircle2, Eye, EyeOff } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -114,8 +114,6 @@ export function PoseOverlay({
     }
   }, [imageLoaded, keypoints, showSkeleton, skeletonLines]);
 
-  const confidencePct = Math.round(confidence * 100);
-
   return (
     // Fills its parent: the photo (with skeleton) scales to fit, the bars stay at the bottom
     <div className="surface flex h-full flex-col overflow-hidden">
@@ -124,24 +122,6 @@ export function PoseOverlay({
           ref={canvasRef}
           className="checkerboard absolute inset-0 block size-full object-contain"
         />
-
-        {/* Floating status pill */}
-        <div className="absolute top-3 left-3 right-36 flex flex-wrap items-center gap-2">
-          <span className="flex items-center gap-1.5 rounded-full bg-background/90 px-3 py-1 text-xs font-medium backdrop-blur-sm">
-            {confidencePct}% landmark confidence
-          </span>
-          {detectedCount && totalCount ? (
-            <span className="hidden items-center gap-1 rounded-full bg-background/90 px-2.5 py-1 text-xs text-foreground backdrop-blur-sm sm:flex">
-              {detectedCount}/{totalCount} landmarks
-            </span>
-          ) : null}
-          {backgroundRemoved ? (
-            <span className="hidden items-center gap-1 rounded-full bg-background/90 px-2.5 py-1 text-xs text-foreground backdrop-blur-sm sm:flex">
-              <Wand2 className="size-3 text-cobalt-text" />
-              Background removed
-            </span>
-          ) : null}
-        </div>
 
         {/* Toggle overlay button */}
         <div className="absolute top-3 right-3">
@@ -156,18 +136,6 @@ export function PoseOverlay({
           </Button>
         </div>
       </div>
-
-      {lowConfidenceMeasurements.length > 0 ? (
-        <div className="border-t border-border px-4 py-3 text-xs">
-          <p className="flex items-start gap-1.5 text-cobalt-text">
-            <AlertTriangle className="mt-0.5 size-3.5 shrink-0" />
-            <span>
-              <span className="font-medium">Low confidence:</span>{" "}
-              {lowConfidenceMeasurements.join(", ")}. Coral joints were hard to see.
-            </span>
-          </p>
-        </div>
-      ) : null}
 
       <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border p-4 text-xs text-muted-foreground">
         <div>

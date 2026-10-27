@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
-import { Upload, X } from "lucide-react";
+import { useServerFn } from "@tanstack/react-start";
+import { Loader2, Upload, X } from "lucide-react";
 
 import { buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,6 +14,7 @@ import {
   readFileAsDataUrl,
   type OutfitSlot,
 } from "@/lib/outfit";
+import { fetchProductPreview } from "@/lib/product.functions";
 import { cn } from "@/lib/utils";
 
 /** A pasted product link */
@@ -48,17 +50,23 @@ export function GarmentUploadCards({
   garments: GarmentUploads;
   onChange: (garments: GarmentUploads) => void;
 }) {
+  const getPreview = useServerFn(fetchProductPreview);
   const [error, setError] = useState<string | null>(null);
+  const [slotLoading, setSlotLoading] = useState<Partial<Record<OutfitSlot, boolean>>>({});
+  const [slotErrors, setSlotErrors] = useState<Partial<Record<OutfitSlot, string | null>>>({});
+  // Always reference the latest garments snapshot in async callbacks
+  const garmentsRef = useRef(garments);
+  garmentsRef.current = garments;
 
   const upload = async (slot: OutfitSlot, file: File | undefined) => {
     if (!file) return;
     const problem = checkImageFile(file);
     setError(problem);
     if (problem) return;
-    onChange({ ...garments, [slot]: await readFileAsDataUrl(file) });
+    onChange({ ...garmentsRef.current, [slot]: await readFileAsDataUrl(file) });
   };
 
-  /** Saves a pasted link; false (with a message) when it isn't a web address */
+  /** Saves a pasted link then immediately resolves it to a product image server-side */
   const addLink = (slot: OutfitSlot, text: string) => {
     const url = normaliseLink(text);
     if (!url) {
@@ -66,7 +74,24 @@ export function GarmentUploadCards({
       return false;
     }
     setError(null);
-    onChange({ ...garments, [slot]: { type: "link", src: url } });
+    setSlotErrors((prev) => ({ ...prev, [slot]: null }));
+    // Show the domain badge while fetching
+    onChange({ ...garmentsRef.current, [slot]: { type: "link", src: url } });
+    setSlotLoading((prev) => ({ ...prev, [slot]: true }));
+    getPreview({ data: { url } })
+      .then((preview) => {
+        onChange({ ...garmentsRef.current, [slot]: preview.imageDataUrl });
+      })
+      .catch((err: unknown) => {
+        const message =
+          err instanceof Error
+            ? err.message
+            : "Couldn't get an image from this link — try uploading a photo instead.";
+        setSlotErrors((prev) => ({ ...prev, [slot]: message }));
+      })
+      .finally(() => {
+        setSlotLoading((prev) => ({ ...prev, [slot]: false }));
+      });
     return true;
   };
 
@@ -82,9 +107,14 @@ export function GarmentUploadCards({
             key={slot}
             label={OUTFIT_SLOT_LABELS[slot]}
             value={garments[slot]}
+            loading={slotLoading[slot] ?? false}
+            fetchError={slotErrors[slot] ?? null}
             onFile={(file) => void upload(slot, file)}
             onLink={(text) => addLink(slot, text)}
-            onRemove={() => onChange({ ...garments, [slot]: null })}
+            onRemove={() => {
+              setSlotErrors((prev) => ({ ...prev, [slot]: null }));
+              onChange({ ...garmentsRef.current, [slot]: null });
+            }}
           />
         ))}
       </div>
@@ -100,12 +130,16 @@ export function GarmentUploadCards({
 function GarmentCard({
   label,
   value,
+  loading,
+  fetchError,
   onFile,
   onLink,
   onRemove,
 }: {
   label: string;
   value: string | GarmentLink | null;
+  loading: boolean;
+  fetchError: string | null;
   onFile: (file: File | undefined) => void;
   onLink: (text: string) => boolean;
   onRemove: () => void;
@@ -131,23 +165,34 @@ function GarmentCard({
         {label}
       </p>
       <div className="relative aspect-square overflow-hidden rounded-sm bg-foreground/10">
-        {typeof value === "string" ? (
+        {loading ? (
+          <div className="flex size-full flex-col items-center justify-center gap-1.5 p-2">
+            <Loader2 className="size-5 animate-spin text-muted-foreground" />
+            <span className="text-center text-[10px] text-muted-foreground">Fetching image…</span>
+          </div>
+        ) : typeof value === "string" ? (
           <>
             <img src={value} alt={label} className="size-full object-contain p-1" />
             {removeButton("photo")}
           </>
         ) : value ? (
           <>
-            <div className="flex size-full items-center justify-center p-2">
-              <a
-                href={value.src}
-                target="_blank"
-                rel="noreferrer"
-                title={value.src}
-                className="max-w-full truncate rounded-full border border-border bg-background/60 px-2.5 py-1 text-[11px] text-foreground hover:border-cobalt-border"
-              >
-                {linkDomain(value.src)}
-              </a>
+            <div className="flex size-full flex-col items-center justify-center gap-1.5 p-2">
+              {fetchError ? (
+                <p className="text-center text-[10px] leading-tight text-destructive">
+                  {fetchError}
+                </p>
+              ) : (
+                <a
+                  href={value.src}
+                  target="_blank"
+                  rel="noreferrer"
+                  title={value.src}
+                  className="max-w-full truncate rounded-full border border-border bg-background/60 px-2.5 py-1 text-[11px] text-foreground hover:border-cobalt-border"
+                >
+                  {linkDomain(value.src)}
+                </a>
+              )}
             </div>
             {removeButton("link")}
           </>
