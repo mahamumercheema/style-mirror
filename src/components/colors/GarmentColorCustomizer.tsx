@@ -72,6 +72,8 @@ export function GarmentColorCustomizer({
 }: GarmentColorCustomizerProps) {
   const [activeChannel, setActiveChannel] = useState<Channel>("mainBody");
   const [silhouette, setSilhouette] = useState<GarmentSilhouette>("pants");
+  const [uploadedImage, setUploadedImage] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const svgRef = useRef<SVGSVGElement | null>(null);
   /** Ignores a slower, older render that finishes after a newer one */
@@ -149,6 +151,21 @@ export function GarmentColorCustomizer({
     });
   };
 
+  const handleUploadGarmentImage = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      event.target.value = "";
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === "string") setUploadedImage(reader.result);
+    };
+    reader.readAsDataURL(file);
+    event.target.value = "";
+  };
+
   return (
     <div className={cn("surface p-5 space-y-6", className)}>
       {/* Hidden offscreen rendering canvas */}
@@ -198,9 +215,19 @@ export function GarmentColorCustomizer({
         <div className="space-y-3">
           <div className="checkerboard relative aspect-5/6 w-full overflow-hidden rounded-md border border-border/80 p-4 flex items-center justify-center">
             {/* Visual SVG representation for instant responsive layout */}
+            {uploadedImage && (
+              <img
+                src={uploadedImage}
+                alt="Uploaded garment"
+                className="max-h-[360px] w-auto object-contain"
+              />
+            )}
             <svg
               ref={svgRef}
-              className="size-full max-h-[360px] filter drop-shadow-md"
+              className={cn(
+                "size-full max-h-[360px] filter drop-shadow-md",
+                uploadedImage && "hidden",
+              )}
               viewBox={`0 0 ${RENDER_WIDTH} ${RENDER_HEIGHT}`}
               fill="none"
               xmlns="http://www.w3.org/2000/svg"
@@ -466,6 +493,24 @@ export function GarmentColorCustomizer({
               <RotateCcw className="size-3" />
               <span>Refresh Render</span>
             </Button>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              size="sm"
+              onClick={() => fileInputRef.current?.click()}
+              className="text-xs cursor-pointer"
+            >
+              Upload Garment Image
+            </Button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleUploadGarmentImage}
+            />
           </div>
         </div>
 
