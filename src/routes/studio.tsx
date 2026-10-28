@@ -950,7 +950,8 @@ function Studio() {
                       </h3>
                     </div>
                     <p className="text-xs text-muted-foreground mt-0.5">
-                      Explore colour combinations and customise individual garment details.
+                      Upload an image or mood board to extract colours, explore matching palettes, and
+                      customise your garment’s fabric, buttons, trims, and stitching.
                     </p>
                   </div>
                 </div>
