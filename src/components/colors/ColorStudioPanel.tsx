@@ -88,7 +88,7 @@ export function ColorStudioPanel({
           )}
         >
           <Shirt className="size-3.5" />
-          <span></span>
+          <span>Harmonic Color Engine</span>
         </button>
 
         <button
