@@ -55,12 +55,11 @@ export function ColorStudioPanel({
             <span>Interactive Color Wheel & Harmony Studio</span>
           </div>
           <h2 className="mt-1 font-display text-2xl md:text-3xl">
-            Garment Palette & Bespoke Details
+            Garment Colour Studio
           </h2>
           <p className="mt-1 text-xs sm:text-sm text-muted-foreground max-w-2xl leading-relaxed">
-            Extract color wheels from mood boards or photos, explore complementary, triadic, and
-            analogous harmonies, and assign distinct hues directly to the garment’s main body,
-            trims, buttons, and stitching.
+            Explore garment colours, discover harmonious colour combinations, and customise the main
+            fabric, trims, buttons, and stitching to create your preferred look.
           </p>
         </div>
 
@@ -89,7 +88,7 @@ export function ColorStudioPanel({
           )}
         >
           <Shirt className="size-3.5" />
-          <span>Garment Channels (Body, Trims, Buttons, Stitching)</span>
+          <span></span>
         </button>
 
         <button
@@ -102,7 +101,7 @@ export function ColorStudioPanel({
               : "bg-secondary/40 text-muted-foreground hover:bg-secondary hover:text-foreground",
           )}
         >
-          <span>Color Wheel & Harmonies (Complementary / Triadic / Analogous)</span>
+          <span></span>
         </button>
 
         <button
@@ -115,7 +114,7 @@ export function ColorStudioPanel({
               : "bg-secondary/40 text-muted-foreground hover:bg-secondary hover:text-foreground",
           )}
         >
-          <span>Mood Board & Image Extraction</span>
+          <span></span>
         </button>
       </div>
 

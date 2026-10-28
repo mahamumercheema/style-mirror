@@ -951,13 +951,9 @@ function Studio() {
                       <h3 className="font-display text-base font-semibold">
                         Bespoke Garment Palette & Color Studio
                       </h3>
-                      <span className="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full bg-primary/10 text-cobalt-text">
-                        Dynamic Wheel
-                      </span>
                     </div>
                     <p className="text-xs text-muted-foreground mt-0.5">
-                      Customize Main Body, Trims, Buttons, and Stitching with dynamic complementary,
-                      triadic, and analogous harmonies.
+                      Explore colour combinations and customise individual garment details.
                     </p>
                   </div>
                 </div>
