@@ -943,9 +943,6 @@ function Studio() {
             <div className="space-y-4">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-md border border-primary/20 bg-primary/5 p-4">
                 <div className="flex items-center gap-3">
-                  <div className="flex size-10 items-center justify-center rounded-md border border-cobalt-border bg-transparent text-cobalt-text">
-                    <Palette className="size-5" />
-                  </div>
                   <div>
                     <div className="flex items-center gap-2">
                       <h3 className="font-display text-base font-semibold">
