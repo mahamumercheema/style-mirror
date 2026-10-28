@@ -8,9 +8,16 @@ import { generateTryOn, type TryOnResult } from "@/lib/tryon.functions";
 
 const MAX_EDGE = 1024;
 
-/** Shrinks a data-URL image to at most 1024px on its long edge (JPEG). URLs pass through. */
+/** Shrinks a data-URL image to at most 1024px on its long edge only when needed. The original
+ *  bytes (and format/transparency) are preserved whenever they are already small enough, so
+ *  garment reference images are not re-encoded or flattened. */
 export async function prepareImage(src: string) {
   if (!src.startsWith("data:")) return src;
+  const base64 = src.match(/^data:[\w/+.-]+;base64,(.+)$/s)?.[1];
+  if (base64) {
+    const approxBytes = Math.ceil((base64.length * 3) / 4);
+    if (approxBytes <= 6 * 1024 * 1024) return src;
+  }
   const img = new Image();
   img.src = src;
   await img.decode();
@@ -20,10 +27,10 @@ export async function prepareImage(src: string) {
   canvas.height = Math.round(img.naturalHeight * ratio);
   const ctx = canvas.getContext("2d");
   if (!ctx) return src;
-  ctx.fillStyle = "#ffffff"; // flatten transparent PNGs onto white
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
   ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-  return canvas.toDataURL("image/jpeg", 0.92);
+  const mime = src.match(/^data:([\w/+.-]+);base64,/)?.[1] ?? "image/png";
+  const outMime = mime === "image/jpeg" ? "image/jpeg" : "image/png";
+  return canvas.toDataURL(outMime, 0.95);
 }
 
 /** Leffa's working resolution (3:4). */
