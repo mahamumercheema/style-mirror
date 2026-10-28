@@ -1008,7 +1008,7 @@ function OutfitFrame({ outfit }: { outfit: OutfitPayload }) {
       </div>
       <div data-frame="garment" className={cn(IMAGE_FRAME, "bg-foreground/10")}>
         {pieces.length > 0 ? (
-          <div className="absolute inset-0 grid auto-rows-fr grid-cols-2 gap-px overflow-y-auto bg-border">
+          <div className={cn("absolute inset-0 grid auto-rows-fr gap-px overflow-y-auto bg-border", pieces.length === 1 ? "grid-cols-1" : "grid-cols-2")}>
             {pieces.map((slot) => {
               const item = outfit[slot]!;
               const image = itemImage(item);
@@ -1018,7 +1018,7 @@ function OutfitFrame({ outfit }: { outfit: OutfitPayload }) {
                     <img
                       src={image}
                       alt={OUTFIT_SLOT_LABELS[slot]}
-                      className="absolute inset-0 size-full object-contain p-3 pt-8"
+                      className="absolute inset-0 size-full object-contain p-2 pt-7"
                     />
                   ) : (
                     <div className="absolute inset-0 flex items-center justify-center p-3">
